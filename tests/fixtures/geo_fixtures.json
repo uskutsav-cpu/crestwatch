@@ -1,0 +1,85 @@
+{
+  "comment": "Recorded live from Census geocoder + USGS EPQS on 2026-08-25. Expected elevations checked ±2 ft.",
+  "addresses": [
+    {
+      "input": "1400 Washington St, Vicksburg, MS",
+      "census": {
+        "result": {
+          "addressMatches": [
+            {
+              "matchedAddress": "1400 WASHINGTON ST, VICKSBURG, MS, 39180",
+              "coordinates": { "x": -90.882368787159, "y": 32.349033641592 }
+            }
+          ]
+        }
+      },
+      "epqs": { "location": { "x": -90.882368787159, "y": 32.349033641592 }, "value": 193.11896764306138 },
+      "expect": { "lat": 32.349033641592, "lon": -90.882368787159, "elevationFt": 193.1 }
+    },
+    {
+      "input": "211 E Broadway St, Yazoo City, MS",
+      "census": {
+        "result": {
+          "addressMatches": [
+            {
+              "matchedAddress": "211 E BROADWAY ST, YAZOO CITY, MS, 39194",
+              "coordinates": { "x": -90.412396914911, "y": 32.846783396348 }
+            }
+          ]
+        }
+      },
+      "epqs": { "location": { "x": -90.412396914911, "y": 32.846783396348 }, "value": 124.32014933257535 },
+      "expect": { "lat": 32.846783396348, "lon": -90.412396914911, "elevationFt": 124.3 }
+    },
+    {
+      "input": "100 E Capitol St, Jackson, MS",
+      "census": {
+        "result": {
+          "addressMatches": [
+            {
+              "matchedAddress": "100 E CAPITOL ST, JACKSON, MS, 39201",
+              "coordinates": { "x": -90.188419699815, "y": 32.300441828077 }
+            }
+          ]
+        }
+      },
+      "epqs": { "location": { "x": -90.188419699815, "y": 32.300441828077 }, "value": 275.46062499912296 },
+      "expect": { "lat": 32.300441828077, "lon": -90.188419699815, "elevationFt": 275.5 }
+    },
+    {
+      "input": "340 Main St, Greenville, MS",
+      "census": {
+        "result": {
+          "addressMatches": [
+            {
+              "matchedAddress": "340 S MAIN ST, GREENVILLE, MS, 38701",
+              "coordinates": { "x": -91.053165924363, "y": 33.404075498303 }
+            }
+          ]
+        }
+      },
+      "epqs": { "location": { "x": -91.053165924363, "y": 33.404075498303 }, "value": 126.05369650747143 },
+      "expect": { "lat": 33.404075498303, "lon": -91.053165924363, "elevationFt": 126.1 }
+    },
+    {
+      "input": "63 Walnut St, Rolling Fork, MS",
+      "census": {
+        "result": {
+          "addressMatches": [
+            {
+              "matchedAddress": "63 WALNUT ST, ROLLING FORK, MS, 39159",
+              "coordinates": { "x": -90.87486015929, "y": 32.908491588415 }
+            }
+          ]
+        }
+      },
+      "epqs": { "location": { "x": -90.87486015929, "y": 32.908491588415 }, "value": 105.28125498973496 },
+      "expect": { "lat": 32.908491588415, "lon": -90.87486015929, "elevationFt": 105.3 }
+    }
+  ],
+  "noMatch": {
+    "input": "zzz not a real place xx, Nowhere ZZ",
+    "census": { "result": { "addressMatches": [] } }
+  },
+  "epqsNoData": { "value": -1000000 }
+}
