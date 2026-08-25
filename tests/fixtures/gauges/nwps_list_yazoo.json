@@ -1,0 +1,324 @@
+{
+  "gauges":  [
+    {
+      "lid":  "ANGM6",
+      "name":  "Big Sunflower River near Anguilla",
+      "rfc":  {
+        "abbreviation":  "LMRFC",
+        "name":  "Lower Mississippi River Forecast Center"
+      },
+      "wfo":  {
+        "abbreviation":  "JAN",
+        "name":  "Jackson"
+      },
+      "state":  {
+        "abbreviation":  "MS",
+        "name":  "Mississippi"
+      },
+      "latitude":  32.9717,
+      "longitude":  -90.777,
+      "pedts":  {
+        "observed":  "HGIRG",
+        "forecast":  "HGIFF"
+      },
+      "status":  {
+        "observed":  {
+          "primary":  22.76,
+          "primaryUnit":  "ft",
+          "secondary":  0.49,
+          "secondaryUnit":  "kcfs",
+          "floodCategory":  "no_flooding",
+          "validTime":  "2026-08-25T04:00:00Z"
+        },
+        "forecast":  {
+          "primary":  22.7,
+          "primaryUnit":  "ft",
+          "secondary":  0.481,
+          "secondaryUnit":  "kcfs",
+          "floodCategory":  "no_flooding",
+          "validTime":  "2026-08-25T06:00:00Z"
+        }
+      }
+    },
+    {
+      "lid":  "BELM6",
+      "name":  "Yazoo River at Belzoni",
+      "rfc":  {
+        "abbreviation":  "LMRFC",
+        "name":  "Lower Mississippi River Forecast Center"
+      },
+      "wfo":  {
+        "abbreviation":  "JAN",
+        "name":  "Jackson"
+      },
+      "state":  {
+        "abbreviation":  "MS",
+        "name":  "Mississippi"
+      },
+      "latitude":  33.16471,
+      "longitude":  -90.49431,
+      "pedts":  {
+        "observed":  "HGIRG",
+        "forecast":  "HGIFF"
+      },
+      "status":  {
+        "observed":  {
+          "primary":  11.07,
+          "primaryUnit":  "ft",
+          "secondary":  3.84,
+          "secondaryUnit":  "kcfs",
+          "floodCategory":  "no_flooding",
+          "validTime":  "2026-08-25T04:00:00Z"
+        },
+        "forecast":  {
+          "primary":  11.1,
+          "primaryUnit":  "ft",
+          "secondary":  3.86,
+          "secondaryUnit":  "kcfs",
+          "floodCategory":  "no_flooding",
+          "validTime":  "2026-08-25T18:00:00Z"
+        }
+      }
+    },
+    {
+      "lid":  "BTAM6",
+      "name":  "Big Black River near Bentonia",
+      "rfc":  {
+        "abbreviation":  "LMRFC",
+        "name":  "Lower Mississippi River Forecast Center"
+      },
+      "wfo":  {
+        "abbreviation":  "JAN",
+        "name":  "Jackson"
+      },
+      "state":  {
+        "abbreviation":  "MS",
+        "name":  "Mississippi"
+      },
+      "latitude":  32.603055,
+      "longitude":  -90.36388,
+      "pedts":  {
+        "observed":  "HGIRG",
+        "forecast":  "HGIFF"
+      },
+      "status":  {
+        "observed":  {
+          "primary":  4.87,
+          "primaryUnit":  "ft",
+          "secondary":  0.198,
+          "secondaryUnit":  "kcfs",
+          "floodCategory":  "no_flooding",
+          "validTime":  "2026-08-25T04:00:00Z"
+        },
+        "forecast":  {
+          "primary":  5.3,
+          "primaryUnit":  "ft",
+          "secondary":  0.26,
+          "secondaryUnit":  "kcfs",
+          "floodCategory":  "no_flooding",
+          "validTime":  "2026-08-26T18:00:00Z"
+        }
+      }
+    },
+    {
+      "lid":  "HOGM6",
+      "name":  "Big Sunflower River at Holly Bluff",
+      "rfc":  {
+        "abbreviation":  "LMRFC",
+        "name":  "Lower Mississippi River Forecast Center"
+      },
+      "wfo":  {
+        "abbreviation":  "JAN",
+        "name":  "Jackson"
+      },
+      "state":  {
+        "abbreviation":  "MS",
+        "name":  "Mississippi"
+      },
+      "latitude":  32.8147222222222,
+      "longitude":  -90.7180555555556,
+      "pedts":  {
+        "observed":  "HGIRG",
+        "forecast":  ""
+      },
+      "status":  {
+        "observed":  {
+          "primary":  69.66,
+          "primaryUnit":  "ft",
+          "secondary":  -999,
+          "secondaryUnit":  "kcfs",
+          "floodCategory":  "no_flooding",
+          "validTime":  "2026-08-25T04:00:00Z"
+        },
+        "forecast":  {
+          "primary":  -999,
+          "primaryUnit":  "",
+          "secondary":  -999,
+          "secondaryUnit":  "",
+          "floodCategory":  "fcst_not_current",
+          "validTime":  "0001-01-01T00:00:00Z"
+        }
+      }
+    },
+    {
+      "lid":  "LCGM6",
+      "name":  "Big Sunflower River at Little Calio Lndg (belzoni)",
+      "rfc":  {
+        "abbreviation":  "LMRFC",
+        "name":  "Lower Mississippi River Forecast Center"
+      },
+      "wfo":  {
+        "abbreviation":  "JAN",
+        "name":  "Jackson"
+      },
+      "state":  {
+        "abbreviation":  "MS",
+        "name":  "Mississippi"
+      },
+      "latitude":  33.1838888888889,
+      "longitude":  -90.6861111111111,
+      "pedts":  {
+        "observed":  "HGIRG",
+        "forecast":  ""
+      },
+      "status":  {
+        "observed":  {
+          "primary":  17.5,
+          "primaryUnit":  "ft",
+          "secondary":  0.637,
+          "secondaryUnit":  "kcfs",
+          "floodCategory":  "not_defined",
+          "validTime":  "2026-08-25T04:00:00Z"
+        },
+        "forecast":  {
+          "primary":  -999,
+          "primaryUnit":  "",
+          "secondary":  -999,
+          "secondaryUnit":  "",
+          "floodCategory":  "fcst_not_current",
+          "validTime":  "0001-01-01T00:00:00Z"
+        }
+      }
+    },
+    {
+      "lid":  "WLFM6",
+      "name":  "Wolf Lake at Wolf Lake at Highway 149",
+      "rfc":  {
+        "abbreviation":  "LMRFC",
+        "name":  "Lower Mississippi River Forecast Center"
+      },
+      "wfo":  {
+        "abbreviation":  "JAN",
+        "name":  "Jackson"
+      },
+      "state":  {
+        "abbreviation":  "MS",
+        "name":  "Mississippi"
+      },
+      "latitude":  32.8963,
+      "longitude":  -90.5441,
+      "pedts":  {
+        "observed":  "HPIRG",
+        "forecast":  ""
+      },
+      "status":  {
+        "observed":  {
+          "primary":  86.79,
+          "primaryUnit":  "ft",
+          "secondary":  -999,
+          "secondaryUnit":  "kcfs",
+          "floodCategory":  "not_defined",
+          "validTime":  "2026-08-25T04:00:00Z"
+        },
+        "forecast":  {
+          "primary":  -999,
+          "primaryUnit":  "",
+          "secondary":  -999,
+          "secondaryUnit":  "",
+          "floodCategory":  "fcst_not_current",
+          "validTime":  "0001-01-01T00:00:00Z"
+        }
+      }
+    },
+    {
+      "lid":  "YRSM6",
+      "name":  "Yazoo River at Satartia",
+      "rfc":  {
+        "abbreviation":  "LMRFC",
+        "name":  "Lower Mississippi River Forecast Center"
+      },
+      "wfo":  {
+        "abbreviation":  "JAN",
+        "name":  "Jackson"
+      },
+      "state":  {
+        "abbreviation":  "MS",
+        "name":  "Mississippi"
+      },
+      "latitude":  32.6725,
+      "longitude":  -90.548333,
+      "pedts":  {
+        "observed":  "HGIRG",
+        "forecast":  ""
+      },
+      "status":  {
+        "observed":  {
+          "primary":  10.35,
+          "primaryUnit":  "ft",
+          "secondary":  -999,
+          "secondaryUnit":  "kcfs",
+          "floodCategory":  "not_defined",
+          "validTime":  "2026-08-25T03:00:00Z"
+        },
+        "forecast":  {
+          "primary":  -999,
+          "primaryUnit":  "",
+          "secondary":  -999,
+          "secondaryUnit":  "",
+          "floodCategory":  "fcst_not_current",
+          "validTime":  "0001-01-01T00:00:00Z"
+        }
+      }
+    },
+    {
+      "lid":  "YZOM6",
+      "name":  "Yazoo River at Yazoo City",
+      "rfc":  {
+        "abbreviation":  "LMRFC",
+        "name":  "Lower Mississippi River Forecast Center"
+      },
+      "wfo":  {
+        "abbreviation":  "JAN",
+        "name":  "Jackson"
+      },
+      "state":  {
+        "abbreviation":  "MS",
+        "name":  "Mississippi"
+      },
+      "latitude":  32.8579,
+      "longitude":  -90.4368,
+      "pedts":  {
+        "observed":  "HGIRG",
+        "forecast":  "HGIFF"
+      },
+      "status":  {
+        "observed":  {
+          "primary":  8.92,
+          "primaryUnit":  "ft",
+          "secondary":  3.95,
+          "secondaryUnit":  "kcfs",
+          "floodCategory":  "no_flooding",
+          "validTime":  "2026-08-25T04:00:00Z"
+        },
+        "forecast":  {
+          "primary":  9.3,
+          "primaryUnit":  "ft",
+          "secondary":  4.16,
+          "secondaryUnit":  "kcfs",
+          "floodCategory":  "no_flooding",
+          "validTime":  "2026-08-26T06:00:00Z"
+        }
+      }
+    }
+  ]
+}
