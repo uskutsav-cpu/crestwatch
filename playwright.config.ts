@@ -2,6 +2,9 @@ import { defineConfig, devices } from "@playwright/test";
 
 export default defineConfig({
   testDir: "./e2e",
+  // The screenshot capture is a tool, not a test — run it on demand with
+  // `npm run screenshots`, not on every CI pass.
+  testIgnore: "**/screenshots.spec.ts",
   fullyParallel: false,
   retries: 0,
   reporter: [["list"]],
