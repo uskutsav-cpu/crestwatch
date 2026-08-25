@@ -51,3 +51,6 @@ next-env.d.ts
 **/zz*
 **/__scratch*
 tests/_*.test.ts
+
+# review-agent scratch dirs
+**/_scratch*/
