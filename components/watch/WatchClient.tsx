@@ -6,7 +6,9 @@
 
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
+import { useMemo, useState } from "react";
 import { copy } from "@/lib/copy";
+import { decodeWatchLink, encodeWatchLink } from "@/lib/watch-link";
 import { useWatches } from "@/lib/use-watch";
 import { crestCompare } from "@/lib/crest-compare";
 import { verdictSentence } from "@/lib/sentences";
@@ -48,7 +50,13 @@ function fmtTime(iso: string): string {
 
 export function WatchClient() {
   const params = useSearchParams();
-  const { pins, watches, now, loading, error } = useWatches();
+  // Watch Link: pins arrive in the URL, nothing is saved on this device.
+  const linkedPins = useMemo(() => {
+    const wl = params.get("wl");
+    return wl ? decodeWatchLink(wl) : null;
+  }, [params]);
+  const { pins, watches, now, loading, error } = useWatches(linkedPins);
+  const [copied, setCopied] = useState(false);
 
   if (!loading && pins.length === 0) {
     return (
@@ -203,10 +211,29 @@ export function WatchClient() {
             </div>
           }
         />
+        <button
+          onClick={() => {
+            const url = `${window.location.origin}/watch?wl=${encodeWatchLink([pin])}`;
+            void navigator.clipboard?.writeText(url).then(() => {
+              setCopied(true);
+              setTimeout(() => setCopied(false), 2000);
+            });
+          }}
+          className="text-small font-semibold text-dim hover:text-(--color-current)"
+        >
+          {copied ? "Link copied ✓" : "Copy watch link"}
+        </button>
         <Link href="/places" className="text-dim hover:text-(--color-current)">
           {copy.placesTitle} →
         </Link>
       </div>
+
+      {linkedPins && (
+        <p className="text-small text-dim">
+          You&apos;re viewing a shared watch link — nothing was saved on this
+          device.
+        </p>
+      )}
     </div>
   );
 }

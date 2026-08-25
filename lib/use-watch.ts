@@ -22,7 +22,11 @@ export interface WatchState {
   refresh: () => void;
 }
 
-export function useWatches(): WatchState {
+/**
+ * `overridePins` (a decoded Watch Link) replaces localStorage — the
+ * recipient sees the sender's places without saving anything.
+ */
+export function useWatches(overridePins: Pin[] | null = null): WatchState {
   const [pins, setPins] = useState<Pin[]>([]);
   const [watches, setWatches] = useState<PinWatch[]>([]);
   const [now, setNow] = useState<string | null>(null);
@@ -31,7 +35,7 @@ export function useWatches(): WatchState {
   const [error, setError] = useState(false);
 
   const refresh = useCallback(() => {
-    const current = loadPins();
+    const current = overridePins ?? loadPins();
     setPins(current);
     if (current.length === 0) {
       setWatches([]);
@@ -64,7 +68,7 @@ export function useWatches(): WatchState {
       }
       setLoading(false);
     })();
-  }, []);
+  }, [overridePins]);
 
   useEffect(() => {
     refresh();
