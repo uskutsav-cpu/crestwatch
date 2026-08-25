@@ -41,7 +41,16 @@ touches a server we control — we don't have one worth the name.
 
 ## Deploy
 
-One Vercel hobby project, no env vars. Full steps land here at T13.
+**Live:** https://crestwatch-kalamadalas-projects.vercel.app
+
+Self-deploy in under 10 minutes — there is nothing to configure:
+
+1. Fork or clone this repo to your GitHub account.
+2. [vercel.com](https://vercel.com) → Add New Project → import the repo.
+   Framework auto-detects as Next.js. **No environment variables. None.**
+3. Deploy. Every push to `main` redeploys production automatically.
+
+Total monthly cost: $0 (Vercel hobby + free federal APIs).
 
 ## Disclosure
 
