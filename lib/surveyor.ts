@@ -93,9 +93,18 @@ function staleness(
   nowMs: number,
 ): Staleness {
   const lastObs = observed.at(-1);
-  const observedH = lastObs ? (nowMs - Date.parse(lastObs.t)) / HOUR_MS : null;
+  const rawObservedH = lastObs
+    ? (nowMs - Date.parse(lastObs.t)) / HOUR_MS
+    : null;
+  const rawForecastH =
+    forecastIssued !== null
+      ? (nowMs - Date.parse(forecastIssued)) / HOUR_MS
+      : null;
+  // Unparseable timestamps must read as stale, never as fresh.
+  const observedH =
+    rawObservedH !== null && Number.isFinite(rawObservedH) ? rawObservedH : null;
   const forecastH =
-    forecastIssued !== null ? (nowMs - Date.parse(forecastIssued)) / HOUR_MS : null;
+    rawForecastH !== null && Number.isFinite(rawForecastH) ? rawForecastH : null;
   return {
     observedH,
     forecastH,
@@ -165,12 +174,16 @@ export function survey(input: SurveyInput): Verdict {
   const observed = sortSeries(gauge.observed);
   const stale = staleness(observed, gauge.forecastIssued, nowMs);
 
-  // Forecast peak (stage domain — shared by both tiers).
-  let peakIdx = 0;
-  for (let i = 1; i < forecast.length; i++) {
-    if (forecast[i].stageFt > forecast[peakIdx].stageFt) peakIdx = i;
+  // Forecast peak (stage domain — shared by both tiers). NWPS series keep
+  // valid times before "now"; a bygone first crest must not hide a second
+  // crest still coming, so the peak is the max over FUTURE points whenever
+  // any exist (falling back to the whole series for fully-past forecasts).
+  const future = forecast.filter((p) => Date.parse(p.t) > nowMs);
+  const peakPool = future.length > 0 ? future : forecast;
+  let peakStage = peakPool[0];
+  for (const p of peakPool) {
+    if (p.stageFt > peakStage.stageFt) peakStage = p;
   }
-  const peakStage = forecast[peakIdx];
 
   const lastObs = observed.at(-1) ?? null;
 
@@ -202,12 +215,13 @@ export function survey(input: SurveyInput): Verdict {
   const currentlyAbove =
     currentWaterElevFt !== null && currentWaterElevFt >= pinElevationFt;
 
-  // Crossing path: last observed point bridges into the forecast.
+  // Crossing path: last observed point bridges into the FUTURE forecast
+  // points (past forecast points would create reversed-time segments).
   const path: Array<{ tMs: number; elev: number }> = [];
   if (lastObs) {
     path.push({ tMs: Date.parse(lastObs.t), elev: zero + lastObs.stageFt });
   }
-  for (const p of forecast) {
+  for (const p of future) {
     path.push({ tMs: Date.parse(p.t), elev: zero + p.stageFt });
   }
   const cross = risingCrossing(path, pinElevationFt, nowMs);
@@ -219,13 +233,12 @@ export function survey(input: SurveyInput): Verdict {
           hoursFromNow: Math.round((cross.tMs - nowMs) / HOUR_MS),
         };
 
-  // Past peak: the forecast's high point is its first point (or already
-  // behind us) and the water isn't forecast to climb back above it.
+  // Past peak = nothing higher is ahead: either the forecast holds no
+  // future points at all, or everything still coming stays at or below
+  // the current water level (the river is genuinely on its way down).
   const pastPeak =
-    Date.parse(peakStage.t) <= nowMs ||
-    (peakIdx === 0 &&
-      currentWaterElevFt !== null &&
-      currentWaterElevFt >= peakWaterElev);
+    future.length === 0 ||
+    (currentWaterElevFt !== null && peakWaterElev <= currentWaterElevFt);
 
   return {
     tier: "FULL",

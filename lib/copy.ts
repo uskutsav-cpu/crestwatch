@@ -79,6 +79,12 @@ export const copy = {
     `The ${river} peaks ${day} at ${stage} ft. ${pin} stays dry by about ${margin} ft.`,
   verdictCategory: (x: string, gauge: string, category: string) =>
     `The forecast crest is ${x} ft above flood stage at ${gauge} — the Weather Service calls that ${category} flooding for low areas nearby. CrestWatch can't do house-level math here (this gauge doesn't publish its elevation), so treat low roads as wet.`,
+  verdictCategoryNoMargin: (gauge: string, category: string) =>
+    `The forecast crest reaches ${category} flooding at ${gauge}. CrestWatch can't do house-level math here (this gauge doesn't publish its elevation), so treat low roads as wet.`,
+  verdictCategoryAction: (gauge: string) =>
+    `The forecast crest comes close to flood stage at ${gauge} — worth watching. CrestWatch can't do house-level math here (this gauge doesn't publish its elevation).`,
+  verdictLikelyNow: (pin: string, river: string) =>
+    `${pin} is in the water now, and the ${river} is still up. Stay off flooded roads and check back after the next forecast.`,
   verdictAlertOnly:
     "No forecast gauge watches this spot. CrestWatch works on rivers with gauges — for rain-driven flash flooding, your county alerts are the right tool.",
   staleness: (n: number) =>

@@ -25,6 +25,12 @@ export async function cached<T>(
     for (const [k, v] of store) {
       if (v.expiresAt <= now) store.delete(k);
     }
+    // Hard cap even when every entry is fresh: evict oldest-inserted.
+    while (store.size > 5_000) {
+      const oldest = store.keys().next().value;
+      if (oldest === undefined) break;
+      store.delete(oldest);
+    }
   }
   return value;
 }

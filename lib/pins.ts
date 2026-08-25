@@ -12,3 +12,42 @@ export interface Pin {
   lon: number;
   elevationFt: number;
 }
+
+/**
+ * Strip control and bidi-override characters — a hostile watch-link name
+ * must not be able to visually reorder a verdict sentence or share card.
+ */
+const CONTROL_AND_BIDI = new RegExp(
+  "[\\u0000-\\u001F\\u007F\\u200B-\\u200F\\u202A-\\u202E\\u2066-\\u2069]",
+  "g",
+);
+
+export function sanitizeName(raw: string): string {
+  return raw.replace(CONTROL_AND_BIDI, "").trim();
+}
+
+/** Shared shape guard — used by the API route, pin storage, and links. */
+export function isPin(p: unknown): p is Pin {
+  if (typeof p !== "object" || p === null) return false;
+  const pin = p as Record<string, unknown>;
+  return (
+    typeof pin.id === "string" &&
+    pin.id.length > 0 &&
+    pin.id.length <= 40 &&
+    typeof pin.name === "string" &&
+    pin.name.length > 0 &&
+    pin.name.length <= 80 &&
+    typeof pin.matchedAddress === "string" &&
+    pin.matchedAddress.length <= 200 &&
+    typeof pin.lat === "number" &&
+    Number.isFinite(pin.lat) &&
+    Math.abs(pin.lat) <= 90 &&
+    typeof pin.lon === "number" &&
+    Number.isFinite(pin.lon) &&
+    Math.abs(pin.lon) <= 180 &&
+    typeof pin.elevationFt === "number" &&
+    Number.isFinite(pin.elevationFt) &&
+    pin.elevationFt > -400 &&
+    pin.elevationFt < 30_000
+  );
+}

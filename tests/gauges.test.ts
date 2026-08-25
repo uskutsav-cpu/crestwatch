@@ -206,6 +206,32 @@ describe("parseAltVa + datum sanity", () => {
     expect(parseAltVa("# only comments\n")).toBeNull();
   });
 
+  it("picks the requested site from a multi-row RDB", () => {
+    const rdb = [
+      "agency_cd\tsite_no\talt_va\talt_datum_cd",
+      "5s\t15s\t8s\t10s",
+      "USGS\t11111111\t 99.99\tNAVD88",
+      "USGS\t02486000\t 233.39\tNAVD88",
+    ].join("\n");
+    expect(parseAltVa(rdb, "02486000")).toEqual({
+      altVaFt: 233.39,
+      datum: "NAVD88",
+    });
+    // Without a site hint it takes the first real data row, not the
+    // format row.
+    expect(parseAltVa(rdb)).toEqual({ altVaFt: 99.99, datum: "NAVD88" });
+  });
+
+  it("skips rows whose alt_va is blank", () => {
+    const rdb = [
+      "agency_cd\tsite_no\talt_va\talt_datum_cd",
+      "5s\t15s\t8s\t10s",
+      "USGS\t11111111\t\t",
+      "USGS\t22222222\t 55.50\tNGVD29",
+    ].join("\n");
+    expect(parseAltVa(rdb)).toEqual({ altVaFt: 55.5, datum: "NGVD29" });
+  });
+
   it("flags an absurd gauge-zero as insane", () => {
     // Pearl at Jackson: 233.39 + ~3 ft stage vs a ~276 ft pin → sane.
     expect(datumLooksSane(233.39, 3.2, 275.5)).toBe(true);

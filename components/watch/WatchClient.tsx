@@ -183,11 +183,21 @@ export function WatchClient() {
 
       {/* Active flood alerts (all tiers — additive context) */}
       <AlertStrip alerts={watch.alerts} />
+      {verdict.tier === "ALERT_ONLY" && !watch.alertsOk && (
+        <p className="rounded-xl border border-risewatch/60 bg-surface p-3 text-small">
+          CrestWatch couldn&apos;t reach the alert service just now — that is
+          not an all-clear. Check weather.gov directly.
+        </p>
+      )}
 
       {/* Links + share */}
       <div className="flex flex-wrap items-center gap-4">
         <Link
-          href={`/why?pin=${pin.id}`}
+          href={
+            linkedPins
+              ? `/why?pin=${pin.id}&wl=${params.get("wl")}`
+              : `/why?pin=${pin.id}`
+          }
           className="font-semibold text-(--color-current)"
         >
           {copy.whyLink}

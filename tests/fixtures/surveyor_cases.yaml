@@ -231,3 +231,19 @@ cases:
     categories: { action: 28, minor: 29, moderate: 36, major: 43 }
     forecastIssuedH: null
     expect: { tier: CATEGORY, staleForecast: true }
+
+  # Double-crest: a bygone first crest (water 120 @ -12h) must not hide
+  # the second crest still coming (118 @ +24h). The verdict keys off the
+  # FUTURE peak, pastPeak stays false, and the crossing is reported.
+  - name: full-double-crest-past-max-does-not-hide-coming-crest
+    pinElev: 117
+    observed: [[-1, 22.0]]
+    forecast: [[-12, 30.0], [-6, 25.0], [0, 22.0], [12, 24.0], [24, 28.0], [36, 26.0]]
+    expect: { tier: FULL, band: LIKELY, margin: -1.0, crossingH: 21, pastPeak: false, currentlyAbove: false }
+
+  # A pin above the coming crest but below the bygone one is DRY.
+  - name: full-double-crest-margin-vs-future-peak
+    pinElev: 119
+    observed: [[-1, 22.0]]
+    forecast: [[-12, 30.0], [-6, 25.0], [0, 22.0], [12, 24.0], [24, 28.0], [36, 26.0]]
+    expect: { tier: FULL, band: BORDERLINE, margin: 1.0, crossingH: null, pastPeak: false }

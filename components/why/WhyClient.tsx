@@ -8,7 +8,9 @@
 
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
+import { useMemo } from "react";
 import { copy } from "@/lib/copy";
+import { decodeWatchLink } from "@/lib/watch-link";
 import { useWatches } from "@/lib/use-watch";
 import { StatChart } from "@/components/why/StatChart";
 import { LiveDot, TierBadge } from "@/components/ui";
@@ -37,7 +39,12 @@ function Row({ label, value, op }: { label: string; value: string; op?: string }
 
 export function WhyClient() {
   const params = useSearchParams();
-  const { pins, watches, loading } = useWatches();
+  // A shared watch link keeps working on the Why hop.
+  const linkedPins = useMemo(() => {
+    const wl = params.get("wl");
+    return wl ? decodeWatchLink(wl) : null;
+  }, [params]);
+  const { pins, watches, loading } = useWatches(linkedPins);
 
   const pin = pins.find((p) => p.id === params.get("pin")) ?? pins[0];
   const watch = watches.find((w) => w.pinId === pin?.id);
@@ -94,9 +101,14 @@ export function WhyClient() {
                 </li>
               ))}
             </ul>
-          ) : (
+          ) : watch.alertsOk ? (
             <p className="text-small text-dim">
               No flood alerts are active for this spot right now.
+            </p>
+          ) : (
+            <p className="rounded-xl border border-risewatch/60 bg-surface p-3 text-small">
+              CrestWatch couldn&apos;t reach the alert service just now — that
+              is not an all-clear. Check weather.gov directly.
             </p>
           )}
           <a
@@ -231,7 +243,14 @@ export function WhyClient() {
         </div>
       )}
 
-      <Link href={`/watch?pin=${pin.id}`} className="text-dim hover:text-(--color-current)">
+      <Link
+        href={
+          linkedPins
+            ? `/watch?pin=${pin.id}&wl=${params.get("wl")}`
+            : `/watch?pin=${pin.id}`
+        }
+        className="text-dim hover:text-(--color-current)"
+      >
         ← Back to the watch
       </Link>
     </div>

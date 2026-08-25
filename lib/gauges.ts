@@ -150,6 +150,9 @@ interface StageflowSeries {
 }
 
 export function parseStageflowSeries(s: StageflowSeries | undefined | null): SeriesPoint[] {
+  // A "primary" that isn't stage-in-feet (some gauges lead with flow in
+  // kcfs) must not masquerade as feet — the tier ladder handles absence.
+  if (s?.primaryUnits && s.primaryUnits !== "ft") return [];
   const out: SeriesPoint[] = [];
   for (const p of s?.data ?? []) {
     if (
@@ -181,21 +184,37 @@ export function parseIvSeries(data: unknown): SeriesPoint[] {
   return out;
 }
 
-/** Parse gauge-zero elevation + vertical datum from USGS site RDB text. */
+/**
+ * Parse gauge-zero elevation + vertical datum from USGS site RDB text.
+ * Robust to multi-row responses: matches the requested site number when
+ * given, and always skips the RDB format row ("5s\t15s\t…") wherever it
+ * falls rather than assuming a fixed line index.
+ */
 export function parseAltVa(
   rdb: string,
+  site?: string,
 ): { altVaFt: number; datum: string | null } | null {
   const lines = rdb.split("\n").filter((l) => l && !l.startsWith("#"));
   if (lines.length < 3) return null;
   const cols = lines[0].split("\t");
   const iAlt = cols.indexOf("alt_va");
   const iDatum = cols.indexOf("alt_datum_cd");
+  const iSite = cols.indexOf("site_no");
   if (iAlt < 0) return null;
-  const row = lines[2].split("\t");
-  const altVaFt = parseFloat((row[iAlt] ?? "").trim());
-  if (!Number.isFinite(altVaFt)) return null;
-  const datum = (row[iDatum] ?? "").trim();
-  return { altVaFt, datum: datum || null };
+
+  const isFormatRow = (cells: string[]) =>
+    cells.every((c) => /^\d+[sdn]$/.test(c.trim()));
+
+  for (const line of lines.slice(1)) {
+    const row = line.split("\t");
+    if (isFormatRow(row)) continue;
+    if (site && iSite >= 0 && (row[iSite] ?? "").trim() !== site) continue;
+    const altVaFt = parseFloat((row[iAlt] ?? "").trim());
+    if (!Number.isFinite(altVaFt)) continue;
+    const datum = (row[iDatum] ?? "").trim();
+    return { altVaFt, datum: datum || null };
+  }
+  return null;
 }
 
 interface NwpsDetail {
@@ -285,7 +304,7 @@ export async function fetchGaugeBundle(
       if (iv.length > 0) observed = iv;
     }
     if (siteRes.status === "fulfilled") {
-      const alt = parseAltVa(siteRes.value);
+      const alt = parseAltVa(siteRes.value, usgsId);
       if (alt) {
         gaugeZeroFt = alt.altVaFt;
         gaugeDatum = alt.datum ?? null;
@@ -313,6 +332,13 @@ export async function fetchGaugeBundle(
 /**
  * Nearest forecast-capable gauge within the radius: probe candidates
  * nearest-first (bounded) and return the first with a usable forecast.
+ *
+ * KNOWN DEVIATION from Appendix A3: the spec prefers the nearest gauge on
+ * the SAME waterbody "when resolvable". A pin's waterbody isn't resolvable
+ * from any of our keyless sources (it would need NHD flowline queries), so
+ * CrestWatch uses straight distance. The Why screen always names the gauge
+ * and its river so a mismatch is visible, and docs/SUBMISSION.md flags
+ * this for the validation pass.
  */
 export async function pickForecastGauge(
   lat: number,

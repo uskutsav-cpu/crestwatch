@@ -6,13 +6,14 @@
  */
 
 import { MAX_PINS, STORAGE_KEYS } from "@/lib/config";
-import type { Pin } from "@/lib/pins";
+import { isPin, sanitizeName, type Pin } from "@/lib/pins";
 
 export function loadPins(): Pin[] {
   try {
     const raw = localStorage.getItem(STORAGE_KEYS.pins);
-    const pins = raw ? (JSON.parse(raw) as Pin[]) : [];
-    return Array.isArray(pins) ? pins.slice(0, MAX_PINS) : [];
+    const pins = raw ? (JSON.parse(raw) as unknown) : [];
+    // Old or corrupt entries must never crash a screen — drop them.
+    return Array.isArray(pins) ? pins.filter(isPin).slice(0, MAX_PINS) : [];
   } catch {
     return [];
   }
@@ -27,7 +28,8 @@ function persist(pins: Pin[]): void {
 }
 
 export function addPin(pin: Pin): Pin[] {
-  const pins = [...loadPins().filter((p) => p.id !== pin.id), pin].slice(
+  const clean = { ...pin, name: sanitizeName(pin.name) || "My place" };
+  const pins = [...loadPins().filter((p) => p.id !== clean.id), clean].slice(
     0,
     MAX_PINS,
   );

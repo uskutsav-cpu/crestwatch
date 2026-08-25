@@ -111,8 +111,30 @@ const doc = parse(
 ) as { cases: YamlCase[] };
 
 describe("Surveyor golden file (40 cases)", () => {
-  it("has exactly 40 cases", () => {
-    expect(doc.cases).toHaveLength(40);
+  it("has exactly 42 cases", () => {
+    expect(doc.cases).toHaveLength(42);
+  });
+
+  it("unparseable timestamps read as stale, never fresh", () => {
+    const verdict = survey({
+      pinElevationFt: 105,
+      gauge: {
+        observed: [{ t: "not-a-date", stageFt: 9 }],
+        forecast: [
+          { t: new Date(NOW_MS + 6 * 3_600_000).toISOString(), stageFt: 9.5 },
+          { t: new Date(NOW_MS + 24 * 3_600_000).toISOString(), stageFt: 10.8 },
+        ],
+        forecastIssued: "garbage-timestamp",
+        categories: {},
+        gaugeZeroFt: 90,
+        gaugeDatum: "NAVD88",
+      },
+      now: NOW,
+    });
+    expect(verdict.tier).toBe("FULL");
+    if (verdict.tier !== "FULL") return;
+    expect(verdict.stale.staleObserved).toBe(true);
+    expect(verdict.stale.staleForecast).toBe(true);
   });
 
   for (const c of doc.cases) {

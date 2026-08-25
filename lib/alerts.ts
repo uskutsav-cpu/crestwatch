@@ -19,16 +19,21 @@ export function alertsUrl(lat: number, lon: number): string {
 
 const FLOOD_RE = /flood/i;
 
+/**
+ * Returns the active flood alerts, or `null` when the alert service was
+ * unreachable — "we couldn't check" must never read as "all clear",
+ * especially in ALERT-ONLY tier where alerts ARE the product.
+ */
 export async function fetchFloodAlerts(
   lat: number,
   lon: number,
   json: FetchJson = fetchJson,
-): Promise<FloodAlert[]> {
+): Promise<FloodAlert[] | null> {
   let data: unknown;
   try {
     data = await json(alertsUrl(lat, lon));
   } catch {
-    return []; // alerts are additive — an outage must not sink a verdict
+    return null; // outage — an outage must not sink a verdict, or fake calm
   }
   const features = (
     data as {

@@ -5,7 +5,7 @@
  */
 
 import { MAX_PINS } from "@/lib/config";
-import type { Pin } from "@/lib/pins";
+import { sanitizeName, type Pin } from "@/lib/pins";
 
 /** Compact wire form: [name, matchedAddress, lat, lon, elevationFt] */
 type WirePin = [string, string, number, number, number];
@@ -61,10 +61,12 @@ export function decodeWatchLink(param: string): Pin[] | null {
       ) {
         return null;
       }
+      const cleanName = sanitizeName(name);
+      if (cleanName.length === 0) return null;
       pins.push({
         id: `wl${i}`,
-        name,
-        matchedAddress: addr,
+        name: cleanName,
+        matchedAddress: sanitizeName(addr),
         lat,
         lon,
         elevationFt: elev,

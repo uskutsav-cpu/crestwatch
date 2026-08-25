@@ -15,6 +15,7 @@ function watch(pinId: string, verdict: Verdict, alerts = 0): PinWatch {
     pinId,
     verdict,
     gauge: null,
+    alertsOk: true,
     alerts: Array.from({ length: alerts }, () => ({
       event: "Flood Warning",
       headline: null,

@@ -47,6 +47,21 @@ describe("helpers", () => {
   it("timeWord formats an hour word", () => {
     expect(timeWord("2026-03-04T18:00:00Z")).toBe("12pm"); // noon CT
   });
+
+  it("dayWord survives the CT spring-forward (23-hour day)", () => {
+    // DST starts 2026-03-08 in Central time. From Sat Mar 7, Sunday Mar 8
+    // is "tomorrow" and Monday Mar 9 must NOT also read as "tomorrow".
+    const sat = "2026-03-07T18:00:00Z"; // Sat noon CT
+    expect(dayWord("2026-03-08T18:00:00Z", sat)).toBe("tomorrow");
+    expect(dayWord("2026-03-09T18:00:00Z", sat)).toBe("Monday");
+  });
+
+  it("dayWord survives the CT fall-back (25-hour day)", () => {
+    // DST ends 2026-11-01. From Sat Oct 31, Nov 1 is tomorrow, Nov 2 isn't.
+    const sat = "2026-10-31T17:00:00Z";
+    expect(dayWord("2026-11-01T18:00:00Z", sat)).toBe("tomorrow");
+    expect(dayWord("2026-11-02T18:00:00Z", sat)).toBe("Monday");
+  });
 });
 
 describe("verdict sentences (Appendix C)", () => {
@@ -125,6 +140,81 @@ describe("verdict sentences (Appendix C)", () => {
     };
     const s = verdictSentence({ pinName: "Home", verdict: v, gauge, now: NOW });
     expect(s).toContain("stays below flood stage");
+  });
+
+  it("LIKELY currently-above outranks every other phrasing", () => {
+    const s = verdictSentence({
+      pinName: "The road",
+      verdict: fullVerdict({
+        band: "LIKELY",
+        marginFt: -2.6,
+        currentlyAbove: true,
+        crossing: null,
+      }),
+      gauge,
+      now: NOW,
+    });
+    expect(s).toContain("The road is in the water now");
+    expect(s).not.toContain("within a foot");
+  });
+
+  it("LIKELY fallback claims 'within a foot' only when the peak stays below", () => {
+    const below = verdictSentence({
+      pinName: "Home",
+      verdict: fullVerdict({ band: "LIKELY", marginFt: 0.4, crossing: null }),
+      gauge,
+      now: NOW,
+    });
+    expect(below).toContain("within a foot");
+    const above = verdictSentence({
+      pinName: "Home",
+      verdict: fullVerdict({ band: "LIKELY", marginFt: -2.0, crossing: null }),
+      gauge,
+      now: NOW,
+    });
+    expect(above).not.toContain("within a foot");
+  });
+
+  it("CATEGORY major with no published minor stage still says flooding", () => {
+    const v: Verdict = {
+      tier: "CATEGORY",
+      peakStageFt: 44,
+      peakT: "2026-03-04T18:00:00Z",
+      aboveFloodFt: null, // minor stage unpublished
+      category: "major",
+      stale: freshStale,
+    };
+    const s = verdictSentence({ pinName: "Home", verdict: v, gauge, now: NOW });
+    expect(s).toContain("Major flooding");
+    expect(s).not.toContain("stays below flood stage");
+  });
+
+  it("CATEGORY at exactly flood stage is flooding, not below it", () => {
+    const v: Verdict = {
+      tier: "CATEGORY",
+      peakStageFt: 29,
+      peakT: "2026-03-04T18:00:00Z",
+      aboveFloodFt: 0,
+      category: "minor",
+      stale: freshStale,
+    };
+    const s = verdictSentence({ pinName: "Home", verdict: v, gauge, now: NOW });
+    expect(s).toContain("Minor flooding");
+    expect(s).not.toContain("stays below flood stage");
+  });
+
+  it("CATEGORY action stays calm but never claims passable roads as fact", () => {
+    const v: Verdict = {
+      tier: "CATEGORY",
+      peakStageFt: 28.5,
+      peakT: "2026-03-04T18:00:00Z",
+      aboveFloodFt: -0.5,
+      category: "action",
+      stale: freshStale,
+    };
+    const s = verdictSentence({ pinName: "Home", verdict: v, gauge, now: NOW });
+    expect(s).toContain("close to flood stage");
+    expect(statusLine(v)).toContain("close to flood stage");
   });
 
   it("ALERT_ONLY explains the limit honestly", () => {

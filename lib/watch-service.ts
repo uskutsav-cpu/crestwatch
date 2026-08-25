@@ -94,6 +94,8 @@ export interface PinWatch {
   verdict: Verdict;
   gauge: GaugeSummary | null;
   alerts: FloodAlert[];
+  /** False when the NWS alert service couldn't be reached (not "no alerts"). */
+  alertsOk: boolean;
 }
 
 export async function watchPins(
@@ -103,7 +105,7 @@ export async function watchPins(
 ): Promise<PinWatch[]> {
   return Promise.all(
     pins.map(async (pin): Promise<PinWatch> => {
-      const [gauge, alerts] = await Promise.all([
+      const [gauge, alertsResult] = await Promise.all([
         gaugeFor(pin.lat, pin.lon, fetchers),
         cached(
           `alerts:${pin.lat.toFixed(2)},${pin.lon.toFixed(2)}`,
@@ -119,6 +121,7 @@ export async function watchPins(
       return {
         pinId: pin.id,
         verdict,
+        alertsOk: alertsResult !== null,
         gauge: gauge
           ? {
               lid: gauge.lid,
@@ -134,7 +137,7 @@ export async function watchPins(
               forecastIssued: gauge.forecastIssued,
             }
           : null,
-        alerts,
+        alerts: alertsResult ?? [],
       };
     }),
   );

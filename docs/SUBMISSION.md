@@ -23,6 +23,12 @@ Known quirks to validate personally (found during the build):
   under half a foot here — inside the BORDERLINE band, but say so if asked).
 - Yazoo City (YZOM6) and the Sunflower gauges publish no gauge-zero
   elevation at all — those areas run in CATEGORY tier by design.
+- **Spec deviation:** the spec prefers the nearest gauge on the SAME
+  waterbody "when resolvable". A pin's waterbody isn't resolvable from any
+  keyless source (it would need NHD flowline queries), so CrestWatch uses
+  straight distance and always names the chosen gauge on the Why screen.
+  During validation, check whether any test address gets a wrong-river
+  gauge and note it here.
 
 ## Checklist
 
