@@ -95,7 +95,13 @@ export function verdictSentence({ pinName, verdict, gauge, now }: SentenceInput)
   if (verdict.band === "LIKELY") {
     // Already flooded and still rising outranks every other phrasing —
     // never tell a family under water about a peak "within a foot".
-    if (verdict.currentlyAbove && !verdict.pastPeak) {
+    // Only assert "in the water NOW" from a fresh reading; with a stale
+    // gauge we fall through to the forecast-based wording instead.
+    if (
+      verdict.currentlyAbove &&
+      !verdict.pastPeak &&
+      !verdict.stale.staleObserved
+    ) {
       return copy.verdictLikelyNow(pinName, river);
     }
     if (verdict.pastPeak) {

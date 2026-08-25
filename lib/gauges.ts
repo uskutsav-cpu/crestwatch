@@ -159,7 +159,8 @@ export function parseStageflowSeries(s: StageflowSeries | undefined | null): Ser
       typeof p.primary === "number" &&
       Number.isFinite(p.primary) &&
       p.primary > -100 &&
-      typeof p.validTime === "string"
+      typeof p.validTime === "string" &&
+      Number.isFinite(Date.parse(p.validTime))
     ) {
       out.push({ t: p.validTime, stageFt: p.primary });
     }

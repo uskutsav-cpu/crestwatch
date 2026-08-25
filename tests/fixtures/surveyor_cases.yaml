@@ -35,11 +35,14 @@ cases:
     pinElev: 98.2
     expect: { tier: FULL, band: LIKELY, crossingH: null, currentlyAbove: true }
 
+  # Margin is measured against the highest water from here on, which on a
+  # falling river is the water already here (100.6), not the lower
+  # forecast tail (100.5).
   - name: full-falling-limb-past-peak
     pinElev: 100
     observed: [[-4, 10.8], [0, 10.6]]
     forecast: [[6, 10.5], [12, 10.0], [24, 9.0]]
-    expect: { tier: FULL, band: LIKELY, margin: -0.5, crossingH: null, pastPeak: true, currentlyAbove: true }
+    expect: { tier: FULL, band: LIKELY, margin: -0.6, crossingH: null, pastPeak: true, currentlyAbove: true }
 
   - name: full-peak-in-future-not-past-peak
     pinElev: 99.8
@@ -177,11 +180,14 @@ cases:
     pinElev: 104.25
     expect: { tier: FULL, band: BORDERLINE, margin: 3.45 }
 
+  # This spot is UNDER water right now (99.0 vs a 98.5 ft pin), so the
+  # margin must be negative. The old expectation paired a positive margin
+  # ("dry by half a foot") with currentlyAbove: true — a contradiction.
   - name: full-peak-below-current-water
     pinElev: 98.5
     observed: [[0, 9.0]]
     forecast: [[6, 8.0], [12, 7.5]]
-    expect: { tier: FULL, band: LIKELY, margin: 0.5, pastPeak: true, currentlyAbove: true, crossingH: null }
+    expect: { tier: FULL, band: LIKELY, margin: -0.5, pastPeak: true, currentlyAbove: true, crossingH: null }
 
   - name: full-zero-margin-crossing-at-peak
     pinElev: 100.8

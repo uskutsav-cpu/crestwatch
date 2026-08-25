@@ -80,6 +80,10 @@ function sortSeries(series: SeriesPoint[]): SeriesPoint[] {
   const seen = new Set<string>();
   return [...series]
     .filter((p) => {
+      // An unparseable timestamp is unusable data, not a "past" point —
+      // letting it through would empty the future window and read as a
+      // confident recession. Drop it and let the tier ladder degrade.
+      if (!Number.isFinite(Date.parse(p.t))) return false;
       if (seen.has(p.t)) return false;
       seen.add(p.t);
       return true;
@@ -174,18 +178,22 @@ export function survey(input: SurveyInput): Verdict {
   const observed = sortSeries(gauge.observed);
   const stale = staleness(observed, gauge.forecastIssued, nowMs);
 
-  // Forecast peak (stage domain — shared by both tiers). NWPS series keep
-  // valid times before "now"; a bygone first crest must not hide a second
-  // crest still coming, so the peak is the max over FUTURE points whenever
-  // any exist (falling back to the whole series for fully-past forecasts).
+  // The peak that matters is the highest water from here on. Two rules,
+  // both learned the hard way:
+  //  - a bygone FIRST crest must not hide a second crest still coming, so
+  //    future points are what we scan (falling back to the whole series
+  //    when the forecast is entirely behind us); and
+  //  - water already HERE counts, so the last observation joins the
+  //    candidates. Without it a receding river that is already over the
+  //    house scores against its low future tail and reads as "stays dry".
   const future = forecast.filter((p) => Date.parse(p.t) > nowMs);
   const peakPool = future.length > 0 ? future : forecast;
-  let peakStage = peakPool[0];
-  for (const p of peakPool) {
+  const lastObs = observed.at(-1) ?? null;
+  const peakCandidates = lastObs ? [...peakPool, lastObs] : peakPool;
+  let peakStage = peakCandidates[0];
+  for (const p of peakCandidates) {
     if (p.stageFt > peakStage.stageFt) peakStage = p;
   }
-
-  const lastObs = observed.at(-1) ?? null;
 
   // Tier gate: gauge zero present AND believable.
   const zero = gauge.gaugeZeroFt;
@@ -215,11 +223,23 @@ export function survey(input: SurveyInput): Verdict {
   const currentlyAbove =
     currentWaterElevFt !== null && currentWaterElevFt >= pinElevationFt;
 
-  // Crossing path: last observed point bridges into the FUTURE forecast
-  // points (past forecast points would create reversed-time segments).
+  // Crossing path: anchor at the most recent KNOWN water level at or
+  // before now, then run forward through the future forecast. The anchor
+  // is whichever of the last observation and the last already-past
+  // forecast point is later — using a stale observation alone would
+  // stretch one straight line across the whole gap and interpolate the
+  // crossing into the past, where it gets discarded.
+  const lastPastFcst = forecast.filter((p) => Date.parse(p.t) <= nowMs).at(-1) ?? null;
+  let anchor = lastObs;
+  if (
+    lastPastFcst &&
+    (!anchor || Date.parse(lastPastFcst.t) > Date.parse(anchor.t))
+  ) {
+    anchor = lastPastFcst;
+  }
   const path: Array<{ tMs: number; elev: number }> = [];
-  if (lastObs) {
-    path.push({ tMs: Date.parse(lastObs.t), elev: zero + lastObs.stageFt });
+  if (anchor) {
+    path.push({ tMs: Date.parse(anchor.t), elev: zero + anchor.stageFt });
   }
   for (const p of future) {
     path.push({ tMs: Date.parse(p.t), elev: zero + p.stageFt });
@@ -233,12 +253,14 @@ export function survey(input: SurveyInput): Verdict {
           hoursFromNow: Math.round((cross.tMs - nowMs) / HOUR_MS),
         };
 
-  // Past peak = nothing higher is ahead: either the forecast holds no
-  // future points at all, or everything still coming stays at or below
-  // the current water level (the river is genuinely on its way down).
-  const pastPeak =
-    future.length === 0 ||
-    (currentWaterElevFt !== null && peakWaterElev <= currentWaterElevFt);
+  // Past peak = the FORECAST shows nothing higher ahead than the water
+  // already coming. Deliberately forecast-only: a stale observation must
+  // never be what claims a recession, or a gauge that went quiet during a
+  // crest makes a rising forecast read as "the river is coming down."
+  const futureRises = future.some(
+    (p, i) => i > 0 && p.stageFt > future[0].stageFt,
+  );
+  const pastPeak = future.length === 0 || !futureRises;
 
   return {
     tier: "FULL",
