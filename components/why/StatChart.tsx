@@ -1,0 +1,90 @@
+"use client";
+
+/**
+ * Observed (solid) vs forecast (dashed) stage chart with the flood-stage
+ * reference line — hand-rolled SVG, no chart library (B6 budget).
+ */
+
+import { CHART_H, CHART_W, chartLayout, type ChartInput } from "@/lib/chart";
+
+export function StatChart(props: ChartInput) {
+  const c = chartLayout(props);
+  if (!c) return null;
+
+  return (
+    <svg
+      viewBox={`0 0 ${CHART_W} ${CHART_H}`}
+      role="img"
+      aria-label="River stage: observed and forecast"
+      className="w-full rounded-2xl border border-line bg-bg"
+    >
+      {c.yTicks.map((t) => (
+        <g key={t.label}>
+          <line
+            x1="30"
+            x2={CHART_W - 6}
+            y1={t.y}
+            y2={t.y}
+            stroke="var(--color-line)"
+            strokeWidth="0.5"
+          />
+          <text x="28" y={t.y + 3} textAnchor="end" fontSize="9" className="tnum" fill="var(--color-dim)">
+            {t.label}
+          </text>
+        </g>
+      ))}
+
+      {c.floodY !== null && (
+        <g>
+          <line
+            x1="30"
+            x2={CHART_W - 6}
+            y1={c.floodY}
+            y2={c.floodY}
+            stroke="var(--color-risewatch)"
+            strokeWidth="1"
+            strokeDasharray="2 3"
+          />
+          <text
+            x={CHART_W - 8}
+            y={c.floodY - 4}
+            textAnchor="end"
+            fontSize="9"
+            fill="var(--color-risewatch)"
+          >
+            flood stage
+          </text>
+        </g>
+      )}
+
+      <polyline
+        points={c.obsPoints}
+        fill="none"
+        stroke="var(--color-current)"
+        strokeWidth="2"
+      />
+      <polyline
+        points={c.fcstPoints}
+        fill="none"
+        stroke="var(--color-current)"
+        strokeWidth="2"
+        strokeDasharray="5 4"
+        opacity="0.85"
+      />
+
+      {c.xLabels.map((l, i) => (
+        <text
+          key={i}
+          x={l.x}
+          y={CHART_H - 6}
+          textAnchor={i === 0 ? "start" : i === 2 ? "end" : "middle"}
+          fontSize="9"
+          className="tnum"
+          fill="var(--color-dim)"
+        >
+          {l.label}
+        </text>
+      ))}
+    </svg>
+  );
+}

@@ -1,11 +1,11 @@
-import { copy } from "@/lib/copy";
+import { Suspense } from "react";
+import { WhyClient } from "@/components/why/WhyClient";
 
-/* S4 · Why — T09 builds the no-magic screen. */
+/* S4 · Why — the no-magic screen. */
 export default function WhyPage() {
   return (
-    <div className="py-14">
-      <h1 className="text-h2">{copy.whyTitle}</h1>
-      <p className="mt-2 text-dim">The arithmetic lands here at T09.</p>
-    </div>
+    <Suspense>
+      <WhyClient />
+    </Suspense>
   );
 }
