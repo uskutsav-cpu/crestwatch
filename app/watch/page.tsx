@@ -1,9 +1,11 @@
-/* S2 · Watch — the money screen. T07 builds the WaterScene + verdict. */
+import { Suspense } from "react";
+import { WatchClient } from "@/components/watch/WatchClient";
+
+/* S2 · Watch — the money screen. */
 export default function WatchPage() {
   return (
-    <div className="py-14">
-      <h1 className="text-h2">Watch</h1>
-      <p className="mt-2 text-dim">The verdict screen lands here at T07.</p>
-    </div>
+    <Suspense>
+      <WatchClient />
+    </Suspense>
   );
 }

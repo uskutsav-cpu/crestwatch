@@ -33,6 +33,11 @@ export const copy = {
   looking: "Reading the river…",
 
   // S2 · Watch
+  chipLikely: "water likely",
+  chipBorderline: "too close to call",
+  chipUnlikely: "stays dry",
+  chipCategory: "category mode",
+  chipAlertOnly: "no gauge here",
   whyLink: "Why this verdict →",
   share: "Share",
   countdown: (pin: string, h: number) => `water reaches ${pin} in ~${h}h`,
