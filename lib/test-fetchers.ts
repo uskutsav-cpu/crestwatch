@@ -55,6 +55,13 @@ function fixtureJson(url: string): unknown {
       : readJson("gauges", `nwps_detail_${lid}.json`);
   }
 
+  if (u.hostname === "waterservices.usgs.gov" && u.pathname.includes("/dv/")) {
+    const start = u.searchParams.get("startDT") ?? "";
+    if (start.startsWith("2019")) return readJson("replay", "dv_backwater2019.json");
+    if (start.startsWith("2020")) return readJson("replay", "dv_pearl2020.json");
+    return readJson("replay", "dv_pearl2022.json");
+  }
+
   if (u.hostname === "waterservices.usgs.gov" && u.pathname.includes("/iv/")) {
     const site = u.searchParams.get("sites") ?? "02486000";
     const known = ["02486000", "07289730"].includes(site) ? site : "02486000";

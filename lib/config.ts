@@ -29,24 +29,32 @@ export const FETCH_USER_AGENT =
 export interface ReplayEvent {
   id: string;
   label: string;
-  /** USGS site number for daily values (D7). TEAM: confirm period of record. */
+  /** USGS site number for daily values (D7) — verified to hold this event. */
   usgsSite: string;
-  /** NWPS lid for gauge metadata. */
-  lid: string;
+  gaugeName: string;
   startDT: string;
   endDT: string;
+  /**
+   * How a stage reading becomes a water-surface elevation:
+   * "direct" — the published gage height is already an elevation (the
+   * Redwood backwater gauge reads in NGVD29 feet); or add gauge zero.
+   * TEAM: re-verify both modes against the official gauge pages.
+   */
+  toElevation: { mode: "direct" } | { mode: "addGaugeZero"; gaugeZeroFt: number };
   blurb: string;
 }
 
-/** TEAM: verify gauge ids + date ranges against USGS before shipping. */
+/** Recorded crests check out against history: 100.19 (Redwood 2019),
+ *  36.62 (Pearl Feb 2020), 35.19 (Pearl Aug 2022). */
 export const REPLAY_EVENTS: ReplayEvent[] = [
   {
     id: "backwater2019",
     label: "2019 Yazoo Backwater flood",
-    usgsSite: "07288955",
-    lid: "GCVM6",
+    usgsSite: "07288800",
+    gaugeName: "Yazoo River at Redwood",
     startDT: "2019-01-01",
     endDT: "2019-08-31",
+    toElevation: { mode: "direct" },
     blurb:
       "The south Delta stayed underwater for about six months. The slowest flood in district memory.",
   },
@@ -54,21 +62,22 @@ export const REPLAY_EVENTS: ReplayEvent[] = [
     id: "pearl2020",
     label: "February 2020 · Pearl River at Jackson",
     usgsSite: "02486000",
-    lid: "JACM6",
+    gaugeName: "Pearl River at Jackson",
     startDT: "2020-02-01",
     endDT: "2020-03-05",
+    toElevation: { mode: "addGaugeZero", gaugeZeroFt: 233.39 },
     blurb:
-      "The Pearl crested near 36.7 ft — the third-highest on record at Jackson.",
+      "The Pearl crested at 36.6 ft — the third-highest on record at Jackson.",
   },
   {
     id: "pearl2022",
     label: "August 2022 · Pearl River at Jackson",
     usgsSite: "02486000",
-    lid: "JACM6",
+    gaugeName: "Pearl River at Jackson",
     startDT: "2022-08-15",
     endDT: "2022-09-15",
-    blurb:
-      "The flood that helped knock out Jackson's water plant.",
+    toElevation: { mode: "addGaugeZero", gaugeZeroFt: 233.39 },
+    blurb: "The flood that helped knock out Jackson's water plant.",
   },
 ];
 

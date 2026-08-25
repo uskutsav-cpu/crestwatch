@@ -8,6 +8,7 @@ import Link from "next/link";
 import { useSearchParams } from "next/navigation";
 import { copy } from "@/lib/copy";
 import { useWatches } from "@/lib/use-watch";
+import { crestCompare } from "@/lib/crest-compare";
 import { verdictSentence } from "@/lib/sentences";
 import { WaterScene } from "@/components/watch/WaterScene";
 import { CountdownChip } from "@/components/watch/CountdownChip";
@@ -144,6 +145,20 @@ export function WatchClient() {
         {verdict.tier === "FULL" && verdict.crossing && (
           <CountdownChip pinName={pin.name} crossingIso={verdict.crossing.t} />
         )}
+        {verdict.tier === "FULL" &&
+          gauge &&
+          (() => {
+            const cc = crestCompare(
+              verdict.peak.stageFt,
+              gauge.historicCrests,
+              gauge.categories,
+            );
+            return cc ? (
+              <span className="tnum inline-flex items-center rounded-full border border-line px-3 py-1.5 text-small font-semibold text-dim">
+                {copy.crestCompare(cc.ordinal, cc.sinceYear)}
+              </span>
+            ) : null;
+          })()}
         {stale ? (
           <span className="inline-flex items-center rounded-full border border-line px-3 py-1.5 text-small font-semibold text-dim">
             {copy.delayedChip(staleH)}

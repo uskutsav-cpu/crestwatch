@@ -1,11 +1,6 @@
-import { copy } from "@/lib/copy";
+import { ReplayClient } from "@/components/replay/ReplayClient";
 
-/* S5 · Replay — T10 builds the historical replay. */
+/* S5 · Replay. */
 export default function ReplayPage() {
-  return (
-    <div className="py-14">
-      <h1 className="text-h2">{copy.replayTitle}</h1>
-      <p className="mt-2 text-dim">Historical floods land here at T10.</p>
-    </div>
-  );
+  return <ReplayClient />;
 }
