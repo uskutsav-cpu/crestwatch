@@ -42,7 +42,9 @@ test("tapping a card opens its watch screen", async ({ page }) => {
   await page.goto("/places");
   await page.getByText("Home").first().click();
   await expect(page).toHaveURL(/\/watch\?pin=pjackson/);
-  await expect(page.getByText(/stays dry by about \d+ ft/)).toBeVisible({
+  await expect(
+    page.getByText(/stays dry by about \d+ ft/).first(),
+  ).toBeVisible({
     timeout: 15_000,
   });
 });

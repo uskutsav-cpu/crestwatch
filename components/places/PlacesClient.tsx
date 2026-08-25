@@ -11,6 +11,7 @@ import { statusLine } from "@/lib/sentences";
 import { sortWorstFirst } from "@/lib/severity";
 import { clearAllPins } from "@/lib/pin-store";
 import { BAND_COLOR, LiveDot, type VerdictBand } from "@/components/ui";
+import { AlertStrip } from "@/components/watch/AlertStrip";
 import type { PinWatch } from "@/lib/watch-service";
 
 function edgeBand(w: PinWatch): VerdictBand {
@@ -58,6 +59,10 @@ export function PlacesClient() {
         <h1 className="text-h2">{copy.placesTitle}</h1>
         {loading && <LiveDot />}
       </div>
+
+      <AlertStrip
+        alerts={watches.flatMap((w) => w.alerts).slice(0, 3)}
+      />
 
       <ul className="flex flex-col gap-3">
         {sorted.map((w) => {

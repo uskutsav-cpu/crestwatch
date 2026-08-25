@@ -12,6 +12,8 @@ import { crestCompare } from "@/lib/crest-compare";
 import { verdictSentence } from "@/lib/sentences";
 import { WaterScene } from "@/components/watch/WaterScene";
 import { CountdownChip } from "@/components/watch/CountdownChip";
+import { AlertStrip } from "@/components/watch/AlertStrip";
+import { ShareButton } from "@/components/watch/ShareButton";
 import {
   LiveDot,
   TierBadge,
@@ -171,22 +173,10 @@ export function WatchClient() {
         )}
       </div>
 
-      {/* Alert-only helper */}
-      {verdict.tier === "ALERT_ONLY" && watch.alerts.length > 0 && (
-        <ul className="flex flex-col gap-2">
-          {watch.alerts.map((a, i) => (
-            <li
-              key={i}
-              className="rounded-xl border border-risewatch/60 bg-surface p-3 text-small"
-            >
-              <span className="font-semibold">{a.event}</span>
-              {a.areaDesc ? ` — ${a.areaDesc}` : ""}
-            </li>
-          ))}
-        </ul>
-      )}
+      {/* Active flood alerts (all tiers — additive context) */}
+      <AlertStrip alerts={watch.alerts} />
 
-      {/* Links */}
+      {/* Links + share */}
       <div className="flex flex-wrap items-center gap-4">
         <Link
           href={`/why?pin=${pin.id}`}
@@ -194,6 +184,25 @@ export function WatchClient() {
         >
           {copy.whyLink}
         </Link>
+        <ShareButton
+          card={
+            <div>
+              <p style={{ fontSize: 20, fontWeight: 700, marginBottom: 10 }}>
+                {pin.name}
+              </p>
+              {verdict.tier === "FULL" && (
+                <WaterScene
+                  markers={[{ label: pin.name, elevationFt: pin.elevationFt }]}
+                  currentWaterElevFt={verdict.currentWaterElevFt}
+                  crestElevFt={verdict.peak.waterElevFt}
+                />
+              )}
+              <p style={{ fontSize: 24, fontWeight: 700, marginTop: 14, lineHeight: 1.3 }}>
+                {sentence}
+              </p>
+            </div>
+          }
+        />
         <Link href="/places" className="text-dim hover:text-(--color-current)">
           {copy.placesTitle} →
         </Link>

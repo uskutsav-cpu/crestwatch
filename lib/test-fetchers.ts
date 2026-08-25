@@ -69,7 +69,12 @@ function fixtureJson(url: string): unknown {
   }
 
   if (u.hostname === "api.weather.gov") {
-    return readJson("alerts_empty.json");
+    // Deterministic per-pin: the Yazoo City fixture pin has active flood
+    // alerts; everywhere else is quiet.
+    const point = u.searchParams.get("point") ?? "";
+    return point.startsWith("32.84")
+      ? readJson("alerts_flood.json")
+      : readJson("alerts_empty.json");
   }
 
   throw new Error(`no fixture route for ${url}`);
