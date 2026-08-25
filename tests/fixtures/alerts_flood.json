@@ -1,0 +1,26 @@
+{
+ "features": [
+  {
+   "properties": {
+    "id": "urn:oid:2.49.0.1.840.0.e082bf6b6196f819dee38f9a19294bbf4047cfe1.001.1",
+    "event": "Flash Flood Warning",
+    "headline": "Flash Flood Warning issued August 24 at 10:22PM MDT until August 25 at 1:00AM MDT by NWS Salt Lake City UT",
+    "severity": "Severe",
+    "areaDesc": "Kane, UT",
+    "onset": "2026-08-24T22:22:00-06:00",
+    "expires": "2026-08-25T01:00:00-06:00"
+   }
+  },
+  {
+   "properties": {
+    "id": "urn:oid:2.49.0.1.840.0.439ba4c76fe995f88c606156289232d1125a2a1f.001.1",
+    "event": "Flood Warning",
+    "headline": "Flood Warning issued August 24 at 10:51PM CDT until August 25 at 1:45AM CDT by NWS Aberdeen SD",
+    "severity": "Severe",
+    "areaDesc": "Jones, SD",
+    "onset": "2026-08-24T22:51:00-05:00",
+    "expires": "2026-08-25T01:45:00-05:00"
+   }
+  }
+ ]
+}
