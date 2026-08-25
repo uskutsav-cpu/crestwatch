@@ -1,0 +1,233 @@
+# Golden cases for the Surveyor (T04). Times are hours relative to `now`
+# (negative = observed past, positive = forecast future); the test harness
+# expands them to ISO timestamps. Water elevation = gaugeZero + stage.
+#
+# Standard rig unless a case overrides it:
+#   gaugeZero 90 · observed [[-4,8.0],[-2,8.5],[0,9.0]] (current water 99.0)
+#   forecast [[6,9.5],[12,10.2],[24,10.8],[36,10.0]] (peak water 100.8 @ +24h)
+
+cases:
+  - name: full-unlikely-comfortable
+    pinElev: 105
+    expect: { tier: FULL, band: UNLIKELY, margin: 4.2, crossingH: null, pastPeak: false, currentlyAbove: false }
+
+  - name: full-borderline-mid
+    pinElev: 103
+    expect: { tier: FULL, band: BORDERLINE, margin: 2.2, crossingH: null }
+
+  - name: full-likely-rising-crossing
+    pinElev: 100
+    expect: { tier: FULL, band: LIKELY, margin: -0.8, crossingH: 10, pastPeak: false, currentlyAbove: false }
+
+  - name: full-likely-margin-boundary-0p5
+    pinElev: 101.3
+    expect: { tier: FULL, band: LIKELY, margin: 0.5, crossingH: null }
+
+  - name: full-borderline-boundary-3p5
+    pinElev: 104.3
+    expect: { tier: FULL, band: BORDERLINE, margin: 3.5 }
+
+  - name: full-unlikely-just-past-boundary
+    pinElev: 104.4
+    expect: { tier: FULL, band: UNLIKELY, margin: 3.6 }
+
+  - name: full-likely-currently-above-no-future-crossing
+    pinElev: 98.2
+    expect: { tier: FULL, band: LIKELY, crossingH: null, currentlyAbove: true }
+
+  - name: full-falling-limb-past-peak
+    pinElev: 100
+    observed: [[-4, 10.8], [0, 10.6]]
+    forecast: [[6, 10.5], [12, 10.0], [24, 9.0]]
+    expect: { tier: FULL, band: LIKELY, margin: -0.5, crossingH: null, pastPeak: true, currentlyAbove: true }
+
+  - name: full-peak-in-future-not-past-peak
+    pinElev: 99.8
+    expect: { tier: FULL, band: LIKELY, margin: -1.0, crossingH: 9, pastPeak: false }
+
+  - name: full-crossing-in-observed-gap
+    pinElev: 99.2
+    expect: { tier: FULL, band: LIKELY, crossingH: 2 }
+
+  - name: full-crossing-rising-only
+    pinElev: 100
+    observed: [[0, 9.0]]
+    forecast: [[6, 8.0], [12, 10.5], [24, 9.5]]
+    expect: { tier: FULL, band: LIKELY, crossingH: 11 }
+
+  - name: full-first-rising-crossing-reported
+    pinElev: 100
+    observed: [[0, 9.0]]
+    forecast: [[6, 10.2], [12, 9.0], [24, 10.6]]
+    expect: { tier: FULL, band: LIKELY, crossingH: 5 }
+
+  - name: full-stale-observed
+    pinElev: 105
+    observed: [[-4, 8.0], [-3, 8.5]]
+    expect: { tier: FULL, band: UNLIKELY, staleObserved: true, staleForecast: false }
+
+  - name: full-stale-forecast
+    pinElev: 105
+    forecastIssuedH: -25
+    expect: { tier: FULL, band: UNLIKELY, staleObserved: false, staleForecast: true }
+
+  - name: full-both-stale
+    pinElev: 105
+    observed: [[-4, 8.0], [-3, 8.5]]
+    forecastIssuedH: -25
+    expect: { tier: FULL, staleObserved: true, staleForecast: true }
+
+  - name: category-major
+    pinElev: 100
+    gaugeZero: null
+    observed: [[0, 39.0]]
+    forecast: [[6, 40.0], [24, 44.0], [36, 42.0]]
+    categories: { action: 28, minor: 29, moderate: 36, major: 43 }
+    expect: { tier: CATEGORY, category: major, aboveFlood: 15.0, peakStage: 44.0 }
+
+  - name: category-moderate
+    pinElev: 100
+    gaugeZero: null
+    observed: [[0, 30.0]]
+    forecast: [[6, 33.0], [24, 37.0]]
+    categories: { action: 28, minor: 29, moderate: 36, major: 43 }
+    expect: { tier: CATEGORY, category: moderate, aboveFlood: 8.0 }
+
+  - name: category-minor
+    pinElev: 100
+    gaugeZero: null
+    observed: [[0, 27.0]]
+    forecast: [[6, 29.5], [24, 30.0]]
+    categories: { action: 28, minor: 29, moderate: 36, major: 43 }
+    expect: { tier: CATEGORY, category: minor, aboveFlood: 1.0 }
+
+  - name: category-action-below-flood
+    pinElev: 100
+    gaugeZero: null
+    observed: [[0, 26.0]]
+    forecast: [[6, 28.2], [24, 28.5]]
+    categories: { action: 28, minor: 29, moderate: 36, major: 43 }
+    expect: { tier: CATEGORY, category: action, aboveFlood: -0.5 }
+
+  - name: category-none
+    pinElev: 100
+    gaugeZero: null
+    observed: [[0, 15.0]]
+    forecast: [[6, 18.0], [24, 20.0]]
+    categories: { action: 28, minor: 29, moderate: 36, major: 43 }
+    expect: { tier: CATEGORY, category: none }
+
+  - name: category-no-published-categories
+    pinElev: 100
+    gaugeZero: null
+    observed: [[0, 15.0]]
+    forecast: [[6, 18.0], [24, 20.0]]
+    categories: {}
+    expect: { tier: CATEGORY, category: null, aboveFlood: null }
+
+  - name: category-suspect-datum
+    pinElev: 275.5
+    gaugeZero: 30
+    observed: [[0, 3.2]]
+    forecast: [[6, 40.0], [24, 44.0], [36, 42.0]]
+    categories: { action: 28, minor: 29, moderate: 36, major: 43 }
+    expect: { tier: CATEGORY, category: major, aboveFlood: 15.0 }
+
+  - name: full-datum-sanity-boundary-200
+    pinElev: 299
+    expect: { tier: FULL, band: UNLIKELY, margin: 198.2 }
+
+  - name: full-ngvd29-datum
+    pinElev: 105
+    datum: NGVD29
+    expect: { tier: FULL, band: UNLIKELY, margin: 4.2 }
+
+  - name: alert-only-no-gauge
+    pinElev: 100
+    noGauge: true
+    expect: { tier: ALERT_ONLY }
+
+  - name: alert-only-empty-forecast
+    pinElev: 100
+    forecast: []
+    expect: { tier: ALERT_ONLY }
+
+  - name: alert-only-single-point-forecast
+    pinElev: 100
+    forecast: [[24, 10.8]]
+    expect: { tier: ALERT_ONLY }
+
+  - name: full-no-observed-series
+    pinElev: 100
+    observed: []
+    expect: { tier: FULL, band: LIKELY, crossingH: 10, staleObserved: true, currentlyAbove: false }
+
+  - name: full-crossing-rounds-to-11
+    pinElev: 100.1
+    expect: { tier: FULL, band: LIKELY, crossingH: 11 }
+
+  - name: full-forecast-entirely-past
+    pinElev: 100
+    observed: [[-1, 9.0]]
+    forecast: [[-30, 10.8], [-20, 10.0]]
+    forecastIssuedH: -31
+    expect: { tier: FULL, band: LIKELY, crossingH: null, pastPeak: true, staleForecast: true, currentlyAbove: false }
+
+  - name: full-borderline-precise-margin
+    pinElev: 104.25
+    expect: { tier: FULL, band: BORDERLINE, margin: 3.45 }
+
+  - name: full-peak-below-current-water
+    pinElev: 98.5
+    observed: [[0, 9.0]]
+    forecast: [[6, 8.0], [12, 7.5]]
+    expect: { tier: FULL, band: LIKELY, margin: 0.5, pastPeak: true, currentlyAbove: true, crossingH: null }
+
+  - name: full-zero-margin-crossing-at-peak
+    pinElev: 100.8
+    expect: { tier: FULL, band: LIKELY, margin: 0.0, crossingH: 24 }
+
+  - name: full-negative-stages
+    pinElev: 91.5
+    observed: [[-2, -1.0], [0, -0.5]]
+    forecast: [[6, 0.5], [24, 2.0]]
+    expect: { tier: FULL, band: LIKELY, margin: -0.5, crossingH: 18 }
+
+  - name: full-unsorted-forecast
+    pinElev: 100
+    forecast: [[24, 10.8], [6, 9.5], [12, 10.2], [36, 10.0]]
+    expect: { tier: FULL, band: LIKELY, crossingH: 10 }
+
+  - name: full-duplicate-timestamps
+    pinElev: 100
+    forecast: [[6, 9.5], [12, 10.2], [12, 10.2], [24, 10.8], [36, 10.0]]
+    expect: { tier: FULL, band: LIKELY, crossingH: 10 }
+
+  - name: category-stale-forecast
+    pinElev: 100
+    gaugeZero: null
+    observed: [[0, 30.0]]
+    forecast: [[6, 33.0], [24, 37.0]]
+    categories: { action: 28, minor: 29, moderate: 36, major: 43 }
+    forecastIssuedH: -25
+    expect: { tier: CATEGORY, staleForecast: true }
+
+  - name: full-far-future-crossing
+    pinElev: 100.5
+    observed: [[0, 9.0]]
+    forecast: [[96, 9.5], [120, 10.9]]
+    expect: { tier: FULL, band: LIKELY, crossingH: 113 }
+
+  - name: full-no-categories-published
+    pinElev: 105
+    categories: {}
+    expect: { tier: FULL, band: UNLIKELY, margin: 4.2 }
+
+  - name: category-unknown-issue-time-is-stale
+    pinElev: 100
+    gaugeZero: null
+    observed: [[0, 30.0]]
+    forecast: [[6, 33.0], [24, 37.0]]
+    categories: { action: 28, minor: 29, moderate: 36, major: 43 }
+    forecastIssuedH: null
+    expect: { tier: CATEGORY, staleForecast: true }
