@@ -20,13 +20,20 @@ async function acquire(): Promise<void> {
     inFlight++;
     return;
   }
+  // Wait for a permit to be handed over. inFlight is deliberately NOT
+  // incremented on wake: the releaser transfers its own permit to us.
   await new Promise<void>((resolve) => waiters.push(resolve));
-  inFlight++;
 }
 
 function release(): void {
+  const next = waiters.shift();
+  if (next) {
+    // Direct handoff — inFlight must never dip while a waiter exists, or
+    // a caller arriving in that window barges past the cap.
+    next();
+    return;
+  }
   inFlight--;
-  waiters.shift()?.();
 }
 
 export type FetchJson = (url: string) => Promise<unknown>;

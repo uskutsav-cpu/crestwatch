@@ -110,7 +110,7 @@ const doc = parse(
   readFileSync(join(__dirname, "fixtures", "surveyor_cases.yaml"), "utf8"),
 ) as { cases: YamlCase[] };
 
-describe("Surveyor golden file (40 cases)", () => {
+describe("Surveyor golden file (42 cases)", () => {
   it("has exactly 42 cases", () => {
     expect(doc.cases).toHaveLength(42);
   });
@@ -147,4 +147,90 @@ describe("Surveyor golden file (40 cases)", () => {
       check(verdict, c.expect);
     });
   }
+});
+
+/* Peak-selection edge cases — pinned after the adversarial review found
+   that a bygone crest could hide a second crest still coming. */
+const sPairs = (pairs: Array<[number, number]>) =>
+  pairs.map(([h, v]) => ({
+    t: new Date(NOW_MS + h * 3_600_000).toISOString(),
+    stageFt: v,
+  }));
+const gauge2 = (
+  obs: Array<[number, number]>,
+  f: Array<[number, number]>,
+  zero: number | null = 90,
+): SurveyGauge => ({
+  observed: sPairs(obs),
+  forecast: sPairs(f),
+  forecastIssued: new Date(NOW_MS - 3_600_000).toISOString(),
+  categories: { action: 28, minor: 29, moderate: 36, major: 43 },
+  gaugeZeroFt: zero,
+  gaugeDatum: "NAVD88",
+});
+
+describe("peak-selection edge cases", () => {
+  it("all-future forecast behaves as before", () => {
+    const v = survey({ pinElevationFt: 100, gauge: gauge2([[0, 9]], [[6, 9.5], [24, 10.8]]), now: NOW });
+    expect(v.tier).toBe("FULL");
+    if (v.tier !== "FULL") return;
+    expect(v.peak.stageFt).toBe(10.8);
+    expect(v.pastPeak).toBe(false);
+  });
+
+  it("all-past forecast: falls back to whole series, pastPeak true", () => {
+    const v = survey({ pinElevationFt: 100, gauge: gauge2([[-1, 9]], [[-30, 10.8], [-20, 10]]), now: NOW });
+    expect(v.tier).toBe("FULL");
+    if (v.tier !== "FULL") return;
+    expect(v.peak.stageFt).toBe(10.8);
+    expect(v.pastPeak).toBe(true);
+    expect(v.crossing).toBeNull();
+  });
+
+  it("no observed data + future rise: pastPeak false, crossing found", () => {
+    const v = survey({ pinElevationFt: 100, gauge: gauge2([], [[6, 9.5], [24, 10.8]]), now: NOW });
+    expect(v.tier).toBe("FULL");
+    if (v.tier !== "FULL") return;
+    expect(v.pastPeak).toBe(false);
+    expect(v.crossing).not.toBeNull();
+  });
+
+  it("no observed data + falling future: pastPeak false but no crossing (honest)", () => {
+    const v = survey({ pinElevationFt: 100, gauge: gauge2([], [[6, 9.5], [24, 8.0]]), now: NOW });
+    expect(v.tier).toBe("FULL");
+    if (v.tier !== "FULL") return;
+    expect(v.crossing).toBeNull();
+  });
+
+  it("crossing between lastObs and first FUTURE point is still caught", () => {
+    // Past forecast points exist but must not break the observed->future bridge.
+    const v = survey({
+      pinElevationFt: 99.5,
+      gauge: gauge2([[-1, 9.0]], [[-6, 8.0], [-3, 8.5], [6, 10.0]]),
+      now: NOW,
+    });
+    expect(v.tier).toBe("FULL");
+    if (v.tier !== "FULL") return;
+    expect(v.crossing).not.toBeNull();
+    expect(v.crossing!.hoursFromNow).toBeGreaterThan(0);
+  });
+
+  it("triple crest: reports the highest FUTURE crest", () => {
+    const v = survey({
+      pinElevationFt: 130,
+      gauge: gauge2([[-1, 22]], [[-12, 30], [0, 22], [12, 24], [24, 28], [48, 26]]),
+      now: NOW,
+    });
+    expect(v.tier).toBe("FULL");
+    if (v.tier !== "FULL") return;
+    expect(v.peak.stageFt).toBe(28); // not the bygone 30
+    expect(v.pastPeak).toBe(false);
+  });
+
+  it("exactly-now forecast point counts as past (strict >)", () => {
+    const v = survey({ pinElevationFt: 100, gauge: gauge2([[0, 9]], [[0, 12], [6, 9.5]]), now: NOW });
+    expect(v.tier).toBe("FULL");
+    if (v.tier !== "FULL") return;
+    expect(v.peak.stageFt).toBe(9.5);
+  });
 });
