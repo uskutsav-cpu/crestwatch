@@ -14,6 +14,10 @@ const MAX_TRACKED_IPS = 10_000;
 export function rateLimitOk(ip: string, now = Date.now()): boolean {
   const cutoff = now - WINDOW_MS;
   const recent = (hits.get(ip) ?? []).filter((t) => t > cutoff);
+  // delete-then-set keeps Map insertion order == recency of activity, so
+  // the eviction below is a true LRU. Without it, a steady stream of new
+  // IPs would flush an ACTIVE client's counter and reset its budget.
+  hits.delete(ip);
   if (recent.length >= RATE_LIMIT_PER_HOUR) {
     hits.set(ip, recent);
     return false;

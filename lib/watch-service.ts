@@ -51,8 +51,13 @@ export async function lookupAddress(
   fetchers: Fetchers = defaultFetchers,
 ): Promise<LookupResult> {
   const key = address.trim().toLowerCase();
-  const geo = await cached(`geo:${key}`, GEO_TTL_MS, () =>
-    geocodeAddress(address, fetchers.json),
+  const geo = await cached(
+    `geo:${key}`,
+    GEO_TTL_MS,
+    () => geocodeAddress(address, fetchers.json),
+    // A NOT_FOUND is a stable answer worth caching; an UPSTREAM blip is
+    // not — caching it would blank this address for a day.
+    (g) => g.ok || g.error === "NOT_FOUND",
   );
   if (!geo.ok) return { ok: false, error: geo.error };
 
@@ -61,6 +66,9 @@ export async function lookupAddress(
     `elev:${lat.toFixed(5)},${lon.toFixed(5)}`,
     GEO_TTL_MS,
     () => groundElevationFt(lat, lon, fetchers.json),
+    // null covers both "no elevation data here" and "EPQS was down";
+    // re-asking is cheap and far better than pinning an outage for a day.
+    (e) => e !== null,
   );
   if (elevationFt === null) return { ok: false, error: "NO_ELEVATION" };
 
@@ -111,6 +119,9 @@ export async function watchPins(
           `alerts:${pin.lat.toFixed(2)},${pin.lon.toFixed(2)}`,
           ALERTS_TTL_MS,
           () => fetchFloodAlerts(pin.lat, pin.lon, fetchers.json),
+          // null means the alert service was unreachable — never cache
+          // that, or one blip suppresses alerts for ten minutes.
+          (v) => v !== null,
         ),
       ]);
       const verdict = survey({

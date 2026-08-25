@@ -45,3 +45,9 @@ next-env.d.ts
 /test-results/
 /playwright-report/
 /blob-report/
+
+# transient scratch/repro files (review agents, local debugging)
+**/scratch*
+**/zz*
+**/__scratch*
+tests/_*.test.ts
