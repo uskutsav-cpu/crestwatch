@@ -1,26 +1,120 @@
 @import "tailwindcss";
 
-:root {
-  --background: #ffffff;
-  --foreground: #171717;
+@theme {
+  /* Raw palette — Appendix B1 */
+  --color-ink: #0a1620;
+  --color-deepwater: #122234;
+  --color-ink-line: #1f3448;
+  --color-current: #4fc3e8;
+  --color-current-deep: #2e9fc4;
+  --color-foam: #eaf6fb;
+  --color-mist: #8fa8ba;
+  --color-dryland: #5fc98e;
+  --color-risewatch: #ffb84d;
+  --color-floodline: #e4715c;
+  --color-paper: #f4f9fb;
+
+  /* Semantic, theme-flipping (dark is the default) */
+  --color-bg: #0a1620;
+  --color-surface: #122234;
+  --color-line: #1f3448;
+  --color-fg: #eaf6fb;
+  --color-dim: #8fa8ba;
+
+  /* Typography — Appendix B2 (Inter, numbers are the heroes) */
+  --font-sans: var(--font-inter), system-ui, -apple-system, sans-serif;
+  --text-display: 2.125rem;
+  --text-display--line-height: 2.5rem;
+  --text-display--font-weight: 700;
+  --text-numeral: 1.75rem;
+  --text-numeral--line-height: 2rem;
+  --text-numeral--font-weight: 600;
+  --text-h2: 1.375rem;
+  --text-h2--line-height: 1.75rem;
+  --text-h2--font-weight: 600;
+  --text-body: 1rem;
+  --text-body--line-height: 1.5rem;
+  --text-small: 0.8125rem;
+  --text-small--line-height: 1.125rem;
 }
 
-@theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
-}
-
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
+/* Light mode — same hues on paper */
+[data-theme="light"] {
+  --color-bg: #f4f9fb;
+  --color-surface: #ffffff;
+  --color-line: #d5e3ea;
+  --color-fg: #122234;
+  --color-dim: #5a7183;
 }
 
 body {
-  background: var(--background);
-  color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+  background: var(--color-bg);
+  color: var(--color-fg);
+  font-size: var(--text-body);
+  line-height: var(--text-body--line-height);
+}
+
+/* Numbers are the heroes — tabular everywhere they appear. */
+.tnum {
+  font-variant-numeric: tabular-nums;
+}
+
+/* Brand motion — exactly four animations exist (Appendix B4).
+   1. water layer rising to level (WaterScene sets the target via CSS var) */
+@keyframes water-rise {
+  from {
+    transform: translateY(100%);
+  }
+  to {
+    transform: translateY(0);
+  }
+}
+.animate-water-rise {
+  animation: water-rise 800ms ease-out both;
+}
+
+/* 2. live-dot pulse */
+@keyframes live-pulse {
+  0%,
+  100% {
+    opacity: 1;
+    transform: scale(1);
+  }
+  50% {
+    opacity: 0.45;
+    transform: scale(0.8);
+  }
+}
+.animate-live-pulse {
+  animation: live-pulse 2s ease-in-out infinite;
+}
+
+/* 3. countdown minute tick (fade) */
+@keyframes tick-fade {
+  from {
+    opacity: 0.25;
+  }
+  to {
+    opacity: 1;
+  }
+}
+.animate-tick-fade {
+  animation: tick-fade 400ms ease-out both;
+}
+
+/* 4. verdict chip color crossfade */
+.chip-crossfade {
+  transition: background-color 300ms ease, color 300ms ease,
+    border-color 300ms ease;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .animate-water-rise,
+  .animate-live-pulse,
+  .animate-tick-fade {
+    animation: none;
+  }
+  .chip-crossfade {
+    transition: none;
+  }
 }
