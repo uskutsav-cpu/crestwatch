@@ -30,6 +30,28 @@ Known quirks to validate personally (found during the build):
   During validation, check whether any test address gets a wrong-river
   gauge and note it here.
 
+## How address search works (and its limits)
+
+Three tiers, best precision first — no database, no keys:
+
+1. **US Census geocoder** — authoritative street addresses. Its TIGER file
+   stores address *ranges*, so some real houses are simply missing.
+2. **Nominatim (OpenStreetMap)** — a second street-level opinion, tried
+   only when Census misses and only when the query really is a street
+   address. Volunteer-run: results are cached for a day and any failure
+   falls through to tier 3, so if it ever blocks us the app degrades to
+   town-level answers rather than breaking.
+3. **Open-Meteo place search** — the town inside the address
+   ("1234 Main St, Yazoo City, MS" -> "Yazoo City"), or a bare town/ZIP.
+
+Anything resolved at tier 3 is marked **approximate** and says so on the
+confirm card, the verdict screen, and in shared links. That matters: the
+Vicksburg town centre reads 242 ft while a house on Washington St reads
+193 ft — a 49 ft difference, easily the gap between dry and underwater.
+
+TEAM: during validation, note any test address that lands at tier 3 and
+whether the town-level answer was still useful.
+
 ## Checklist
 
 - [ ] Register at congressionalappchallenge.us for the correct district —

@@ -1,5 +1,11 @@
 import { describe, expect, it } from "vitest";
-import { geocodePlace, placeSearchUrl, splitStateHint } from "@/lib/geo";
+import {
+  extractLocality,
+  geocodePlace,
+  looksLikeStreetAddress,
+  placeSearchUrl,
+  splitStateHint,
+} from "@/lib/geo";
 import { lookupAddress } from "@/lib/watch-service";
 import { clearCache } from "@/lib/cache";
 import { testFetchers } from "@/lib/test-fetchers";
@@ -174,5 +180,75 @@ describe("EPQS slowness must not look like a bad address", () => {
     });
     expect(calls).toBe(2);
     expect(elev).toBeNull();
+  });
+});
+
+describe("extractLocality: find the town inside a street address", () => {
+  it("takes the town from a comma-separated address", () => {
+    expect(extractLocality("1234 Main Street, Yazoo City, MS")).toBe(
+      "Yazoo City",
+    );
+    expect(extractLocality("1 Government St, Vicksburg MS")).toBe("Vicksburg");
+  });
+
+  it("handles an address with no commas", () => {
+    expect(extractLocality("1400 Washington St Vicksburg MS")).toBe(
+      "Vicksburg",
+    );
+  });
+
+  it("passes a bare town through", () => {
+    expect(extractLocality("Vicksburg, MS")).toBe("Vicksburg");
+  });
+
+  it("refuses to guess from a number with no town", () => {
+    expect(extractLocality("1400 Washington St")).toBeNull();
+    expect(extractLocality("123 Elm")).toBeNull();
+  });
+});
+
+describe("looksLikeStreetAddress gates the street tier", () => {
+  it("accepts real street addresses", () => {
+    for (const q of [
+      "1400 Washington St, Vicksburg, MS",
+      "1 Government St, Vicksburg MS",
+      "100 E Capitol St",
+    ]) {
+      expect(looksLikeStreetAddress(q)).toBe(true);
+    }
+  });
+
+  it("rejects towns and ZIPs, so they can never be sold as house-level", () => {
+    for (const q of ["Vicksburg, MS", "39180", "Yazoo City", "Rolling Fork MS"]) {
+      expect(looksLikeStreetAddress(q)).toBe(false);
+    }
+  });
+});
+
+describe("three-tier lookup chain", () => {
+  it("an unlisted house number degrades to the town, clearly flagged", async () => {
+    clearCache();
+    const r = await lookupAddress("1 Government St, Vicksburg MS", testFetchers);
+    expect(r.ok).toBe(true);
+    if (!r.ok) return;
+    expect(r.precision).toBe("place");
+    expect(r.matchedAddress).toContain("Vicksburg");
+  });
+
+  it("a street the Census file lacks is still found at street level", async () => {
+    clearCache();
+    const r = await lookupAddress("1234 Main Street, Yazoo City, MS", testFetchers);
+    expect(r.ok).toBe(true);
+    if (!r.ok) return;
+    expect(r.precision).toBe("address");
+    expect(r.matchedAddress).toContain("Main Street");
+  });
+
+  it("a town never comes back wearing house-level precision", async () => {
+    clearCache();
+    const r = await lookupAddress("Vicksburg, MS", testFetchers);
+    expect(r.ok).toBe(true);
+    if (!r.ok) return;
+    expect(r.precision).toBe("place");
   });
 });

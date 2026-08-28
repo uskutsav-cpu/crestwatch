@@ -68,8 +68,16 @@ function fixtureJson(url: string): unknown {
     return readJson("gauges", `usgs_iv_${known}.json`);
   }
 
+  if (u.hostname === "nominatim.openstreetmap.org") {
+    const q = (u.searchParams.get("q") ?? "").toLowerCase();
+    return q.includes("main street") && q.includes("yazoo")
+      ? readJson("nominatim_yazoo_main.json")
+      : readJson("nominatim_empty.json");
+  }
+
   if (u.hostname === "geocoding-api.open-meteo.com") {
     const name = (u.searchParams.get("name") ?? "").toLowerCase();
+    if (name.includes("yazoo")) return readJson("place_yazoo.json");
     return name.includes("vicksburg") || name === "39180"
       ? readJson("place_vicksburg.json")
       : readJson("place_empty.json");

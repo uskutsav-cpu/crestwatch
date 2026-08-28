@@ -5,7 +5,15 @@
  */
 
 import { GAUGE_RADIUS_MI } from "@/lib/config";
-import { geocodeAddress, geocodePlace, groundElevationFt } from "@/lib/geo";
+import {
+  extractLocality,
+  geocodeAddress,
+  geocodePlace,
+  geocodeStreetFallback,
+  groundElevationFt,
+  looksLikeStreetAddress,
+  splitStateHint,
+} from "@/lib/geo";
 import {
   pickForecastGauge,
   defaultFetchers,
@@ -61,11 +69,32 @@ export async function lookupAddress(
     `geo:${key}`,
     GEO_TTL_MS,
     async () => {
-      // Exact street address first — that is the only precision the
-      // house-level math deserves. Most people type a town or a ZIP
-      // though, so fall back to a place lookup rather than dead-ending.
+      // Three tiers, best precision first. House-level is what the verdict
+      // math deserves, but never dead-end a real person over a house
+      // number some federal file happens to be missing.
+      //  1. Census — authoritative US street addresses.
       const exact = await geocodeAddress(address, fetchers.json);
       if (exact.ok || exact.error === "UPSTREAM") return exact;
+
+      //  2. A second street-level opinion for addresses Census lacks —
+      //     only for things that really are street addresses, so a town
+      //     or ZIP can never come back wearing house-level precision.
+      if (looksLikeStreetAddress(address)) {
+        const street = await geocodeStreetFallback(address, fetchers.json);
+        if (street.ok) return street;
+      }
+
+      //  3. The town inside the address ("1234 Main St, Yazoo City, MS"
+      //     -> "Yazoo City"), then the query itself for bare towns/ZIPs.
+      const { state } = splitStateHint(address);
+      const locality = extractLocality(address);
+      if (locality) {
+        const asTown = await geocodePlace(
+          state ? `${locality}, ${state}` : locality,
+          fetchers.json,
+        );
+        if (asTown.ok) return asTown;
+      }
       return geocodePlace(address, fetchers.json);
     },
     // A NOT_FOUND is a stable answer worth caching; an UPSTREAM blip is

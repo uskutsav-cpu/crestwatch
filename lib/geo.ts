@@ -83,6 +83,41 @@ export function splitStateHint(query: string): {
   return { place: trimmed, state: null };
 }
 
+const STREET_TYPES =
+  "st|street|ave|avenue|rd|road|dr|drive|ln|lane|blvd|boulevard|hwy|highway|way|ct|court|pl|place|cir|circle|pkwy|parkway|ter|terrace|trl|trail|loop|run|path|row|sq|square";
+
+/**
+ * Reduce a full street address to the town inside it, so a house number
+ * the Census database has never heard of still lands somewhere useful.
+ * "1234 Main Street, Yazoo City, MS" -> "Yazoo City".
+ */
+export function extractLocality(query: string): string | null {
+  const { place, state } = splitStateHint(query);
+  const parts = place
+    .split(",")
+    .map((x) => x.trim())
+    .filter(Boolean);
+
+  // With commas the town is the last component before the state.
+  if (parts.length > 1) {
+    const last = parts[parts.length - 1];
+    return last.length >= 2 ? last : null;
+  }
+
+  const only = parts[0] ?? "";
+  if (!only) return null;
+
+  // No commas: drop everything up to and including the street type.
+  const re = new RegExp(`^.*?\\b(?:${STREET_TYPES})\\b\\.?\\s+`, "i");
+  const afterStreet = only.replace(re, "").trim();
+  if (afterStreet && afterStreet !== only) return afterStreet;
+
+  // A bare "123 Something" with no street type and no comma gives us
+  // nothing trustworthy to search on.
+  if (/^\d/.test(only)) return null;
+  return state && only.length >= 2 ? only : null;
+}
+
 export function placeSearchUrl(place: string): string {
   const u = new URL("https://geocoding-api.open-meteo.com/v1/search");
   u.searchParams.set("name", place);
@@ -147,6 +182,67 @@ export async function geocodePlace(
       matchedAddress: label || query.trim(),
       precision: "place",
     },
+  };
+}
+
+/**
+ * True when the query really is a street address — a house number
+ * followed by a name, or a street-type word. Bare towns and ZIPs must
+ * NOT take the street path: a match there would be labelled house-level
+ * precision and silently drop the "town center" warning.
+ */
+export function looksLikeStreetAddress(query: string): boolean {
+  const q = query.trim();
+  const hasStreetType = new RegExp(`\\b(?:${STREET_TYPES})\\b\\.?`, "i").test(q);
+  const hasHouseNumber = /^\d+[a-z]?\s+\S+/i.test(q);
+  return hasStreetType || hasHouseNumber;
+}
+
+export function nominatimUrl(query: string): string {
+  const u = new URL("https://nominatim.openstreetmap.org/search");
+  u.searchParams.set("q", query);
+  u.searchParams.set("format", "json");
+  u.searchParams.set("limit", "1");
+  u.searchParams.set("countrycodes", "us");
+  u.searchParams.set("addressdetails", "0");
+  return u.toString();
+}
+
+/**
+ * Second street-level opinion for addresses the Census database has never
+ * heard of — its TIGER file stores address RANGES, so real houses go
+ * missing. Keyless, but a volunteer-run service: we only reach it after
+ * Census misses, the result is cached for a day, and any failure just
+ * falls through to the town lookup. If it ever blocks us the app quietly
+ * degrades to town-level answers instead of breaking.
+ */
+export async function geocodeStreetFallback(
+  query: string,
+  fetchImpl: FetchJson = fetchJson,
+): Promise<GeocodeResult> {
+  let data: unknown;
+  try {
+    data = await fetchImpl(nominatimUrl(query), { timeoutMs: 8_000 });
+  } catch {
+    return { ok: false, error: "UPSTREAM" };
+  }
+  const hit = (
+    data as Array<{ lat?: string; lon?: string; display_name?: string }>
+  )?.[0];
+  const lat = parseFloat(hit?.lat ?? "");
+  const lon = parseFloat(hit?.lon ?? "");
+  if (!hit || !Number.isFinite(lat) || !Number.isFinite(lon)) {
+    return { ok: false, error: "NOT_FOUND" };
+  }
+  // Trim the long OSM display name to something a person recognises.
+  const label = (hit.display_name ?? query)
+    .split(",")
+    .slice(0, 3)
+    .join(",")
+    .trim();
+  return {
+    ok: true,
+    point: { lat, lon, matchedAddress: label, precision: "address" },
   };
 }
 
