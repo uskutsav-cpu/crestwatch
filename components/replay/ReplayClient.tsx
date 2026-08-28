@@ -82,7 +82,7 @@ export function ReplayClient() {
           <select
             value={pinId ?? ""}
             onChange={(e) => setPinId(e.target.value)}
-            className="mt-1 block rounded-xl border border-line bg-surface px-3 py-2 text-body text-fg"
+            className="mt-1 block rounded-xl bg-surface px-3 py-2 ring-1 ring-inset ring-line text-body text-fg"
           >
             {pins.map((p) => (
               <option key={p.id} value={p.id}>
@@ -96,7 +96,7 @@ export function ReplayClient() {
           <select
             value={eventId}
             onChange={(e) => setEventId(e.target.value)}
-            className="mt-1 block rounded-xl border border-line bg-surface px-3 py-2 text-body text-fg"
+            className="mt-1 block rounded-xl bg-surface px-3 py-2 ring-1 ring-inset ring-line text-body text-fg"
           >
             {REPLAY_EVENTS.map((e) => (
               <option key={e.id} value={e.id}>
@@ -149,10 +149,10 @@ export function ReplayClient() {
             <p className="text-display">
               {stats.daysAbove > 0
                 ? copy.replayResult(pin.name, stats.daysAbove)
-                : `The water never reached ${pin.name} — the crest stayed ${Math.max(
+                : `The water never reached ${pin.name}. The highest it got was ${Math.max(
                     1,
                     Math.round(pin.elevationFt - stats.crest.waterElevFt),
-                  )} ft below it.`}
+                  )} ft below your spot.`}
             </p>
           )}
         </>

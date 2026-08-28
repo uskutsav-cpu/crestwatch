@@ -37,6 +37,14 @@ export function addPin(pin: Pin): Pin[] {
   return pins;
 }
 
+export function renamePin(id: string, name: string): Pin[] {
+  const clean = sanitizeName(name).slice(0, 40);
+  if (!clean) return loadPins();
+  const pins = loadPins().map((p) => (p.id === id ? { ...p, name: clean } : p));
+  persist(pins);
+  return pins;
+}
+
 export function removePin(id: string): Pin[] {
   const pins = loadPins().filter((p) => p.id !== id);
   persist(pins);

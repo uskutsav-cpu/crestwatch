@@ -82,22 +82,22 @@ export function WhyClient() {
       {/* ---------- ALERT-ONLY ---------- */}
       {verdict.tier === "ALERT_ONLY" && (
         <div className="flex flex-col gap-4">
-          <div className="rounded-2xl border border-line bg-surface p-5">
+          <div className="rounded-2xl bg-surface p-5">
             <p className="text-h2">{copy.noGaugeHeadline}</p>
             <p className="mt-2 text-body text-dim">
               CrestWatch needs a river gauge with an official crest forecast
               within 25 miles, and {pin.name} doesn&apos;t have one. That
-              usually means the flooding risk here is rain-driven flash
-              flooding — a different animal, with minutes of warning instead
-              of days. Your county alerts are the right tool for that.
+              usually means the risk here is flash flooding from sudden
+              rain, which gives minutes of warning instead of days. Your
+              county alerts are the right tool for that.
             </p>
           </div>
           {alerts.length > 0 ? (
             <ul className="flex flex-col gap-2">
               {alerts.map((a, i) => (
-                <li key={i} className="rounded-xl border border-risewatch/60 bg-surface p-3 text-small">
+                <li key={i} className="rounded-xl bg-risewatch/10 p-3 text-small">
                   <span className="font-semibold">{a.event}</span>
-                  {a.areaDesc ? ` — ${a.areaDesc}` : ""}
+                  {a.areaDesc ? ` · ${a.areaDesc}` : ""}
                 </li>
               ))}
             </ul>
@@ -106,9 +106,9 @@ export function WhyClient() {
               No flood alerts are active for this spot right now.
             </p>
           ) : (
-            <p className="rounded-xl border border-risewatch/60 bg-surface p-3 text-small">
-              CrestWatch couldn&apos;t reach the alert service just now — that
-              is not an all-clear. Check weather.gov directly.
+            <p className="rounded-xl bg-risewatch/10 p-3 text-small">
+              CrestWatch couldn&apos;t reach the alert service just now.
+              That is not an all-clear. Check weather.gov directly.
             </p>
           )}
           <a
@@ -125,7 +125,7 @@ export function WhyClient() {
       {/* ---------- CATEGORY ---------- */}
       {verdict.tier === "CATEGORY" && gauge && (
         <div className="flex flex-col gap-4">
-          <div className="rounded-2xl border border-line bg-surface p-5">
+          <div className="rounded-2xl bg-surface p-5">
             <p className="text-body">
               <span className="font-semibold">{gauge.name}</span>
               {" · "}
@@ -145,7 +145,7 @@ export function WhyClient() {
             forecast={gauge.forecast}
             floodStageFt={gauge.categories.minor ?? null}
           />
-          <div className="rounded-2xl border border-line bg-surface p-5">
+          <div className="rounded-2xl bg-surface p-5">
             <Row label="forecast crest (stage)" value={`${verdict.peakStageFt.toFixed(1)} ft`} />
             {typeof gauge.categories.minor === "number" && (
               <Row op="−" label="flood stage" value={`${gauge.categories.minor.toFixed(1)} ft`} />
@@ -167,7 +167,7 @@ export function WhyClient() {
       {/* ---------- FULL ---------- */}
       {verdict.tier === "FULL" && gauge && (
         <div className="flex flex-col gap-4">
-          <div className="rounded-2xl border border-line bg-surface p-5">
+          <div className="rounded-2xl bg-surface p-5">
             <p className="text-body">
               <span className="font-semibold">{gauge.name}</span>
               {" · "}
@@ -181,8 +181,8 @@ export function WhyClient() {
             floodStageFt={gauge.categories.minor ?? null}
           />
 
-          {/* The homework arithmetic */}
-          <div className="rounded-2xl border border-line bg-surface p-5">
+          {/* The homework arithmetic, one card */}
+          <div className="rounded-2xl bg-surface p-5">
             <p className="mb-3 text-small font-semibold text-dim">
               The water side
             </p>
@@ -190,12 +190,11 @@ export function WhyClient() {
               label={`gauge zero (how high the gauge's 0 ft sits${gauge.gaugeDatum ? `, ${gauge.gaugeDatum}` : ""})`}
               value={`${gauge.gaugeZeroFt!.toFixed(1)} ft`}
             />
-            <Row op="+" label="forecast crest — the river's high point (stage)" value={`${verdict.peak.stageFt.toFixed(1)} ft`} />
+            <Row op="+" label="forecast crest, the river's high point (stage)" value={`${verdict.peak.stageFt.toFixed(1)} ft`} />
             <div className="my-2 border-t border-line" />
             <Row op="=" label="forecast water surface" value={`${verdict.peak.waterElevFt.toFixed(1)} ft`} />
-          </div>
 
-          <div className="rounded-2xl border border-line bg-surface p-5">
+            <div className="my-4 border-t border-line" />
             <p className="mb-3 text-small font-semibold text-dim">
               Your side
             </p>

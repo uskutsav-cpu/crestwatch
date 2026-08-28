@@ -7,6 +7,7 @@
 import { copy } from "@/lib/copy";
 import type { GaugeSummary } from "@/lib/watch-service";
 import type { Verdict } from "@/lib/surveyor";
+import type { Trend } from "@/lib/trend";
 
 const CT = "America/Chicago";
 
@@ -58,10 +59,18 @@ export interface SentenceInput {
   verdict: Verdict;
   gauge: Pick<GaugeSummary, "name" | "forecastIssued"> | null;
   now: string;
+  /** What the live gauge shows right now, when the reading is fresh. */
+  observedTrend?: Trend | null;
 }
 
 /** The one sentence (Display size on S2). */
-export function verdictSentence({ pinName, verdict, gauge, now }: SentenceInput): string {
+export function verdictSentence({
+  pinName,
+  verdict,
+  gauge,
+  now,
+  observedTrend = null,
+}: SentenceInput): string {
   if (verdict.tier === "ALERT_ONLY") {
     return copy.verdictAlertOnly;
   }
@@ -105,6 +114,12 @@ export function verdictSentence({ pinName, verdict, gauge, now }: SentenceInput)
       return copy.verdictLikelyNow(pinName, river);
     }
     if (verdict.pastPeak) {
+      // The forecast says the crest is behind us. When the live gauge is
+      // measurably rising at the same time, the two sources disagree, and
+      // saying "coming down" would pick the staler one. Say both.
+      if (observedTrend === "rising") {
+        return copy.verdictLikelyPastPeakButRising(river, pinName);
+      }
       return copy.verdictLikelyPastPeak(river, pinName);
     }
     if (verdict.crossing) {

@@ -21,7 +21,7 @@ export default function SetupPage() {
         {copy.howItWorks.map((step, i) => (
           <li
             key={step}
-            className="rounded-2xl border border-line bg-surface p-4"
+            className="rounded-2xl bg-surface p-4"
           >
             <p className="text-small font-semibold text-(--color-current)">
               {i + 1}

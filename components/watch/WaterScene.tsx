@@ -29,10 +29,10 @@ export function WaterScene(props: SceneInput) {
             ? `Forecast crest stays ${gapLabel(s.gapFt)} below ${focused.label}`
             : `Forecast crest reaches ${gapLabel(s.gapFt)} above ${focused.label}`
       }
-      className="w-full rounded-2xl border border-line bg-bg"
+      className="w-full rounded-2xl bg-surface"
     >
       {/* ground silhouette */}
-      <path d={s.groundPath} fill="var(--color-surface)" stroke="var(--color-line)" strokeWidth="1.5" />
+      <path d={s.groundPath} fill="var(--color-bg)" stroke="var(--color-line)" strokeWidth="1" />
 
       {/* water — translucent layer rising to the observed level */}
       {s.waterY !== null && (

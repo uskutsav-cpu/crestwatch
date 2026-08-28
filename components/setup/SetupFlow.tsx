@@ -94,7 +94,7 @@ export function SetupFlow() {
   if (phase === "confirm" && found) {
     return (
       <div className="flex w-full max-w-xl flex-col gap-4">
-        <div className="rounded-2xl border border-line bg-surface p-5">
+        <div className="rounded-2xl bg-surface p-5">
           <div className="flex flex-wrap items-center gap-2">
             <p className="text-small text-dim">{found.matchedAddress}</p>
             {found.precision === "place" && (
@@ -125,7 +125,7 @@ export function SetupFlow() {
               value={pinName}
               onChange={(e) => setPinName(e.target.value)}
               maxLength={40}
-              className="mt-1 block w-full rounded-xl border border-line bg-bg px-3 py-2 text-body text-fg focus:border-(--color-current) focus:outline-none"
+              className="mt-1 block w-full rounded-xl bg-bg px-3 py-2 ring-1 ring-inset ring-line text-body text-fg focus:outline-none focus:ring-(--color-current)"
             />
           </label>
         </div>
@@ -169,14 +169,14 @@ export function SetupFlow() {
           onChange={(e) => setAddress(e.target.value)}
           placeholder={copy.addressPlaceholder}
           aria-label="Address, town, or ZIP"
-          className="h-13 flex-1 rounded-xl border border-line bg-surface px-4 text-body text-fg placeholder:text-dim focus:border-(--color-current) focus:outline-none"
+          className="h-13 flex-1 rounded-xl bg-surface px-4 ring-1 ring-inset ring-line text-body text-fg placeholder:text-dim focus:outline-none focus:ring-(--color-current)"
         />
         <ButtonPrimary type="submit" disabled={busy || address.trim().length < 3}>
           {busy ? copy.looking : copy.cta}
         </ButtonPrimary>
       </form>
       {note && (
-        <p className="rounded-xl border border-risewatch/50 bg-surface p-3 text-small">
+        <p className="rounded-xl bg-risewatch/10 p-3 text-small">
           {note}
         </p>
       )}

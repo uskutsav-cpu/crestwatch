@@ -16,7 +16,7 @@ export function StatChart(props: ChartInput) {
       viewBox={`0 0 ${CHART_W} ${CHART_H}`}
       role="img"
       aria-label="River stage: observed and forecast"
-      className="w-full rounded-2xl border border-line bg-bg"
+      className="w-full rounded-2xl bg-surface"
     >
       {c.yTicks.map((t) => (
         <g key={t.label}>

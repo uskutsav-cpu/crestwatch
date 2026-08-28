@@ -225,7 +225,7 @@ describe("verdict sentences (Appendix C)", () => {
       now: NOW,
     });
     expect(s).toContain("No forecast gauge watches this spot");
-    expect(s).toContain("flash flooding");
+    expect(s).toContain("flash floods");
   });
 });
 
@@ -235,5 +235,31 @@ describe("statusLine (place cards)", () => {
     expect(statusLine(fullVerdict({ band: "LIKELY" }))).toContain("likely reaches");
     expect(statusLine(fullVerdict({ band: "BORDERLINE" }))).toContain("Too close");
     expect(statusLine({ tier: "ALERT_ONLY" })).toContain("can't watch");
+  });
+});
+
+describe("forecast vs live gauge disagreement", () => {
+  it("says both when the forecast claims a peak but the gauge is rising", () => {
+    const s = verdictSentence({
+      pinName: "The road",
+      verdict: fullVerdict({ band: "LIKELY", pastPeak: true, currentlyAbove: true }),
+      gauge,
+      now: NOW,
+      observedTrend: "rising",
+    });
+    expect(s).toContain("forecast says");
+    expect(s).toContain("still shows it rising");
+    expect(s).not.toContain("coming down");
+  });
+
+  it("keeps the plain past-peak sentence when the gauge agrees", () => {
+    const s = verdictSentence({
+      pinName: "The road",
+      verdict: fullVerdict({ band: "LIKELY", pastPeak: true, currentlyAbove: true }),
+      gauge,
+      now: NOW,
+      observedTrend: "falling",
+    });
+    expect(s).toContain("has peaked and is coming down");
   });
 });

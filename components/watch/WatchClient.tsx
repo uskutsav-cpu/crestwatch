@@ -11,6 +11,8 @@ import { copy } from "@/lib/copy";
 import { decodeWatchLink, encodeWatchLink } from "@/lib/watch-link";
 import { useWatches } from "@/lib/use-watch";
 import { crestCompare } from "@/lib/crest-compare";
+import { heightGloss } from "@/lib/kid-scale";
+import { trendOf } from "@/lib/trend";
 import { verdictSentence } from "@/lib/sentences";
 import { WaterScene } from "@/components/watch/WaterScene";
 import { CountdownChip } from "@/components/watch/CountdownChip";
@@ -55,7 +57,7 @@ export function WatchClient() {
     const wl = params.get("wl");
     return wl ? decodeWatchLink(wl) : null;
   }, [params]);
-  const { pins, watches, now, loading, error } = useWatches(linkedPins);
+  const { pins, watches, now, loading, error, refresh } = useWatches(linkedPins);
   const [copied, setCopied] = useState(false);
 
   if (!loading && pins.length === 0) {
@@ -94,12 +96,28 @@ export function WatchClient() {
 
   const { verdict, gauge } = watch;
   const chip = chipFor(watch);
+  const trend = gauge ? trendOf(gauge.observed) : null;
+  const freshTrend =
+    verdict.tier !== "ALERT_ONLY" && !verdict.stale.staleObserved
+      ? trend
+      : null;
   const sentence = verdictSentence({
     pinName: pin.name,
     verdict,
     gauge,
     now: now ?? new Date().toISOString(),
+    observedTrend: freshTrend,
   });
+
+  // A soft second line that turns feet into something you can picture.
+  const gloss =
+    verdict.tier === "FULL" ? heightGloss(verdict.marginFt) : null;
+  const glossLine =
+    gloss === null || verdict.tier !== "FULL"
+      ? null
+      : verdict.marginFt >= 0
+        ? `That ${Math.max(1, Math.round(verdict.marginFt))} ft gap is ${gloss}.`
+        : `That could put about ${Math.max(1, Math.round(-verdict.marginFt))} ft of water here, ${gloss}.`;
 
   // Second marker: another pin sharing this gauge, drawn at true relative
   // elevation (the classic "street floods, house doesn't" picture).
@@ -148,10 +166,25 @@ export function WatchClient() {
       )}
 
       {/* The sentence */}
-      <p className="text-display">{sentence}</p>
+      <div>
+        <p className="text-display">{sentence}</p>
+        {glossLine && (
+          <p className="mt-2 text-body text-dim">{glossLine}</p>
+        )}
+      </div>
 
       {/* Chips */}
       <div className="flex flex-wrap items-center gap-2">
+        {trend && (
+          <span className="tnum inline-flex items-center gap-1 rounded-full bg-surface px-3 py-1.5 text-small font-semibold text-dim">
+            {trend === "rising" ? "↑" : trend === "falling" ? "↓" : "→"}{" "}
+            {trend === "rising"
+              ? copy.trendRising
+              : trend === "falling"
+                ? copy.trendFalling
+                : copy.trendSteady}
+          </span>
+        )}
         {verdict.tier === "FULL" && verdict.crossing && (
           <CountdownChip pinName={pin.name} crossingIso={verdict.crossing.t} />
         )}
@@ -164,38 +197,46 @@ export function WatchClient() {
               gauge.categories,
             );
             return cc ? (
-              <span className="tnum inline-flex items-center rounded-full border border-line px-3 py-1.5 text-small font-semibold text-dim">
+              <span className="tnum inline-flex items-center rounded-full bg-surface px-3 py-1.5 text-small font-semibold text-dim">
                 {copy.crestCompare(cc.ordinal, cc.sinceYear)}
               </span>
             ) : null;
           })()}
         {stale ? (
-          <span className="inline-flex items-center rounded-full border border-line px-3 py-1.5 text-small font-semibold text-dim">
+          <span className="inline-flex items-center rounded-full bg-surface px-3 py-1.5 text-small font-semibold text-dim">
             {copy.delayedChip(staleH)}
           </span>
         ) : (
-          <span className="inline-flex items-center gap-2 rounded-full border border-line px-3 py-1.5 text-small font-semibold text-dim">
+          <span className="inline-flex items-center gap-2 rounded-full bg-surface px-3 py-1.5 text-small font-semibold text-dim">
             <LiveDot />
             {copy.liveChip(lastObsIso ? fmtTime(lastObsIso) : "now")}
           </span>
         )}
+        <button
+          onClick={refresh}
+          disabled={loading}
+          className="rounded-full px-3 py-1.5 text-small font-semibold text-dim transition-colors hover:text-(--color-current) disabled:opacity-50"
+        >
+          {loading ? "…" : copy.refresh}
+        </button>
       </div>
 
       {/* A town-centre pin must never masquerade as house-level math. */}
       {pin.approximate && (
-        <p className="rounded-xl border border-risewatch/60 bg-risewatch/10 p-3 text-small">
+        <p className="rounded-xl bg-risewatch/10 p-3 text-small">
           <span className="font-semibold text-risewatch">
             {copy.approximateTag}
-          </span>{" "}
-          — {copy.approximateNote}
+          </span>
+          {": "}
+          {copy.approximateNote}
         </p>
       )}
 
       {/* Active flood alerts (all tiers — additive context) */}
       <AlertStrip alerts={watch.alerts} />
       {verdict.tier === "ALERT_ONLY" && !watch.alertsOk && (
-        <p className="rounded-xl border border-risewatch/60 bg-surface p-3 text-small">
-          CrestWatch couldn&apos;t reach the alert service just now — that is
+        <p className="rounded-xl bg-risewatch/10 p-3 text-small">
+          CrestWatch couldn&apos;t reach the alert service just now. That is
           not an all-clear. Check weather.gov directly.
         </p>
       )}
@@ -250,7 +291,7 @@ export function WatchClient() {
 
       {linkedPins && (
         <p className="text-small text-dim">
-          You&apos;re viewing a shared watch link — nothing was saved on this
+          You&apos;re viewing a shared watch link. Nothing was saved on this
           device.
         </p>
       )}

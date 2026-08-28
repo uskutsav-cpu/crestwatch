@@ -48,7 +48,7 @@ test.describe("screenshots", () => {
       ["01-setup", "/", "Will the water reach your house?"],
       ["02-watch", "/watch?pin=phome", /stays dry by about/],
       ["03-places", "/places", "Your places"],
-      ["04-why", "/why?pin=phome", "No magic — here's the math"],
+      ["04-why", "/why?pin=phome", "No magic. Here's the math."],
       ["05-replay", "/replay", "Replay a real flood"],
       ["06-about", "/about", "About CrestWatch"],
     ];

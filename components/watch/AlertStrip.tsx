@@ -16,11 +16,11 @@ export function AlertStrip({ alerts }: { alerts: FloodAlert[] }) {
         <div
           key={i}
           role="status"
-          className="rounded-xl border border-risewatch/70 bg-risewatch/15 p-3 text-small"
+          className="rounded-xl bg-risewatch/15 p-3 text-small"
         >
           <span className="font-semibold text-risewatch">{a.event}</span>
           {a.areaDesc ? (
-            <span className="text-dim"> — {a.areaDesc}</span>
+            <span className="text-dim"> · {a.areaDesc}</span>
           ) : null}
         </div>
       ))}

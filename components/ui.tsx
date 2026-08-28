@@ -10,7 +10,7 @@ const primaryClasses =
   "inline-flex h-13 items-center justify-center rounded-xl bg-(--color-current) px-6 text-body font-semibold text-ink transition-colors hover:bg-(--color-current-deep) focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-(--color-current)/40";
 
 const ghostClasses =
-  "inline-flex h-13 items-center justify-center rounded-xl border border-line px-6 text-body font-semibold text-fg transition-colors hover:border-(--color-current) hover:text-(--color-current) focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-(--color-current)/25";
+  "inline-flex h-13 items-center justify-center rounded-xl ring-1 ring-inset ring-line px-6 text-body font-semibold text-fg transition-colors hover:ring-(--color-current) hover:text-(--color-current) focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-(--color-current)/25";
 
 export function ButtonPrimary(
   props: ComponentProps<"button"> & { children: ReactNode },

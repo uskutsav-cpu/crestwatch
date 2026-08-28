@@ -61,3 +61,23 @@ test("delete all clears pins after confirm", async ({ page }) => {
   );
   expect(pins).toBeNull();
 });
+
+test("a place can be renamed and removed on its own", async ({ page }) => {
+  await page.goto("/places");
+  await expect(page.locator("li")).toHaveCount(2, { timeout: 15_000 });
+
+  // Rename via the pencil button.
+  page.once("dialog", (d) => void d.accept("Grandma's porch"));
+  await page.getByRole("button", { name: "Rename Home" }).click();
+  await expect(page.getByText("Grandma's porch")).toBeVisible();
+
+  // Remove one place; the other stays.
+  page.once("dialog", (d) => void d.accept());
+  await page.getByRole("button", { name: "Remove The farm road" }).click();
+  await expect(page.locator("li")).toHaveCount(1, { timeout: 15_000 });
+  const pins = await page.evaluate(() =>
+    JSON.parse(localStorage.getItem("crestwatch.pins") ?? "[]"),
+  );
+  expect(pins).toHaveLength(1);
+  expect(pins[0].name).toBe("Grandma's porch");
+});

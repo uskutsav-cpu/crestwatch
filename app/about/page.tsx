@@ -25,11 +25,11 @@ export default function AboutPage() {
         <h2 className="text-h2">The problem</h2>
         <p className="mt-3 text-body leading-relaxed text-dim">
           In 1927 the levee broke at Mounds Landing near Greenville and put
-          much of our district under water — the most destructive river flood
-          in American history. In 2019, the Yazoo backwater flood kept over
-          half a million acres of the south Delta underwater for about six
-          months. In August 2022 the Pearl River flooded Jackson and knocked
-          out the city&apos;s water plant (
+          much of our district under water. It was the most destructive
+          river flood in American history. In 2019, the Yazoo backwater
+          flood kept over half a million acres of the south Delta underwater
+          for about six months. In August 2022 the Pearl River flooded
+          Jackson and knocked out the city&apos;s water plant (
           <a
             className="text-(--color-current)"
             href="https://www.cnn.com/2022/09/02/us/jackson-mississippi-water-crisis-what-we-know/index.html"
@@ -38,7 +38,7 @@ export default function AboutPage() {
           >
             CNN
           </a>
-          ). Every one of these floods was forecast days ahead — on
+          ). Every one of these floods was forecast days ahead, on
           government pages written for engineers.
         </p>
       </section>
@@ -48,11 +48,11 @@ export default function AboutPage() {
         <h2 className="text-h2">What CrestWatch does</h2>
         <ol className="mt-4 grid grid-cols-1 gap-3 sm:grid-cols-3">
           {[
-            ["📡", "Read the gauges", "River gauges and the official NWS crest forecasts, straight from USGS and NOAA."],
-            ["📐", "Compare to YOUR ground", "Your address becomes an elevation. The gauge's forecast becomes a water level. One subtraction."],
+            ["📡", "Check the gauges", "River gauges and the official crest forecasts, straight from USGS and NOAA."],
+            ["📐", "Compare to your ground", "Your address becomes a height. The forecast becomes a water level. Then we subtract."],
             ["🗣", "Say it in one sentence", "When the water is coming, how high, and whether it reaches your door."],
           ].map(([icon, title, body]) => (
-            <li key={title} className="rounded-2xl border border-line bg-surface p-4">
+            <li key={title} className="rounded-2xl bg-surface p-4">
               <p className="text-h2">{icon}</p>
               <p className="mt-1 text-body font-semibold">{title}</p>
               <p className="mt-1 text-small text-dim">{body}</p>
@@ -64,7 +64,7 @@ export default function AboutPage() {
       {/* 4 · Honesty (verbatim) */}
       <section className="max-w-prose">
         <h2 className="text-h2">What it can&apos;t do</h2>
-        <p className="mt-3 rounded-2xl border border-line bg-surface p-5 text-body leading-relaxed">
+        <p className="mt-3 rounded-2xl bg-surface p-5 text-body leading-relaxed">
           {copy.honesty}
         </p>
       </section>
@@ -79,9 +79,10 @@ export default function AboutPage() {
       <section className="max-w-prose">
         <h2 className="text-h2">How it was built</h2>
         <p className="mt-3 text-body text-dim">
-          automated-assisted build, fully disclosed — the product itself uses no automated,
-          only public federal data and arithmetic. Next.js + TypeScript on
-          free, keyless federal APIs: USGS, NOAA, Census. See{" "}
+          We built this with automated help and say so openly. The product itself
+          uses no automated, only public data and arithmetic. It runs on Next.js
+          and TypeScript with free public APIs from USGS, NOAA, and the
+          Census. See{" "}
           <a
             className="text-(--color-current)"
             href="https://github.com/shashankmadala/crestwatch/blob/main/docs/VALIDATION.md"

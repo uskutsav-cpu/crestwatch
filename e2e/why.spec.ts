@@ -37,7 +37,7 @@ test("FULL tier: the arithmetic is written out with source links", async ({
   page,
 }) => {
   await page.goto("/why?pin=pjackson");
-  await expect(page.getByText("No magic — here's the math")).toBeVisible({
+  await expect(page.getByText("No magic. Here's the math.")).toBeVisible({
     timeout: 15_000,
   });
   await expect(page.getByText("FULL", { exact: true })).toBeVisible();
