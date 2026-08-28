@@ -140,3 +140,39 @@ describe("watch links carry the approximate flag", () => {
     expect(decodeWatchLink(forged)).toBeNull();
   });
 });
+
+describe("EPQS slowness must not look like a bad address", () => {
+  it("retries once before giving up", async () => {
+    const { groundElevationFt } = await import("@/lib/geo");
+    let calls = 0;
+    const flaky = async () => {
+      calls++;
+      if (calls === 1) throw new Error("timeout");
+      return { value: 241.58 };
+    };
+    const elev = await groundElevationFt(32.35, -90.88, flaky);
+    expect(calls).toBe(2);
+    expect(elev).toBeCloseTo(241.58, 2);
+  });
+
+  it("asks for a long timeout, since EPQS routinely takes seconds", async () => {
+    const { groundElevationFt } = await import("@/lib/geo");
+    let seen: number | undefined;
+    await groundElevationFt(32.35, -90.88, async (_u, opts) => {
+      seen = opts?.timeoutMs;
+      return { value: 100 };
+    });
+    expect(seen).toBeGreaterThanOrEqual(20_000);
+  });
+
+  it("still gives up after the retry rather than hanging", async () => {
+    const { groundElevationFt } = await import("@/lib/geo");
+    let calls = 0;
+    const elev = await groundElevationFt(32.35, -90.88, async () => {
+      calls++;
+      throw new Error("down");
+    });
+    expect(calls).toBe(2);
+    expect(elev).toBeNull();
+  });
+});

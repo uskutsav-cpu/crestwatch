@@ -36,7 +36,14 @@ function release(): void {
   inFlight--;
 }
 
-export type FetchJson = (url: string) => Promise<unknown>;
+export interface FetchOpts {
+  timeoutMs?: number;
+}
+
+export type FetchJson = (
+  url: string,
+  opts?: FetchOpts,
+) => Promise<unknown>;
 export type FetchText = (url: string) => Promise<string>;
 
 export async function fetchText(

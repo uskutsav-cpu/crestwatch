@@ -43,7 +43,16 @@ export function SetupFlow() {
         setFound(json);
         setPhase("confirm");
       } else {
-        setNote(copy.addressNotFound);
+        // Say which thing failed. "We couldn't find that address" is a lie
+        // when we found it fine and a federal service was simply slow.
+        const err = (json as { error?: string }).error;
+        setNote(
+          err === "NO_ELEVATION"
+            ? copy.elevationUnavailable
+            : err === "UPSTREAM"
+              ? copy.lookupUpstream
+              : copy.addressNotFound,
+        );
       }
     } catch {
       setNote(copy.addressNotFound);

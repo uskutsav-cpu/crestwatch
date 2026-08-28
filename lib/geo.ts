@@ -210,12 +210,20 @@ export async function groundElevationFt(
   lon: number,
   fetchImpl: FetchJson = fetchJson,
 ): Promise<number | null> {
+  // EPQS routinely takes 3-9 seconds, so it needs a far longer leash than
+  // the other federal APIs — and one retry, because a single slow tile
+  // otherwise costs the visitor their whole verdict.
   let data: unknown;
-  try {
-    data = await fetchImpl(epqsUrl(lat, lon));
-  } catch {
-    return null;
+  let lastErr = true;
+  for (let attempt = 0; attempt < 2 && lastErr; attempt++) {
+    try {
+      data = await fetchImpl(epqsUrl(lat, lon), { timeoutMs: 25_000 });
+      lastErr = false;
+    } catch {
+      lastErr = true;
+    }
   }
+  if (lastErr) return null;
   const value = (data as { value?: unknown })?.value;
   if (typeof value !== "number" || !Number.isFinite(value)) return null;
   // Sentinel/no-data guard: nothing in this district sits below -400 ft

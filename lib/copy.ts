@@ -33,6 +33,10 @@ export const copy = {
   approximateNote:
     "That's the middle of town, not your house. The ground under your own address can sit several feet higher or lower — type your street address for a house-level answer.",
   approximateTag: "town center",
+  elevationUnavailable:
+    "We found that spot, but the federal elevation service didn't answer just now. Give it a moment and try again.",
+  lookupUpstream:
+    "The federal map service is slow or down right now. Try again in a minute — nothing is wrong with your address.",
   looking: "Reading the river…",
 
   // S2 · Watch
