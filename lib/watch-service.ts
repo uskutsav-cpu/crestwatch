@@ -5,7 +5,7 @@
  */
 
 import { GAUGE_RADIUS_MI } from "@/lib/config";
-import { geocodeAddress, groundElevationFt } from "@/lib/geo";
+import { geocodeAddress, geocodePlace, groundElevationFt } from "@/lib/geo";
 import {
   pickForecastGauge,
   defaultFetchers,
@@ -42,6 +42,12 @@ export type LookupResult =
       lat: number;
       lon: number;
       elevationFt: number;
+      /**
+       * "address" = an exact street match. "place" = a town or ZIP
+       * centroid — the elevation is the middle of town, NOT the
+       * visitor's own ground, and the UI must say so.
+       */
+      precision: "address" | "place";
       gauge: { lid: string; name: string; distanceMi: number } | null;
     }
   | { ok: false; error: "NOT_FOUND" | "NO_ELEVATION" | "UPSTREAM" };
@@ -54,7 +60,14 @@ export async function lookupAddress(
   const geo = await cached(
     `geo:${key}`,
     GEO_TTL_MS,
-    () => geocodeAddress(address, fetchers.json),
+    async () => {
+      // Exact street address first — that is the only precision the
+      // house-level math deserves. Most people type a town or a ZIP
+      // though, so fall back to a place lookup rather than dead-ending.
+      const exact = await geocodeAddress(address, fetchers.json);
+      if (exact.ok || exact.error === "UPSTREAM") return exact;
+      return geocodePlace(address, fetchers.json);
+    },
     // A NOT_FOUND is a stable answer worth caching; an UPSTREAM blip is
     // not — caching it would blank this address for a day.
     (g) => g.ok || g.error === "NOT_FOUND",
@@ -79,6 +92,7 @@ export async function lookupAddress(
     lat,
     lon,
     elevationFt,
+    precision: geo.point.precision,
     gauge: gauge
       ? { lid: gauge.lid, name: gauge.name, distanceMi: gauge.distanceMi }
       : null,

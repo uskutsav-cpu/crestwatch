@@ -20,7 +20,7 @@ export async function POST(request: NextRequest) {
     return Response.json({ ok: false, error: "BAD_REQUEST" }, { status: 400 });
   }
   const address = typeof body.address === "string" ? body.address.trim() : "";
-  if (address.length < 4 || address.length > 200) {
+  if (address.length < 3 || address.length > 200) {
     return Response.json({ ok: false, error: "BAD_REQUEST" }, { status: 400 });
   }
   const result = await lookupAddress(address, routeFetchers());

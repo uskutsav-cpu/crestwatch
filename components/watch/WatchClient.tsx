@@ -181,6 +181,16 @@ export function WatchClient() {
         )}
       </div>
 
+      {/* A town-centre pin must never masquerade as house-level math. */}
+      {pin.approximate && (
+        <p className="rounded-xl border border-risewatch/60 bg-risewatch/10 p-3 text-small">
+          <span className="font-semibold text-risewatch">
+            {copy.approximateTag}
+          </span>{" "}
+          — {copy.approximateNote}
+        </p>
+      )}
+
       {/* Active flood alerts (all tiers — additive context) */}
       <AlertStrip alerts={watch.alerts} />
       {verdict.tier === "ALERT_ONLY" && !watch.alertsOk && (

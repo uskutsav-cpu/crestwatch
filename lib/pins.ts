@@ -11,6 +11,12 @@ export interface Pin {
   lat: number;
   lon: number;
   elevationFt: number;
+  /**
+   * True when this pin came from a town/ZIP match rather than a street
+   * address — the elevation is the middle of town, not this visitor's
+   * ground. Every screen that shows a verdict must say so.
+   */
+  approximate?: boolean;
 }
 
 /**
@@ -48,6 +54,7 @@ export function isPin(p: unknown): p is Pin {
     typeof pin.elevationFt === "number" &&
     Number.isFinite(pin.elevationFt) &&
     pin.elevationFt > -400 &&
-    pin.elevationFt < 30_000
+    pin.elevationFt < 30_000 &&
+    (pin.approximate === undefined || typeof pin.approximate === "boolean")
   );
 }

@@ -68,6 +68,13 @@ function fixtureJson(url: string): unknown {
     return readJson("gauges", `usgs_iv_${known}.json`);
   }
 
+  if (u.hostname === "geocoding-api.open-meteo.com") {
+    const name = (u.searchParams.get("name") ?? "").toLowerCase();
+    return name.includes("vicksburg") || name === "39180"
+      ? readJson("place_vicksburg.json")
+      : readJson("place_empty.json");
+  }
+
   if (u.hostname === "api.weather.gov") {
     // Deterministic per-pin: the Yazoo City fixture pin has active flood
     // alerts; everywhere else is quiet.

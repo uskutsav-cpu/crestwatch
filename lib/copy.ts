@@ -16,7 +16,7 @@ export const copy = {
     "Runs on public federal data. Nothing about you leaves your browser.",
 
   // S1 · Setup
-  addressPlaceholder: "123 Main St, Vicksburg MS",
+  addressPlaceholder: "123 Main St, Vicksburg MS — or just Vicksburg, MS",
   cta: "Watch this place",
   howItWorks: [
     "We read the river gauges",
@@ -29,7 +29,10 @@ export const copy = {
   addPin: "+ Add the road you care about",
   done: "Done",
   addressNotFound:
-    "We couldn't find that address. Try adding the city and state, like the example.",
+    "We couldn't find that one. Try a street address, or just your town and state — like Vicksburg, MS.",
+  approximateNote:
+    "That's the middle of town, not your house. The ground under your own address can sit several feet higher or lower — type your street address for a house-level answer.",
+  approximateTag: "town center",
   looking: "Reading the river…",
 
   // S2 · Watch

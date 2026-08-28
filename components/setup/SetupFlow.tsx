@@ -29,7 +29,7 @@ export function SetupFlow() {
 
   async function lookup() {
     const a = address.trim();
-    if (a.length < 4 || busy) return;
+    if (a.length < 3 || busy) return;
     setBusy(true);
     setNote(null);
     try {
@@ -61,6 +61,7 @@ export function SetupFlow() {
       lat: found.lat,
       lon: found.lon,
       elevationFt: found.elevationFt,
+      approximate: found.precision === "place",
     });
     return id;
   }
@@ -85,10 +86,22 @@ export function SetupFlow() {
     return (
       <div className="flex w-full max-w-xl flex-col gap-4">
         <div className="rounded-2xl border border-line bg-surface p-5">
-          <p className="text-small text-dim">{found.matchedAddress}</p>
+          <div className="flex flex-wrap items-center gap-2">
+            <p className="text-small text-dim">{found.matchedAddress}</p>
+            {found.precision === "place" && (
+              <span className="rounded-full border border-risewatch/60 px-2 py-0.5 text-small font-semibold text-risewatch">
+                {copy.approximateTag}
+              </span>
+            )}
+          </div>
           <p className="mt-2 text-h2">
             {copy.confirmSpot(found.elevationFt.toFixed(1))}
           </p>
+          {found.precision === "place" && (
+            <p className="mt-2 text-small text-risewatch">
+              {copy.approximateNote}
+            </p>
+          )}
           <p className="mt-1 text-body text-dim tnum">
             {found.gauge
               ? copy.confirmGauge(
@@ -146,10 +159,10 @@ export function SetupFlow() {
           value={address}
           onChange={(e) => setAddress(e.target.value)}
           placeholder={copy.addressPlaceholder}
-          aria-label="Street address"
+          aria-label="Address, town, or ZIP"
           className="h-13 flex-1 rounded-xl border border-line bg-surface px-4 text-body text-fg placeholder:text-dim focus:border-(--color-current) focus:outline-none"
         />
-        <ButtonPrimary type="submit" disabled={busy || address.trim().length < 4}>
+        <ButtonPrimary type="submit" disabled={busy || address.trim().length < 3}>
           {busy ? copy.looking : copy.cta}
         </ButtonPrimary>
       </form>

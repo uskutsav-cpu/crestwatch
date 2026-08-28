@@ -7,19 +7,28 @@
 import { MAX_PINS } from "@/lib/config";
 import { sanitizeName, type Pin } from "@/lib/pins";
 
-/** Compact wire form: [name, matchedAddress, lat, lon, elevationFt] */
-type WirePin = [string, string, number, number, number];
+/**
+ * Compact wire form:
+ * [name, matchedAddress, lat, lon, elevationFt, approximate?]
+ * The trailing flag is optional so older links still decode.
+ */
+type WirePin = [string, string, number, number, number, (0 | 1)?];
 
 export function encodeWatchLink(pins: Pin[]): string {
   const wire: WirePin[] = pins
     .slice(0, MAX_PINS)
-    .map((p) => [
-      p.name.slice(0, 40),
-      p.matchedAddress.slice(0, 120),
-      Math.round(p.lat * 1e5) / 1e5,
-      Math.round(p.lon * 1e5) / 1e5,
-      Math.round(p.elevationFt * 10) / 10,
-    ]);
+    .map((p) => {
+      const wire: WirePin = [
+        p.name.slice(0, 40),
+        p.matchedAddress.slice(0, 120),
+        Math.round(p.lat * 1e5) / 1e5,
+        Math.round(p.lon * 1e5) / 1e5,
+        Math.round(p.elevationFt * 10) / 10,
+      ];
+      // Only carried when true, so ordinary links stay short.
+      if (p.approximate) wire.push(1);
+      return wire;
+    });
   const json = JSON.stringify(wire);
   const b64 =
     typeof btoa === "function"
@@ -43,8 +52,9 @@ export function decodeWatchLink(param: string): Pin[] | null {
     const pins: Pin[] = [];
     for (let i = 0; i < wire.length; i++) {
       const w = wire[i] as unknown[];
-      if (!Array.isArray(w) || w.length !== 5) return null;
-      const [name, addr, lat, lon, elev] = w;
+      if (!Array.isArray(w) || w.length < 5 || w.length > 6) return null;
+      const [name, addr, lat, lon, elev, approx] = w;
+      if (approx !== undefined && approx !== 0 && approx !== 1) return null;
       if (
         typeof name !== "string" ||
         name.length === 0 ||
@@ -70,6 +80,7 @@ export function decodeWatchLink(param: string): Pin[] | null {
         lat,
         lon,
         elevationFt: elev,
+        approximate: approx === 1,
       });
     }
     return pins;
