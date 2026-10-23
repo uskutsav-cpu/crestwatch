@@ -17,6 +17,8 @@ import { crestCompare } from "@/lib/crest-compare";
 import { heightGloss } from "@/lib/kid-scale";
 import { trendOf } from "@/lib/trend";
 import { verdictSentence } from "@/lib/sentences";
+import { staleInfo, staleLineFor } from "@/lib/staleness";
+import { fmtTime } from "@/lib/time";
 import { WaterScene } from "@/components/watch/WaterScene";
 import { CountdownChip } from "@/components/watch/CountdownChip";
 import { AlertStrip } from "@/components/watch/AlertStrip";
@@ -57,15 +59,8 @@ export function chipFor(w: PinWatch): { band: VerdictBand; label: string } {
   return { band: "BORDERLINE", label: copy.chipAlertOnly };
 }
 
-/** "1:30 PM CT". Visitors outside Central time must not misread the age. */
-export function fmtTime(at: string | number): string {
-  const t = new Intl.DateTimeFormat("en-US", {
-    timeZone: "America/Chicago",
-    hour: "numeric",
-    minute: "2-digit",
-  }).format(new Date(at));
-  return `${t} CT`;
-}
+// Shared with Places and Why; re-exported so existing imports keep working.
+export { fmtTime, staleInfo, staleLineFor };
 
 /**
  * The whole-foot margin a reader sees. Same rounding as the sentence
@@ -102,23 +97,6 @@ export function latestReadingIso(observed: SeriesPoint[]): string | null {
     }
   }
   return best;
-}
-
-/** Stale data and how many hours old it is (0 when nobody knows). */
-export function staleInfo(verdict: Verdict): { stale: boolean; hours: number } {
-  if (verdict.tier === "ALERT_ONLY") return { stale: false, hours: 0 };
-  const s = verdict.stale;
-  return {
-    stale: s.staleObserved || s.staleForecast,
-    hours: Math.round(Math.max(s.observedH ?? 0, s.forecastH ?? 0)),
-  };
-}
-
-/** The "Heads up" line under the sentence (and on the share card). */
-export function staleLineFor(verdict: Verdict): string | null {
-  const { stale, hours } = staleInfo(verdict);
-  if (!stale) return null;
-  return hours > 0 ? copy.staleness(hours) : copy.stalenessUnknown;
 }
 
 /**
@@ -315,7 +293,9 @@ export function WatchClient() {
     // Kept mounted while a retry runs, so the button keeps focus.
     return (
       <div className="py-14">
-        <p className="text-body text-dim">{copy.riverDataDown}</p>
+        <p className="text-body text-dim">
+          {isLinked ? copy.riverDataDownLinked : copy.riverDataDown}
+        </p>
         {checkAgain(
           "mt-4 inline-flex min-h-11 items-center font-semibold text-(--color-current)",
         )}

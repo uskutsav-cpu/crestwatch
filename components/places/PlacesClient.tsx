@@ -17,6 +17,7 @@ import { statusLine } from "@/lib/sentences";
 import { sortWorstFirst } from "@/lib/severity";
 import { trendOf, type Trend } from "@/lib/trend";
 import { clearAllPins, removePin, renamePin } from "@/lib/pin-store";
+import { fmtTime } from "@/lib/time";
 import { BAND_COLOR, LiveDot, type VerdictBand } from "@/components/ui";
 import { AlertStrip } from "@/components/watch/AlertStrip";
 import type { Pin } from "@/lib/pins";
@@ -48,14 +49,6 @@ const TREND_TEXT: Record<Trend, string> = {
   falling: copy.trendFalling,
   steady: copy.trendSteady,
 };
-
-function fmtTime(ms: number): string {
-  return new Intl.DateTimeFormat("en-US", {
-    timeZone: "America/Chicago",
-    hour: "numeric",
-    minute: "2-digit",
-  }).format(new Date(ms));
-}
 
 export function PlacesClient() {
   const { pins, watches, loading, error, updatedAt, refresh } = useWatches();
@@ -155,7 +148,7 @@ export function PlacesClient() {
 
   const approxTag = (pin: Pin) =>
     pin.approximate ? (
-      <span className="shrink-0 rounded-full bg-risewatch/10 px-2 py-0.5 text-small font-semibold text-risewatch">
+      <span className="shrink-0 whitespace-nowrap rounded-full bg-risewatch/10 px-2 py-0.5 text-small font-semibold text-risewatch">
         {copy.approximateTag}
       </span>
     ) : null;
@@ -209,8 +202,8 @@ export function PlacesClient() {
                   className="block rounded-2xl bg-surface p-4 pr-28 transition-colors hover:bg-surface/70"
                   style={{ borderLeft: "4px solid var(--color-line)" }}
                 >
-                  <div className="flex items-center gap-2">
-                    <p className="min-w-0 text-body font-semibold">{pin.name}</p>
+                  <div className="flex flex-wrap items-center gap-x-2 gap-y-1">
+                    <p className="min-w-0 text-body font-semibold [overflow-wrap:anywhere]">{pin.name}</p>
                     {approxTag(pin)}
                   </div>
                   <p className="mt-1 text-small text-dim">
@@ -238,8 +231,8 @@ export function PlacesClient() {
                 className="block rounded-2xl bg-surface p-4 pr-28 transition-colors hover:bg-surface/70"
                 style={{ borderLeft: `4px solid ${BAND_COLOR[edgeBand(w)]}` }}
               >
-                <div className="flex items-center gap-2">
-                  <p className="min-w-0 text-body font-semibold">{pin.name}</p>
+                <div className="flex flex-wrap items-center gap-x-2 gap-y-1">
+                  <p className="min-w-0 text-body font-semibold [overflow-wrap:anywhere]">{pin.name}</p>
                   {approxTag(pin)}
                   {trend && (
                     <span className="text-small text-dim">

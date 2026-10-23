@@ -94,6 +94,8 @@ export const copy = {
   // Shared failure states (Watch, Places, Why use the same words)
   riverDataDown:
     "The river data didn't answer. Your places are still saved. Try again in a minute.",
+  // On a shared link nothing is saved on this device, so don't say it is.
+  riverDataDownLinked: "The river data didn't answer. Try again in a minute.",
   brokenLink:
     "This shared link didn't open. Ask for a new link, or add your own place.",
 
