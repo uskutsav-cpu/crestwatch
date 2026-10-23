@@ -455,4 +455,27 @@ export const copy = {
   // When the oldest reading shown was taken (null when none has a time).
   riversSource: (time: string | null) =>
     time === null ? "River readings from NOAA." : `River readings from NOAA, as of ${time}.`,
+
+  // Package "actions": Read it to me, Send to family, Add the crest to my calendar.
+  readAloud: "Read it to me",
+  readAloudStop: "Stop",
+  // How short forms in the sentence are said out loud ("12 ft", "12pm CT", "~").
+  speechFeet: "feet",
+  speechFoot: "foot",
+  speechCentral: "Central time",
+  speechAbout: "about",
+  sendToFamily: "Send to family",
+  sendToFamilyTitle: (pin: string) => `${pin} · CrestWatch`,
+  addToCalendar: "Add the crest to my calendar",
+  calendarSaved: "Calendar file saved ✓",
+  calendarTitle: (river: string, pin: string) => `River crest: ${river} near ${pin}`,
+  calendarTitleNoRiver: (pin: string) => `River crest near ${pin}`,
+  // The file keeps one forecast; the river doesn't wait for it.
+  calendarCheckLatest: (url: string) => `Forecasts change. Check the latest: ${url}`,
+  calendarAlarm: "Check CrestWatch for the latest river forecast before the crest.",
+  // Shown in place of the calendar button when a tap finds this crest already gone.
+  calendarPassed: "This crest time has passed",
+  // Leads a saved or sent answer. Its "today" and "tomorrow" count from
+  // this moment, not from whenever someone reads it.
+  answerAsOf: (when: string) => `On ${when}, CrestWatch said:`,
 } as const;
