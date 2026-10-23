@@ -148,7 +148,7 @@ export function PlacesClient() {
 
   const approxTag = (pin: Pin) =>
     pin.approximate ? (
-      <span className="shrink-0 rounded-full bg-risewatch/10 px-2 py-0.5 text-small font-semibold text-risewatch">
+      <span className="shrink-0 whitespace-nowrap rounded-full bg-risewatch/10 px-2 py-0.5 text-small font-semibold text-risewatch">
         {copy.approximateTag}
       </span>
     ) : null;

@@ -26,12 +26,16 @@ vi.mock("@/lib/use-watch", () => ({
 }));
 vi.mock("next/navigation", () => ({
   useSearchParams: () => new URLSearchParams(hook.search),
+  useRouter: () => ({ push: () => {}, replace: () => {}, back: () => {} }),
 }));
 
 import { copy } from "@/lib/copy";
 import { encodeWatchLink } from "@/lib/watch-link";
 import { PlacesClient, edgeBand } from "@/components/places/PlacesClient";
-import { BROKEN_LINK, WhyClient, staleHours } from "@/components/why/WhyClient";
+import { BROKEN_LINK, WhyClient } from "@/components/why/WhyClient";
+import { WatchClient } from "@/components/watch/WatchClient";
+import { staleLineFor } from "@/lib/staleness";
+import { fmtTime } from "@/lib/time";
 import { chartAriaLabel } from "@/components/why/StatChart";
 
 /* ------------------------------------------------------------------ */
@@ -193,6 +197,13 @@ describe("Places: the river data failed on first load (#21, #3, #67)", () => {
       "This shared link didn't open. Ask for a new link, or add your own place.",
     );
   });
+
+  it("the shared-link outage line follows the copy rules and makes no saved claim", () => {
+    const s = copy.riverDataDownLinked;
+    expect(s.startsWith("The river data didn't answer.")).toBe(true);
+    expect(s).not.toMatch(/!|—|\bAI\b|saved/);
+    expect(s).not.toMatch(/catastrophic|danger|panic|guaranteed|exact/i);
+  });
 });
 
 describe("Places: first load in progress", () => {
@@ -212,6 +223,8 @@ describe("Places: a refresh fails after a good load (#29)", () => {
     setState({ pins: [HOME], watches: [watchFor(HOME)], error: true, updatedAt });
     const t = text(renderToStaticMarkup(<PlacesClient />));
     expect(t).toContain(copy.refreshFailedPlaces("2:15 PM CT"));
+    // Same clock as the Watch page's refresh-failed line.
+    expect(fmtTime(updatedAt)).toBe("2:15 PM CT");
     expect(t).toContain("This spot stays dry by about 38 ft.");
     expect(t).not.toContain(copy.riverDataDown);
   });
@@ -297,6 +310,16 @@ describe("Places: card details", () => {
     expect(shown).toEqual(["Flood Warning", "Flood Watch", "Flash Flood Warning"]);
   });
 
+  it("the tag wraps under a long name instead of painting over it (320 px)", () => {
+    for (const watches of [[watchFor(GRANDMA)], []]) {
+      setState({ pins: [GRANDMA], watches, error: watches.length === 0 });
+      const html = renderToStaticMarkup(<PlacesClient />);
+      expect(html).toContain('<div class="flex flex-wrap items-center gap-x-2 gap-y-1">');
+      expect(html).toMatch(/<p class="[^"]*\[overflow-wrap:anywhere\][^"]*">Grandma<\/p>/);
+      expect(html).toMatch(/<span class="[^"]*whitespace-nowrap[^"]*">approximate spot<\/span>/);
+    }
+  });
+
   it("CATEGORY edge colour matches the Watch chip table (#68)", () => {
     expect(edgeBand(watchFor(HOME, categoryVerdict("none")))).toBe("UNLIKELY");
     expect(edgeBand(watchFor(HOME, categoryVerdict(null)))).toBe("UNLIKELY");
@@ -331,6 +354,16 @@ describe("Why: the river data failed but places exist (#22, #3, #67)", () => {
     const t = text(renderToStaticMarkup(<WhyClient />));
     expect(t).not.toContain(copy.placesEmpty);
     expect(t).not.toContain(copy.addPlace);
+  });
+
+  it("on a shared link, never claims places were saved on this device", () => {
+    const wl = encodeWatchLink([HOME]);
+    hook.search = `pin=wl0&wl=${wl}`;
+    setState({ pins: [{ ...HOME, id: "wl0" }], watches: [], error: true });
+    const t = text(renderToStaticMarkup(<WhyClient />));
+    expect(t).toContain(copy.riverDataDownLinked);
+    expect(t).not.toContain("still saved");
+    expect(t).toContain(copy.refresh);
   });
 
   it("keeps the button on screen (aria-disabled) while retrying", () => {
@@ -431,13 +464,44 @@ describe("Why: staleness near the verdict (#7, #69)", () => {
     expect(t).not.toContain(copy.staleness(0).slice(0, 10));
   });
 
-  it("staleHours reads the older of the two feeds", () => {
-    expect(staleHours(fullVerdict({ stale: OLD }))).toBe(1446);
-    expect(staleHours(fullVerdict())).toBeNull();
-    expect(staleHours({ tier: "ALERT_ONLY" })).toBeNull();
+  it("staleLineFor reads the older of the two feeds", () => {
+    expect(staleLineFor(fullVerdict({ stale: OLD }))).toBe(copy.staleness(1446));
+    expect(staleLineFor(fullVerdict())).toBeNull();
+    expect(staleLineFor({ tier: "ALERT_ONLY" })).toBeNull();
     expect(
-      staleHours({ ...categoryVerdict("none"), stale: { ...FRESH, staleObserved: true, observedH: 30.4 } } as Verdict),
-    ).toBe(30);
+      staleLineFor({ ...categoryVerdict("none"), stale: { ...FRESH, staleObserved: true, observedH: 30.4 } } as Verdict),
+    ).toBe(copy.staleness(30));
+  });
+
+  it("a missing forecast issue time says freshness is unknown, never 0 hours old", () => {
+    const unknown = { observedH: 0.3, forecastH: null, staleObserved: false, staleForecast: true };
+    expect(staleLineFor(fullVerdict({ stale: unknown }))).toBe(copy.stalenessUnknown);
+    hook.search = "pin=p1";
+    for (const verdict of [
+      fullVerdict({ stale: unknown }),
+      { ...categoryVerdict("none"), stale: { observedH: null, forecastH: null, staleObserved: true, staleForecast: true } } as Verdict,
+    ]) {
+      setState({ pins: [HOME], watches: [watchFor(HOME, verdict)] });
+      const t = text(renderToStaticMarkup(<WhyClient />));
+      expect(t).toContain(copy.stalenessUnknown);
+      expect(t).not.toContain("0 hours old");
+    }
+  });
+});
+
+describe("Watch: a shared link during an outage", () => {
+  it("never claims places were saved on this device", () => {
+    hook.search = `pin=wl0&wl=${encodeWatchLink([HOME])}`;
+    setState({ pins: [{ ...HOME, id: "wl0" }], watches: [], error: true });
+    const t = text(renderToStaticMarkup(<WatchClient />));
+    expect(t).toContain(copy.riverDataDownLinked);
+    expect(t).not.toContain("still saved");
+  });
+
+  it("this device's own places keep the saved reassurance", () => {
+    hook.search = "pin=p1";
+    setState({ pins: [HOME], watches: [], error: true });
+    expect(text(renderToStaticMarkup(<WatchClient />))).toContain(copy.riverDataDown);
   });
 });
 

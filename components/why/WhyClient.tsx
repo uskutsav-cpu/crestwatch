@@ -12,10 +12,10 @@ import { useEffect, useMemo } from "react";
 import { copy } from "@/lib/copy";
 import { decodeWatchLink } from "@/lib/watch-link";
 import { useWatches } from "@/lib/use-watch";
+import { staleLineFor } from "@/lib/staleness";
 import { StatChart } from "@/components/why/StatChart";
 import { LiveDot, TierBadge } from "@/components/ui";
 import type { Pin } from "@/lib/pins";
-import type { Verdict } from "@/lib/surveyor";
 
 /**
  * Sentinel for a ?wl= that didn't decode. It lives at module scope so its
@@ -23,14 +23,6 @@ import type { Verdict } from "@/lib/surveyor";
  * changes, and a fresh [] on every render would loop forever.
  */
 export const BROKEN_LINK: Pin[] = [];
-
-/** Hours old when the reading or forecast is stale, otherwise null. */
-export function staleHours(verdict: Verdict): number | null {
-  if (verdict.tier === "ALERT_ONLY") return null;
-  const { stale } = verdict;
-  if (!stale.staleObserved && !stale.staleForecast) return null;
-  return Math.round(Math.max(stale.observedH ?? 0, stale.forecastH ?? 0));
-}
 
 function fmtWhen(iso: string): string {
   return new Intl.DateTimeFormat("en-US", {
@@ -149,7 +141,7 @@ export function WhyClient() {
 
   const { verdict, gauge, alerts } = watch;
   const lastObs = gauge?.observed.at(-1) ?? null;
-  const staleH = staleHours(verdict);
+  const staleLine = staleLineFor(verdict);
 
   return (
     <div className="flex flex-col gap-6 py-10">
@@ -161,10 +153,10 @@ export function WhyClient() {
       </div>
 
       {/* Old data must not read as today's answer. */}
-      {staleH !== null && (
+      {staleLine && (
         <p className="rounded-xl bg-risewatch/10 p-3 text-small">
           <span className="font-semibold text-risewatch">
-            {copy.staleness(staleH)}
+            {staleLine}
           </span>
         </p>
       )}
