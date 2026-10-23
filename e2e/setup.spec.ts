@@ -17,7 +17,7 @@ test("setup: address → confirm elevation + gauge → done → watch", async ({
   await page.getByRole("button", { name: "Watch this place" }).click();
 
   // Confirm card: real fixture numbers.
-  await expect(page.getByText("Your spot sits at 275.5 ft.")).toBeVisible({
+  await expect(page.getByText("Your spot sits 275.5 ft above sea level.")).toBeVisible({
     timeout: 15_000,
   });
   await expect(page.getByText(/Pearl River at Jackson/)).toBeVisible();
@@ -47,7 +47,7 @@ test("setup: second pin lands on places board", async ({ page }) => {
   await page.goto("/");
   await page.getByLabel("Address, town, or ZIP").fill("100 E Capitol St, Jackson, MS");
   await page.getByRole("button", { name: "Watch this place" }).click();
-  await expect(page.getByText("Your spot sits at 275.5 ft.")).toBeVisible({
+  await expect(page.getByText("Your spot sits 275.5 ft above sea level.")).toBeVisible({
     timeout: 15_000,
   });
   await page
@@ -56,7 +56,7 @@ test("setup: second pin lands on places board", async ({ page }) => {
 
   await page.getByLabel("Address, town, or ZIP").fill("211 E Broadway St, Yazoo City, MS");
   await page.getByRole("button", { name: "Watch this place" }).click();
-  await expect(page.getByText("Your spot sits at 124.3 ft.")).toBeVisible({
+  await expect(page.getByText("Your spot sits 124.3 ft above sea level.")).toBeVisible({
     timeout: 15_000,
   });
   await page.getByRole("button", { name: "Done" }).click();
