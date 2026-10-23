@@ -30,6 +30,12 @@ export interface FloodCategories {
 export interface HistoricCrest {
   stageFt: number;
   time: string;
+  /**
+   * NWPS "olddatum": this crest was read against an older gauge zero, so
+   * today's gauge zero + its stage is not its water level. Optional so
+   * hand-built lists still fit; absent means false.
+   */
+  oldDatum?: boolean;
 }
 
 export interface GaugeCandidate {
@@ -353,7 +359,10 @@ interface NwpsDetail {
   longitude?: number;
   flood?: {
     categories?: Record<string, { stage?: number }>;
-    crests?: { historic?: Array<{ stage?: number; occurredTime?: string }> };
+    crests?: {
+      // NWPS sends olddatum as a boolean; a "true" string is read the same.
+      historic?: Array<{ stage?: number; occurredTime?: string; olddatum?: boolean | string }>;
+    };
   };
 }
 
@@ -377,7 +386,13 @@ export function parseHistoricCrests(detail: NwpsDetail): HistoricCrest[] {
       Number.isFinite(c.stage) &&
       c.occurredTime
     ) {
-      out.push({ stageFt: c.stage, time: c.occurredTime });
+      out.push({
+        stageFt: c.stage,
+        time: c.occurredTime,
+        oldDatum:
+          c.olddatum === true ||
+          (typeof c.olddatum === "string" && c.olddatum.trim().toLowerCase() === "true"),
+      });
     }
   }
   return out.sort((a, b) => b.stageFt - a.stageFt);
