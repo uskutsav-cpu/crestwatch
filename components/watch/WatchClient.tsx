@@ -161,11 +161,15 @@ export function saveLinkedPins(linked: Pin[]): number {
     if (count >= MAX_PINS) break;
     const k = pinKey(p);
     if (seen.has(k)) continue;
-    if (addPin({ ...p, id: newPinId() })) {
-      seen.add(k);
-      count++;
-      added++;
+    const res = addPin({ ...p, id: newPinId() });
+    if (!res.ok) {
+      // A browser that keeps nothing won't keep the next one either.
+      if (res.reason === "storage") break;
+      continue;
     }
+    seen.add(k);
+    count++;
+    added++;
   }
   return added;
 }
@@ -251,6 +255,8 @@ export function WatchClient() {
   const { pins, watches, now, updatedAt, loading, error, refresh } =
     useWatches(linkedPins);
   const isExample = isLinked && params.get("ex") === "1";
+  // Setup sends a place here when this browser wouldn't save it.
+  const noSave = isLinked && params.get("nosave") === "1";
   const [copied, setCopied] = useState(false);
 
   // Coming from a scrolled page, small phones landed mid-verdict with the
@@ -526,7 +532,8 @@ export function WatchClient() {
             {copied ? copy.linkCopied : copy.copyLink}
           </span>
         </button>
-        {isLinked && linkedPins ? (
+        {noSave ? null : isLinked && linkedPins ? (
+          // Not offered when storage is blocked: the save would fail.
           <button
             type="button"
             onClick={() => {
@@ -557,8 +564,14 @@ export function WatchClient() {
       )}
       {isLinked && !isExample && (
         <p className="text-small text-dim">
-          You&apos;re viewing a shared watch link. Nothing was saved on this
-          device.
+          {noSave ? (
+            copy.storageBlocked
+          ) : (
+            <>
+              You&apos;re viewing a shared watch link. Nothing was saved on
+              this device.
+            </>
+          )}
         </p>
       )}
     </div>

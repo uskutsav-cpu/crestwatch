@@ -69,6 +69,42 @@ test("setup: second pin lands on places board", async ({ page }) => {
   expect(pins[1].name).toBe("The road");
 });
 
+test("setup: Skip after a returning visitor's new place opens the list", async ({
+  page,
+}) => {
+  // Already watching Home. Seed once only, so a reload can't undo a save.
+  await page.addInitScript((pin) => {
+    if (!localStorage.getItem("crestwatch.pins")) {
+      localStorage.setItem("crestwatch.pins", JSON.stringify([pin]));
+    }
+  }, {
+    id: "pjackson",
+    name: "Home",
+    matchedAddress: "100 E CAPITOL ST, JACKSON, MS",
+    lat: 32.300441828077,
+    lon: -90.188419699815,
+    elevationFt: 275.5,
+  });
+  await page.goto("/");
+  await page.getByLabel("Address, town, or ZIP").fill("211 E Broadway St, Yazoo City, MS");
+  await page.getByRole("button", { name: "Watch this place" }).click();
+  await expect(page.getByText("Your spot sits 124.3 ft above sea level.")).toBeVisible({
+    timeout: 15_000,
+  });
+  await page.getByLabel("Call this place").fill("Grandma's");
+  await page
+    .getByRole("button", { name: "+ Add the road you care about" })
+    .click();
+  await page.getByRole("button", { name: "Skip, I'm done" }).click();
+  // /watch alone would open Home, the oldest place, not Grandma's.
+  await expect(page).toHaveURL(/\/places/);
+
+  const pins = await page.evaluate(() =>
+    JSON.parse(localStorage.getItem("crestwatch.pins") ?? "[]"),
+  );
+  expect(pins.map((p: { name: string }) => p.name)).toEqual(["Home", "Grandma's"]);
+});
+
 test("setup: a town name works and is labelled an approximate spot", async ({
   page,
 }) => {

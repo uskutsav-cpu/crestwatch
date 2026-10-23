@@ -59,3 +59,32 @@ describe("SetupFlow first render", () => {
     expect(html).toContain("Watch this place");
   });
 });
+
+describe("leaving setup", () => {
+  it("Done and Skip agree: one place opens its verdict, more open the list", async () => {
+    const { exitHref } = await import("@/components/setup/SetupFlow");
+    expect(exitHref(1)).toBe("/watch");
+    // A returning visitor's second place: /watch alone would open the
+    // oldest saved place, not the one just added.
+    expect(exitHref(2)).toBe("/places");
+    expect(exitHref(5)).toBe("/places");
+  });
+
+  it("a place this browser won't keep opens as a watch link that says so", async () => {
+    const { storageFallbackHref } = await import("@/components/setup/SetupFlow");
+    const { decodeWatchLink } = await import("@/lib/watch-link");
+    const pin = {
+      id: "p1",
+      name: "Home",
+      matchedAddress: "100 E CAPITOL ST, JACKSON, MS",
+      lat: 32.3004,
+      lon: -90.1884,
+      elevationFt: 275.5,
+    };
+    const url = new URL(storageFallbackHref(pin), "https://crestwatch.test");
+    expect(url.pathname).toBe("/watch");
+    expect(url.searchParams.get("nosave")).toBe("1");
+    const linked = decodeWatchLink(url.searchParams.get("wl") ?? "");
+    expect(linked?.[0]).toMatchObject({ name: "Home", elevationFt: 275.5 });
+  });
+});
