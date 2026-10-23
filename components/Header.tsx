@@ -11,7 +11,7 @@ export function Header() {
       <div className="mx-auto flex h-14 max-w-3xl items-center justify-between gap-2 px-4">
         <Link
           href="/"
-          className="flex shrink-0 items-center gap-2 font-bold text-fg focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-(--color-current)/40 rounded-lg"
+          className="flex shrink-0 items-center gap-2 font-bold text-fg focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-fg rounded-lg"
         >
           <span className="text-(--color-current)">
             <WaveMark size={24} />

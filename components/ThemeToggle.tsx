@@ -53,7 +53,7 @@ export function ThemeToggle() {
       aria-label={
         theme === "dark" ? "Switch to light mode" : "Switch to dark mode"
       }
-      className="flex h-11 w-11 items-center justify-center rounded-full text-dim transition-colors hover:text-(--color-current) focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-(--color-current)/40"
+      className="flex h-11 w-11 items-center justify-center rounded-full text-dim transition-colors hover:text-(--color-current) focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-fg"
     >
       {theme === "dark" ? "☀️" : "🌙"}
     </button>

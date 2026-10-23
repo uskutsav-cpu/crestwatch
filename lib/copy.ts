@@ -235,4 +235,40 @@ export const copy = {
   nextStepsLinkNws: "National Weather Service, Jackson office",
   nextStepsLinkMsema: "Mississippi Emergency Management Agency",
   nextStepsLinkMdot: "Road conditions from MDOT, the state road department",
+  // Glossary (Watch + Why). One or two sentences each, for a 12-year-old.
+  glossarySummary: "What do these words mean?",
+  glossary: [
+    {
+      term: "River gauge",
+      text: "A measuring station in a river, often on a bridge. It checks the water every few minutes and shares the numbers with everyone.",
+    },
+    {
+      term: "Stage",
+      text: "How deep the river is at the gauge, in feet. It's counted up from the gauge's own zero mark, not from the river bottom.",
+    },
+    {
+      term: "Gauge zero",
+      text: "How high the gauge's 0 ft mark sits above sea level. Add the stage to it and you get how high the top of the water is.",
+    },
+    {
+      term: "Height above sea level",
+      text: "How high a spot sits compared to the ocean. CrestWatch measures your ground and the river this way, so the two can be compared.",
+    },
+    {
+      term: "Flood stage",
+      text: "The stage where the river starts to spill over its banks onto land nearby. The Weather Service sets this number for each gauge.",
+    },
+    {
+      term: "Crest",
+      text: "The highest the river gets before it starts going back down. The forecast crest is how high the Weather Service expects that peak to be.",
+    },
+    {
+      term: "Forecast",
+      text: "The Weather Service's best guess of what the river will do over the next few days. It can be off by a foot or more, so CrestWatch says when it's too close to call.",
+    },
+    {
+      term: "Three kinds of answers",
+      text: "A house-level answer (FULL) compares the water to how high your spot sits. If a gauge doesn't share its height above sea level, you get flood-stage only (CATEGORY), and if no forecast gauge is close, you get alerts only (ALERT-ONLY).",
+    },
+  ],
 } as const;

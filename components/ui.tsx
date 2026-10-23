@@ -5,12 +5,15 @@ import type { ComponentProps, ReactNode } from "react";
    surfaces — everything else stays ink/current so red means something. */
 
 /* "current" is the brand cyan (Appendix B1) — referenced via CSS vars
-   because Tailwind reserves bg-current for currentColor. */
+   because Tailwind reserves bg-current for currentColor.
+   Focus is a solid fg outline 2px outside the control: fg flips with the
+   theme, so it stays high-contrast on both dark and light backgrounds.
+   Disabled primaries fade and keep their color on hover. */
 const primaryClasses =
-  "inline-flex h-13 items-center justify-center rounded-xl bg-(--color-current) px-6 text-body font-semibold text-ink transition-colors hover:bg-(--color-current-deep) focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-(--color-current)/40";
+  "inline-flex h-13 items-center justify-center rounded-xl bg-(--color-current) px-6 text-body font-semibold text-ink transition-colors hover:bg-(--color-current-deep) focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-fg disabled:cursor-not-allowed disabled:opacity-50 disabled:hover:bg-(--color-current)";
 
 const ghostClasses =
-  "inline-flex h-13 items-center justify-center rounded-xl ring-1 ring-inset ring-line px-6 text-body font-semibold text-fg transition-colors hover:ring-(--color-current) hover:text-(--color-current) focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-(--color-current)/25";
+  "inline-flex h-13 items-center justify-center rounded-xl ring-1 ring-inset ring-line px-6 text-body font-semibold text-fg transition-colors hover:ring-(--color-current) hover:text-(--color-current) focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-fg";
 
 export function ButtonPrimary(
   props: ComponentProps<"button"> & { children: ReactNode },
