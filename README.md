@@ -1,6 +1,6 @@
 # 🌊 CrestWatch
 
-**CrestWatch turns the government's river forecasts — written for engineers —
+**CrestWatch turns the government's river forecasts, written for engineers,
 into one plain sentence about your own house: when the water is coming, how
 high, and whether it reaches your door, in a district that once stayed
 flooded for six months while the forecasts sat unread.**
@@ -51,8 +51,13 @@ it is set, the key is sent only to `api.waterdata.usgs.gov`. See
    links to the official pages, so you can check the math.
 
 If a gauge doesn't publish its gauge zero, CrestWatch can only say how the
-forecast compares to flood stage (CATEGORY). If no forecast gauge is close,
-it shows only the Weather Service's flood alerts (ALERT-ONLY).
+forecast compares to flood stage (CATEGORY). The same happens when USGS
+says a gauge zero is only known to within more than 1 ft
+(`MAX_GAUGE_ZERO_ACCURACY_FT` in `lib/config.ts`, a number the team owns).
+The Greenville, Sarah and Lambert gauges are like that today, so a place
+checked against one of them gets a flood-stage answer, not house-level
+math. If no forecast gauge is close, it shows only the Weather Service's
+flood alerts (ALERT-ONLY).
 
 ### Address search: three tiers
 
@@ -95,6 +100,10 @@ main source as the legacy service shuts down.
   the US Census first, then OpenStreetMap Nominatim or Open-Meteo if the
   Census can't find it. Then it asks USGS and the Weather Service about that
   spot.
+- Each time it checks (when a page opens, every 15 minutes while it stays
+  open, and when you come back online), your browser sends your saved
+  places (names, addresses and coordinates) to CrestWatch's server for that
+  check. The server answers and doesn't save them.
 - The server keeps lookups in short-term memory for up to a day so repeat
   checks are fast. It also counts requests per IP address for an hour, in
   memory, to stop one runaway client.
@@ -129,7 +138,6 @@ main source as the legacy service shuts down.
 - `npm run build`: production build
 - `npm test`: unit tests (Vitest)
 - `npm run test:e2e`: end-to-end tests (Playwright, recorded fixtures)
-- `npm run screenshots`: regenerate [docs/screenshots](docs/screenshots)
 
 ## Deploy
 
@@ -145,10 +153,13 @@ tier is for non-commercial use, which this is.
 ## Disclosure
 
 development tools (the software provider) wrote essentially all of the application code, tests
-and docs in this repository. Commits it wrote are tagged ``. The
-product itself uses no automated: it is public data and arithmetic. The student team
-still has to do and commit its own work before submission. The full record
-and the list of that work is in [docs/VALIDATION.md](docs/VALIDATION.md).
+and docs in this repository. Commits it wrote are tagged ``,
+except eight merge commits from Oct 23, 2026 titled "Merge branch 'cw/…'
+into integration". development tools made those too, while it combined its work
+packages. The product itself uses no automated: it is public data and arithmetic.
+The student team still has to do and commit its own work before
+submission. The full record and the list of that work is in
+[docs/VALIDATION.md](docs/VALIDATION.md).
 
 MIT licensed.
 
@@ -159,5 +170,3 @@ MIT licensed.
 No map library: the water scene and the stage chart are hand-drawn SVG. The
 end-to-end tests run against recorded copies of the public data, so no
 network is needed.
-
-Screenshots of every screen live in [docs/screenshots](docs/screenshots).

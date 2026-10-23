@@ -63,6 +63,14 @@ Check these personally. Judges may ask about them.
   under half a foot here, inside the BORDERLINE band, but say so if asked).
 - Yazoo City (YZOM6) and the Sunflower gauges publish no gauge-zero
   elevation at all, so those areas run in CATEGORY tier by design.
+- **Loose gauge zeros give flood-stage answers.** USGS also says how
+  accurate each gauge zero is. When it is only known to within more than
+  1 ft, CrestWatch treats it as missing and gives a flood-stage (CATEGORY)
+  answer instead of house-level math. Today that is Greenville (GEEM6),
+  Sarah (SARM6) and Lambert (LMGM6), so a Greenville address gets no
+  house-level answer. The 1 ft limit is `MAX_GAUGE_ZERO_ACCURACY_FT` in
+  `lib/config.ts`. TEAM: this number is yours to own. Check it during the
+  validation pass and be ready to explain it.
 - **Spec deviation:** the spec prefers the nearest gauge on the SAME
   waterbody "when resolvable". A pin's waterbody isn't resolvable from any
   keyless source (it would need NHD flowline queries), so CrestWatch uses
@@ -165,6 +173,17 @@ TEAM: answer these in your own words. Don't paste automated-written answers.
 - [ ] The automated disclosure is in the written answers and the video, not only
       in the repo.
 - [ ] Look up the demo addresses on the live site so they load fast.
+- [ ] Regenerate `docs/screenshots`. The PNGs there are from Aug 28 and
+      still show old privacy wording and out-of-state test alerts. On a
+      computer that can run Playwright, run `npm run screenshots`, check
+      every image, and commit all of `docs/screenshots/*.png`. Then link
+      the folder from `README.md` again. If you can't, delete the folder
+      before you submit, so judges don't see the old screens.
+- [ ] Fix the GitHub repo description. It still says "Free federal data",
+      which is wrong now that address search also uses OpenStreetMap and
+      Open-Meteo, and the homepage link points at an old URL. After you
+      have read it and agree, run:
+      `gh repo edit shashankmadala/crestwatch --description "Will the water reach your house? One sentence, days early. Free public data, no keys, no accounts." --homepage https://crestwatch-kalamadalas-projects.vercel.app --add-topic congressional-app-challenge,flood,nextjs,usgs,noaa`
 - [ ] Submitted by **Sat Oct 24** (deadline Mon Oct 26, 12:00 pm EDT).
       Nothing can be changed after the deadline.
 

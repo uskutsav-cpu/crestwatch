@@ -39,7 +39,7 @@ the submission materials, and the video is one of them.
 
 From `lib/config.ts` (also on /about):
 
-> "CrestWatch turns the government's river forecasts — written for engineers — into one plain sentence about your own house: when the water is coming, how high, and whether it reaches your door, in a district that once stayed flooded for six months while the forecasts sat unread."
+> "CrestWatch turns the government's river forecasts, written for engineers, into one plain sentence about your own house: when the water is coming, how high, and whether it reaches your door, in a district that once stayed flooded for six months while the forecasts sat unread."
 
 TEAM: it says "six months". Check that figure before you say it on camera.
 

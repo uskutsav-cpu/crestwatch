@@ -27,7 +27,7 @@ export const copy = {
     ".",
   ],
   privacyFooter:
-    "No accounts, no tracking, no ads. Your saved places stay in this browser. To look up an address, CrestWatch sends it to public map services.",
+    "No accounts, no tracking, no ads. Your places are saved only in this browser. To check them, CrestWatch's server asks public map and river services.",
 
   // S1 · Setup
   addressPlaceholder: "123 Main St, Vicksburg MS",
@@ -222,7 +222,7 @@ export const copy = {
 
   // About
   aboutPrivacy:
-    "Your saved places live only in this browser. To look an address up, CrestWatch's server sends it to public map services: the US Census first, then OpenStreetMap (Nominatim) or Open-Meteo if the Census can't find it. Then it asks USGS and the Weather Service about that spot. It keeps lookups in short-term memory for up to a day so repeat checks are fast. A watch link you share has your places inside it. No accounts, no database, no tracking, no ads.",
+    "Your saved places live only in this browser. To look an address up, CrestWatch's server sends it to public map services: the US Census first, then OpenStreetMap (Nominatim) or Open-Meteo if the Census can't find it. Then it asks USGS and the Weather Service about that spot. Each time it checks, your browser sends your places to CrestWatch's server for that check. The server doesn't save them. It keeps lookups in short-term memory for up to a day so repeat checks are fast. A watch link you share has your places inside it. No accounts, no database, no tracking, no ads.",
   honesty:
     "CrestWatch predicts river flooding, the slow kind our district gets, with days of warning. It can't predict flash floods from sudden rain. Its numbers are estimates from public elevation data, not a survey of your property. When it's too close to call, it says so. It only checks the river while it's open, and it doesn't send alerts. Keep the emergency alerts on your phone turned on.",
   // 404 + error pages

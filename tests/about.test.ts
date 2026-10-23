@@ -15,6 +15,7 @@ describe("About page (T12)", () => {
       "CrestWatch turns the government's river forecasts",
     );
     expect(PURPOSE_SENTENCE).toContain("six months");
+    expect(PURPOSE_SENTENCE).not.toMatch(/[—–!]/);
   });
 
   it("carries the honesty section and story sources", () => {
