@@ -30,7 +30,7 @@ export const copy = {
     "We read the official forecast",
     "We compare the water to how high your spot sits",
   ],
-  confirmSpot: (elev: string) => `Your spot sits at ${elev} ft.`,
+  confirmSpot: (elev: string) => `Your spot sits ${elev} ft above sea level.`,
   confirmGauge: (gauge: string, mi: string) =>
     `Closest river gauge: ${gauge}, ${mi} miles away.`,
   addPin: "+ Add the road you care about",
@@ -55,6 +55,14 @@ export const copy = {
     "That's a lot of lookups in a short time. Wait a few minutes, then try again.",
   lookupOffline:
     "We couldn't reach CrestWatch. Check your internet connection and try again.",
+  // Lookup progress, by time waited: 0 s, about 4 s, then lookupSlow.
+  lookupFinding: "Finding your address…",
+  lookupMeasuring: "Measuring how high your ground sits…",
+  placesFull: (max: number) =>
+    `You're watching ${max} places, the most CrestWatch keeps. Remove one on Your places to add another.`,
+  skipSecond: "Skip, I'm done",
+  storageBlocked:
+    "This browser isn't saving places, so this one won't be here next time. Here's its answer for now.",
 
   // S2 · Watch
   chipLikely: "water likely",
