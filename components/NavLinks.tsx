@@ -10,18 +10,23 @@ const LINKS = [
   { href: "/about", label: "About" },
 ];
 
+/** /why explains the Watch verdict, so it lights the Watch pill. */
+export function isNavActive(pathname: string | null, href: string): boolean {
+  return pathname === href || (href === "/watch" && pathname === "/why");
+}
+
 export function NavLinks() {
   const pathname = usePathname();
   return (
     <nav className="flex items-center gap-0 sm:gap-1">
       {LINKS.map(({ href, label }) => {
-        const active = pathname === href;
+        const active = isNavActive(pathname, href);
         return (
           <Link
             key={href}
             href={href}
             aria-current={active ? "page" : undefined}
-            className={`group inline-flex h-11 items-center rounded-full text-small font-semibold transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-(--color-current)/40 ${
+            className={`group inline-flex h-11 items-center rounded-full text-small font-semibold transition-colors focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-fg ${
               active ? "text-(--color-current)" : "text-dim hover:text-(--color-current)"
             }`}
           >
