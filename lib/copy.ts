@@ -318,4 +318,22 @@ export const copy = {
       text: "A full answer (FULL) compares the water to how high your spot sits, and it's about your house only when CrestWatch found your full street address. If CrestWatch doesn't know a gauge's height above sea level closely enough, you get flood-stage only (CATEGORY), and if no forecast gauge is close, you get alerts only (ALERT-ONLY).",
     },
   ],
+
+  // Package "actions": Read it to me, Send to family, Add the crest to my calendar.
+  readAloud: "Read it to me",
+  readAloudStop: "Stop",
+  // How short forms in the sentence are said out loud ("12 ft", "12pm CT", "~").
+  speechFeet: "feet",
+  speechFoot: "foot",
+  speechCentral: "Central time",
+  speechAbout: "about",
+  sendToFamily: "Send to family",
+  sendToFamilyTitle: (pin: string) => `${pin} · CrestWatch`,
+  addToCalendar: "Add the crest to my calendar",
+  calendarSaved: "Calendar file saved ✓",
+  calendarTitle: (river: string, pin: string) => `River crest: ${river} near ${pin}`,
+  calendarTitleNoRiver: (pin: string) => `River crest near ${pin}`,
+  // The file keeps one forecast; the river doesn't wait for it.
+  calendarCheckLatest: (url: string) => `Forecasts change. Check the latest: ${url}`,
+  calendarAlarm: "Check CrestWatch for the latest river forecast before the crest.",
 } as const;
