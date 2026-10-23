@@ -18,7 +18,9 @@ import {
   type PastFloodsInput,
 } from "@/lib/flood-history";
 import { datumLooksSane, parseHistoricCrests, type HistoricCrest } from "@/lib/gauges";
+import { BANDS } from "@/lib/config";
 import { EXAMPLE_PINS } from "@/lib/example";
+import { bandFor } from "@/lib/surveyor";
 
 const NOW = "2026-10-23T17:00:00Z";
 /** Vicksburg's USGS gauge zero (07289000, NGVD29), as the app reads it. */
@@ -263,16 +265,94 @@ describe("pastFloods: the numbers at the pin", () => {
 });
 
 describe("pastFloods: the summary line", () => {
-  it("some reached, one close call", () => {
+  it("some reached, the rest too close to call", () => {
     // Pin at 100: 2011 +3.3, 1927 +2.4, 1937 -0.6, 1973 -2.2, 1983 -3.0.
+    // Every miss is inside the borderline band, so none is called a miss.
     const r = pastFloods(input({ pinName: "Home", pinElevationFt: 100 }))!;
     expect(r.reached).toBe(2);
-    expect(r.closeCalls).toBe(1);
+    expect(r.closeCalls).toBe(3);
+    // The row words stay as they are: whole feet, or "within a foot".
     expect(r.rows[2].atPin).toBe(copy.pastFloodsWithinFoot);
+    expect(r.rows[3].atPin).toBe("stayed about 2 ft below");
     expect(r.summary).toBe(
-      "2 of the 5 highest crests here would have reached Home. One more would have come within a foot.",
+      "2 of the 5 highest crests here would have reached Home. 3 more would have been too close to call.",
     );
     expect(r.noneNote).toBeNull();
+  });
+
+  it("some reached, one too close to call, the rest clear misses", () => {
+    // Pin at 102: 2011 +1.3, 1927 +0.4, 1937 -2.6, 1973 -4.2, 1983 -5.0.
+    const r = pastFloods(input({ pinName: "Home", pinElevationFt: 102 }))!;
+    expect(r.reached).toBe(2);
+    expect(r.closeCalls).toBe(1);
+    expect(r.summary).toBe(
+      "2 of the 5 highest crests here would have reached Home. One more would have been too close to call.",
+    );
+  });
+
+  it("matches the Surveyor's bands: a miss inside BANDS.borderline is never 'wouldn't have reached'", () => {
+    // Water at 95 ft. bandFor(pin - 95) is what the live verdict would say.
+    for (const m of [0.01, 0.4, BANDS.likely, 1, 2, 3.49, BANDS.borderline, 3.51, 5]) {
+      const pin = 95 + m;
+      const r = pastFloods(
+        input({
+          pinName: "Home",
+          pinElevationFt: pin,
+          gaugeZeroFt: 50,
+          historicCrests: [{ stageFt: 45, time: "2020-01-01T00:00:00Z" }],
+        }),
+      )!;
+      const close = bandFor(pin - 95) !== "UNLIKELY";
+      expect(r.closeCalls, `margin ${m}`).toBe(close ? 1 : 0);
+      expect(r.summary, `margin ${m}`).toBe(
+        close
+          ? "The highest crest here would have been too close to call at Home."
+          : "The highest crest here wouldn't have reached Home.",
+      );
+    }
+  });
+
+  it("regression: a 2 ft margin (BORDERLINE live) doesn't read as a flat miss", () => {
+    // Gauge zero 50; crests at 95, 90 and 85 ft; Home at 97.
+    const r = pastFloods(
+      input({
+        pinName: "Home",
+        pinElevationFt: 97,
+        gaugeZeroFt: 50,
+        historicCrests: [
+          { stageFt: 45, time: "2020-01-01T00:00:00Z" },
+          { stageFt: 40, time: "2010-01-01T00:00:00Z" },
+          { stageFt: 35, time: "2000-01-01T00:00:00Z" },
+        ],
+      }),
+    )!;
+    expect(bandFor(97 - 95)).toBe("BORDERLINE");
+    expect(r.reached).toBe(0);
+    expect(r.closeCalls).toBe(1);
+    expect(r.summary).not.toMatch(/would have reached Home\.$/);
+    expect(r.summary).toBe(
+      "None of the 3 highest crests here would have clearly reached Home, but one would have been too close to call.",
+    );
+    expect(r.noneNote).toBe(copy.pastFloodsBigger);
+  });
+
+  it("regression: a 0.4 ft margin (LIKELY live) is too close to call, not a miss", () => {
+    const r = pastFloods(
+      input({
+        pinName: "Home",
+        pinElevationFt: 95.4,
+        gaugeZeroFt: 50,
+        historicCrests: [
+          { stageFt: 45, time: "2020-01-01T00:00:00Z" },
+          { stageFt: 40, time: "2010-01-01T00:00:00Z" },
+        ],
+      }),
+    )!;
+    expect(bandFor(95.4 - 95)).toBe("LIKELY");
+    expect(r.rows[0].atPin).toBe(copy.pastFloodsWithinFoot);
+    expect(r.summary).toBe(
+      "None of the 2 highest crests here would have clearly reached Home, but one would have been too close to call.",
+    );
   });
 
   it("the recent row never counts toward the summary", () => {
@@ -298,19 +378,22 @@ describe("pastFloods: the summary line", () => {
       "None of the 5 highest crests here would have reached Home.",
     );
     expect(line(0, 5, 1, "Home", false)).toBe(
-      "None of the 5 highest crests here would have reached Home, but one would have come within a foot.",
+      "None of the 5 highest crests here would have clearly reached Home, but one would have been too close to call.",
     );
     expect(line(0, 4, 2, "Home", false)).toBe(
-      "None of the 4 highest crests here would have reached Home, but 2 would have come within a foot.",
+      "None of the 4 highest crests here would have clearly reached Home, but 2 would have been too close to call.",
+    );
+    expect(line(1, 5, 1, "Home", false)).toBe(
+      "1 of the 5 highest crests here would have reached Home. One more would have been too close to call.",
     );
     expect(line(1, 5, 2, "Home", false)).toBe(
-      "1 of the 5 highest crests here would have reached Home. 2 more would have come within a foot.",
+      "1 of the 5 highest crests here would have reached Home. 2 more would have been too close to call.",
     );
     expect(line(1, 1, 0, "Home", false)).toBe(
       "The highest crest here would have reached Home.",
     );
     expect(line(0, 1, 1, "Home", false)).toBe(
-      "The highest crest here would have come within a foot of Home.",
+      "The highest crest here would have been too close to call at Home.",
     );
     expect(line(0, 1, 0, "Home", true)).toBe(
       "The highest crest CrestWatch can compare here wouldn't have reached Home.",
@@ -329,6 +412,24 @@ describe("pastFloods: the summary line", () => {
   it("pastFloodsSummary is the same line, or null", () => {
     expect(pastFloodsSummary(input())).toBe(pastFloods(input())!.summary);
     expect(pastFloodsSummary(input({ historicCrests: [] }))).toBeNull();
+    expect(pastFloodsSummary(input({ gaugeZeroFt: null }))).toBeNull();
+  });
+
+  it("pastFloodsSummary never reads as an all-clear: none reached carries the bigger-flood line", () => {
+    const museumIn = input({ pinName: museum.name, pinElevationFt: museum.elevationFt });
+    const s = pastFloodsSummary(museumIn)!;
+    expect(s).toContain(copy.pastFloodsBigger);
+    expect(s).toBe(
+      `None of the 5 highest crests here would have reached Museum. ${copy.pastFloodsBigger}`,
+    );
+    // A single crest that misses gets it too.
+    const one = pastFloodsSummary({
+      ...museumIn,
+      historicCrests: [{ stageFt: 57.1, time: "2011-05-19T00:00:00Z" }],
+    })!;
+    expect(one).toBe(`The highest crest here wouldn't have reached Museum. ${copy.pastFloodsBigger}`);
+    // Something reached: no bigger-flood line needed.
+    expect(pastFloodsSummary(input())).not.toContain(copy.pastFloodsBigger);
   });
 });
 
@@ -389,6 +490,8 @@ describe("copy rules for the Past floods strings", () => {
       [1, 1, 0, false],
       [0, 1, 1, false],
       [0, 1, 0, true],
+      [0, 5, 1, false],
+      [1, 5, 1, false],
     ].map(([r, t, c, l]) =>
       copy.pastFloodsLine(r as number, t as number, c as number, "Home", l as boolean),
     ),

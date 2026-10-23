@@ -80,6 +80,15 @@ describe("PastFloods", () => {
     expect(t).toContain("stayed about 14 ft below");
   });
 
+  it("a crest inside the borderline band reads too close to call, not a miss", () => {
+    // 1937 (53.2) puts water at 99.42: 2.58 ft below a pin at 102, which
+    // the live verdict would call too close to call.
+    const t = text(render({ pinName: "Home", pinElevationFt: 102 }));
+    expect(t).toContain(
+      "2 of the 5 highest crests CrestWatch can compare here would have reached Home. One more would have been too close to call.",
+    );
+  });
+
   it("an approximate pin: the tag, 'this spot', and no house-level words", () => {
     const t = text(render({ pinName: "Grandma", approximate: true }));
     expect(t).toContain(copy.approximateTag);

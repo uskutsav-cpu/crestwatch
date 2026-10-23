@@ -12,8 +12,14 @@
  * gauge zero, so adding today's zero to them would be wrong. They are left
  * out and counted, and the summary then says "can compare". Levees and
  * floodwalls are not modelled; the copy says so.
+ *
+ * The summary uses the Surveyor's own bands: a crest that stays below the
+ * ground by BANDS.borderline or less is "too close to call", the words the
+ * live verdict uses for the same margin. The intro asks "if one came back
+ * today", which is the forecast case, so the two must never disagree.
  */
 
+import { BANDS } from "@/lib/config";
 import { copy } from "@/lib/copy";
 // Type only: this module runs in the browser, and lib/gauges pulls in the
 // server-side fetch helpers.
@@ -48,7 +54,7 @@ export type PastFloodOutcome =
   | "water"
   /** Water at the pin, under a foot: "less than a foot of water here". */
   | "underFoot"
-  /** Stayed below the pin by under a foot. Counted as a close call. */
+  /** Stayed below the pin by under a foot: "stayed below, but within a foot". */
   | "withinFoot"
   /** Stayed below the pin by 1 ft or more: "stayed about {n} ft below". */
   | "below";
@@ -96,7 +102,11 @@ export interface PastFloods {
   top: number;
   /** Of those, how many reach the pin. */
   reached: number;
-  /** Of those, how many stay below by under a foot. */
+  /**
+   * Of those, how many stay below but by BANDS.borderline or less: the
+   * margin the Surveyor calls too close to call (or likely, under
+   * BANDS.likely). The summary never calls these a miss.
+   */
   closeCalls: number;
   /** Old-datum crests dropped. */
   leftOut: number;
@@ -233,7 +243,11 @@ export function pastFloods(input: PastFloodsInput): PastFloods | null {
 
   const counted = rows.filter((r) => !r.recent);
   const reached = counted.filter((r) => r.reached).length;
-  const closeCalls = counted.filter((r) => r.outcome === "withinFoot").length;
+  // Margin = ground - water = -depth. Same test as the Surveyor's bandFor:
+  // margin <= BANDS.borderline is not a miss.
+  const closeCalls = counted.filter(
+    (r) => !r.reached && -r.depthFt <= BANDS.borderline,
+  ).length;
   const pinLabel = input.approximate ? copy.pastFloodsSpot : input.pinName;
 
   return {
@@ -249,7 +263,13 @@ export function pastFloods(input: PastFloodsInput): PastFloods | null {
   };
 }
 
-/** Just the one line, for a compact spot (a <summary>, a place card). */
+/**
+ * The summary for a compact spot (a <summary>, a place card). When none of
+ * the highest crests reached, it carries copy.pastFloodsBigger too, so the
+ * line alone never reads as an all-clear.
+ */
 export function pastFloodsSummary(input: PastFloodsInput): string | null {
-  return pastFloods(input)?.summary ?? null;
+  const r = pastFloods(input);
+  if (!r) return null;
+  return [r.summary, r.noneNote].filter(Boolean).join(" ");
 }

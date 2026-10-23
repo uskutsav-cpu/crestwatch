@@ -332,8 +332,10 @@ export const copy = {
   pastFloodsCaveat:
     "Levees, floodwalls and the river itself have changed since many of these floods, and CrestWatch doesn't count levees or floodwalls. Treat this as a rough guide.",
   // reached and close count only the `top` highest crests (never the extra
-  // recent row). someLeftOut: old-datum crests were dropped, so "the
-  // highest crests here" would not be the whole record.
+  // recent row). close: stayed below, but by no more than the Surveyor's
+  // borderline band, so it gets the verdict's own "too close to call" and
+  // is never called a miss. someLeftOut: old-datum crests were dropped, so
+  // "the highest crests here" would not be the whole record.
   pastFloodsLine: (
     reached: number,
     top: number,
@@ -345,21 +347,21 @@ export const copy = {
     if (top === 1) {
       const one = `The highest crest ${where}`;
       if (reached === 1) return `${one} would have reached ${pin}.`;
-      if (close === 1) return `${one} would have come within a foot of ${pin}.`;
+      if (close === 1) return `${one} would have been too close to call at ${pin}.`;
       return `${one} wouldn't have reached ${pin}.`;
     }
     const crests = `the ${top} highest crests ${where}`;
     if (reached === 0) {
       return close === 0
         ? `None of ${crests} would have reached ${pin}.`
-        : `None of ${crests} would have reached ${pin}, but ${close === 1 ? "one" : close} would have come within a foot.`;
+        : `None of ${crests} would have clearly reached ${pin}, but ${close === 1 ? "one" : close} would have been too close to call.`;
     }
     const head =
       reached === top
         ? `All ${top} of the highest crests ${where} would have reached ${pin}.`
         : `${reached} of ${crests} would have reached ${pin}.`;
     if (close === 0) return head;
-    return `${head} ${close === 1 ? "One more" : `${close} more`} would have come within a foot.`;
+    return `${head} ${close === 1 ? "One more" : `${close} more`} would have been too close to call.`;
   },
   // Only when none of the highest crests reached: history is not a promise.
   pastFloodsBigger: "A flood bigger than these could still come.",
