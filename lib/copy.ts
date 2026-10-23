@@ -438,4 +438,21 @@ export const copy = {
     `From the Weather Service's crest records for ${gauge}.`,
   pastFloodsShow: "See each flood",
   pastFloodsHide: "Hide the list",
+
+  // Package rivers: the home page "Right now on our rivers" strip.
+  // Chips reuse chipCategory* and delayedChip; failure reuses
+  // riverDataDownLinked and refresh; trend words reuse trend*.
+  riversTitle: "Right now on our rivers",
+  riversFloodStage: (ft: string) => `flood stage ${ft} ft`,
+  riversExpectedHigh: (ft: string, day: string) => `expected high ${ft} ft ${day}`,
+  riversNoBigRise: "no big rise in the forecast",
+  // The forecast high reaches a worse category than the river is in now.
+  riversChipNearing: "nearing flood stage",
+  riversChipForecast: (category: string) => `${category} flooding forecast`,
+  riversReadingUnknown: "reading time unknown",
+  // The forecast is over a day old: no green chip and no "expected high".
+  riversForecastOld: "forecast not updated lately",
+  // When the oldest reading shown was taken (null when none has a time).
+  riversSource: (time: string | null) =>
+    time === null ? "River readings from NOAA." : `River readings from NOAA, as of ${time}.`,
 } as const;
