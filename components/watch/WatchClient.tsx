@@ -58,6 +58,7 @@ export function WatchClient() {
     return wl ? decodeWatchLink(wl) : null;
   }, [params]);
   const { pins, watches, now, loading, error, refresh } = useWatches(linkedPins);
+  const isExample = linkedPins !== null && params.get("ex") === "1";
   const [copied, setCopied] = useState(false);
 
   // Coming from a scrolled page, small phones landed mid-verdict with the
@@ -303,7 +304,18 @@ export function WatchClient() {
         </Link>
       </div>
 
-      {linkedPins && (
+      {linkedPins && isExample && (
+        <div className="rounded-xl bg-surface p-4 text-small">
+          <p className="text-dim">{copy.exampleNote}</p>
+          <Link
+            href="/"
+            className="mt-2 inline-flex min-h-11 items-center font-semibold text-(--color-current)"
+          >
+            {copy.exampleCta}
+          </Link>
+        </div>
+      )}
+      {linkedPins && !isExample && (
         <p className="text-small text-dim">
           You&apos;re viewing a shared watch link. Nothing was saved on this
           device.

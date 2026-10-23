@@ -6,11 +6,13 @@
  * localStorage; the server remembers nothing.
  */
 
+import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
 import { copy } from "@/lib/copy";
 import { ButtonGhost, ButtonPrimary } from "@/components/ui";
 import { addPin, loadPins, newPinId } from "@/lib/pin-store";
+import { EXAMPLE_HREF } from "@/lib/example";
 import type { LookupResult } from "@/lib/watch-service";
 
 type Phase = "enter" | "confirm";
@@ -204,6 +206,14 @@ export function SetupFlow() {
         </ButtonPrimary>
       </form>
       <p className="text-small text-dim">{copy.addressHint}</p>
+      {!isSecondPin && (
+        <Link
+          href={EXAMPLE_HREF}
+          className="inline-flex min-h-11 items-center self-start text-small font-semibold text-(--color-current) hover:underline"
+        >
+          {copy.exampleLink}
+        </Link>
+      )}
       {busy && slow && (
         <p role="status" className="text-small text-dim">
           {copy.lookupSlow}

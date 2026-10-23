@@ -39,6 +39,10 @@ export const copy = {
   lookupUpstream:
     "The public map service is slow right now. Try again in a minute. Your address is fine.",
   looking: "Reading the river…",
+  exampleLink: "Just looking? See a live example from Vicksburg →",
+  exampleNote:
+    "This is an example: two spots in Vicksburg, MS, checked against today's real river data. Nothing was saved on this device.",
+  exampleCta: "Check your own place →",
   lookupSlow:
     "Still working. The government map service is slow right now, so this can take up to a minute.",
   rateLimited:
