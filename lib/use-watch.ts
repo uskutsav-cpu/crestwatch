@@ -7,13 +7,16 @@
  *
  * When the signal drops before anything is on screen, the visitor's own
  * places fall back to the last good answer kept in this browser (see
- * lib/last-answer.ts), shown as an old answer, never as a fresh one.
+ * lib/last-answer.ts), shown as an old answer, never as a fresh one. It
+ * comes down the moment it turns 12 hours old or stops fitting the places.
  */
 
 import { useCallback, useEffect, useRef, useState } from "react";
 import { loadPins } from "@/lib/pin-store";
 import {
+  LAST_ANSWER_MAX_AGE_MS,
   clearLastAnswer,
+  lastAnswerTooOld,
   loadLastAnswer,
   pinsKeyFor,
   saveLastAnswer,
@@ -84,7 +87,10 @@ export type CheckOutcome =
   | { kind: "saved"; watches: PinWatch[]; now: string; updatedAt: number }
   /** The check failed. Keep whatever is on screen; error=true. */
   | { kind: "failed" }
-  /** The check failed and the saved answer on screen is too old now. Clear it; error=true. */
+  /**
+   * The check failed and the saved answer on screen may not stay: it is 12
+   * hours old, or the places changed. Clear it; error=true.
+   */
   | { kind: "expired" };
 
 /**
@@ -97,8 +103,12 @@ export type CheckOutcome =
  *   while the check ran ("Delete all my data" must stay deleted).
  * - Own places, failure, and nothing for these places on screen: the
  *   saved answer when it fits these exact places and is under 12 hours
- *   old. A saved answer already on screen is re-read, so it ages honestly
- *   and is dropped once it turns 12 hours old.
+ *   old.
+ * - Own places, failure, and a saved answer already on screen: re-read it,
+ *   so it ages honestly. Once no saved answer fits the current places (one
+ *   was removed, added or renamed, which clears it) or it turns 12 hours
+ *   old, it comes down, whichever places it was made for. A saved answer
+ *   is never left up frozen.
  */
 export function settleCheck({
   pins,
@@ -120,14 +130,17 @@ export function settleCheck({
     return { kind: "fresh", watches: answer.watches, now: answer.now, updatedAt: nowMs };
   }
   if (linked) return { kind: "failed" };
-  const mine = onScreen !== null && onScreen.key === pinsKeyFor(pins);
-  // A fresh answer from this visit is already up: keep it, as before.
-  if (mine && !onScreen.saved) return { kind: "failed" };
+  // A fresh answer from this visit is already up for these places: keep
+  // it, as before.
+  if (onScreen !== null && !onScreen.saved && onScreen.key === pinsKeyFor(pins)) {
+    return { kind: "failed" };
+  }
   const saved = loadLastAnswer(pins, nowMs);
   if (saved) {
     return { kind: "saved", watches: saved.watches, now: saved.now, updatedAt: saved.savedAt };
   }
-  return mine && onScreen.saved ? { kind: "expired" } : { kind: "failed" };
+  // A saved answer on screen that no longer fits, or is too old: take it down.
+  return onScreen?.saved ? { kind: "expired" } : { kind: "failed" };
 }
 
 /**
@@ -152,6 +165,18 @@ export function useWatches(
   // Which pin set the watches on screen belong to, and whether they came
   // from the saved answer.
   const onScreen = useRef<OnScreen | null>(null);
+
+  // A saved answer that may no longer be shown comes off the screen. The
+  // check behind it failed, so error stays true. Setters and refs are
+  // stable, so this is too.
+  const takeDownSaved = useCallback(() => {
+    onScreen.current = null;
+    setWatches([]);
+    setNow(null);
+    setUpdatedAt(null);
+    setError(true);
+    setFromSaved(false);
+  }, []);
 
   const refresh = useCallback(() => {
     const linked = overridePins !== null;
@@ -197,12 +222,7 @@ export function useWatches(
           setFromSaved(true);
           break;
         case "expired":
-          onScreen.current = null;
-          setWatches([]);
-          setNow(null);
-          setUpdatedAt(null);
-          setError(true);
-          setFromSaved(false);
+          takeDownSaved();
           break;
         case "failed":
           setError(true);
@@ -210,7 +230,7 @@ export function useWatches(
       }
       setLoading(false);
     })();
-  }, [overridePins]);
+  }, [overridePins, takeDownSaved]);
 
   useEffect(() => {
     refresh();
@@ -222,6 +242,23 @@ export function useWatches(
       window.removeEventListener("online", refresh);
     };
   }, [refresh]);
+
+  // A saved answer comes down the moment it turns 12 hours old, even when
+  // no check is due then, and without waiting on a network that may hang.
+  // If the timer wakes early (the device clock moved), it waits again.
+  useEffect(() => {
+    if (!fromSaved || updatedAt === null) return;
+    const savedAt = updatedAt;
+    let id: ReturnType<typeof setTimeout>;
+    const wait = () => {
+      id = setTimeout(
+        () => (lastAnswerTooOld(savedAt) ? takeDownSaved() : wait()),
+        Math.max(0, savedAt + LAST_ANSWER_MAX_AGE_MS - Date.now()),
+      );
+    };
+    wait();
+    return () => clearTimeout(id);
+  }, [fromSaved, updatedAt, takeDownSaved]);
 
   return { pins, watches, now, updatedAt, loading, error, fromSaved, refresh };
 }

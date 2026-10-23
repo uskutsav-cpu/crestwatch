@@ -12,6 +12,7 @@ import {
   LAST_ANSWER_MAX_AGE_MS,
   agedWatch,
   clearLastAnswer,
+  lastAnswerTooOld,
   loadLastAnswer,
   pinsKeyFor,
   saveLastAnswer,
@@ -485,6 +486,61 @@ describe("settleCheck: when the saved answer is read and written", () => {
     expect(
       settleCheck({ pins: PINS, linked: false, answer: null, onScreen, nowMs: SAVED_AT + 12 * HOUR }),
     ).toEqual({ kind: "expired" });
+  });
+
+  it("own places: a saved answer on screen comes down once a place is removed, at any age", () => {
+    store.savePins(PINS);
+    seedSaved();
+    // On screen: the saved answer for both places. Then Shop is removed.
+    const onScreen = { key: pinsKeyFor(PINS), saved: true };
+    const left = removePin(SHOP.id);
+    expect(left).toEqual([HOME]);
+    for (const age of [MIN, HOUR, 11 * HOUR, 20 * HOUR, 48 * HOUR]) {
+      expect(
+        settleCheck({ pins: left, linked: false, answer: null, onScreen, nowMs: SAVED_AT + age }),
+      ).toEqual({ kind: "expired" });
+    }
+  });
+
+  it("own places: a saved answer on screen for other places is replaced by one that fits", () => {
+    // Another tab saved an answer for just Home; the screen shows the old pair.
+    seedSaved(SAVED_AT + HOUR, [HOME], [homeWatch()]);
+    const out = settleCheck({
+      pins: [HOME],
+      linked: false,
+      answer: null,
+      onScreen: { key: pinsKeyFor(PINS), saved: true },
+      nowMs: SAVED_AT + 2 * HOUR,
+    });
+    expect(out.kind).toBe("saved");
+    if (out.kind === "saved") {
+      expect(out.updatedAt).toBe(SAVED_AT + HOUR);
+      expect(out.watches.map((w) => w.pinId)).toEqual([HOME.id]);
+    }
+  });
+
+  it("own places: blocked storage takes a saved answer on screen down", () => {
+    seedSaved();
+    store.mode = "throw";
+    expect(
+      settleCheck({
+        pins: PINS,
+        linked: false,
+        answer: null,
+        onScreen: { key: pinsKeyFor(PINS), saved: true },
+        nowMs: SAVED_AT + HOUR,
+      }),
+    ).toEqual({ kind: "expired" });
+  });
+});
+
+describe("lastAnswerTooOld", () => {
+  it("is false under 12 hours, true at 12 hours or later and for a copy from the future", () => {
+    expect(lastAnswerTooOld(SAVED_AT, SAVED_AT)).toBe(false);
+    expect(lastAnswerTooOld(SAVED_AT, SAVED_AT + 12 * HOUR - 1)).toBe(false);
+    expect(lastAnswerTooOld(SAVED_AT, SAVED_AT + 12 * HOUR)).toBe(true);
+    expect(lastAnswerTooOld(SAVED_AT, SAVED_AT + 30 * HOUR)).toBe(true);
+    expect(lastAnswerTooOld(SAVED_AT, SAVED_AT - 1)).toBe(true);
   });
 });
 

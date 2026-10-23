@@ -53,6 +53,16 @@ export interface LastAnswer {
 }
 
 /**
+ * True when an answer that arrived at `savedAt` may no longer be shown:
+ * it is 12 hours old or older, or it claims to be from the future (the
+ * device clock went back).
+ */
+export function lastAnswerTooOld(savedAt: number, nowMs: number = Date.now()): boolean {
+  const ageMs = nowMs - savedAt;
+  return !(ageMs >= 0 && ageMs < LAST_ANSWER_MAX_AGE_MS);
+}
+
+/**
  * Names one exact set of places: ids, spots and ground heights, in order.
  * Names are left out on purpose; they don't change any verdict.
  */
@@ -121,14 +131,11 @@ export function loadLastAnswer(
     clearLastAnswer();
     return null;
   }
-  const ageMs = nowMs - parsed.savedAt;
-  if (
-    parsed.pinsKey !== pinsKeyFor(pins) ||
-    !(ageMs >= 0 && ageMs < LAST_ANSWER_MAX_AGE_MS)
-  ) {
+  if (parsed.pinsKey !== pinsKeyFor(pins) || lastAnswerTooOld(parsed.savedAt, nowMs)) {
     clearLastAnswer();
     return null;
   }
+  const ageMs = nowMs - parsed.savedAt;
 
   // Count the age on one clock (this browser's), then move the server's
   // clock forward by it, so a wrong device clock can't skew "hours ago".
