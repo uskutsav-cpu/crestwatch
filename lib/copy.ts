@@ -318,4 +318,63 @@ export const copy = {
       text: "A full answer (FULL) compares the water to how high your spot sits, and it's about your house only when CrestWatch found your full street address. If CrestWatch doesn't know a gauge's height above sea level closely enough, you get flood-stage only (CATEGORY), and if no forecast gauge is close, you get alerts only (ALERT-ONLY).",
     },
   ],
+
+  // Package history · "Past floods at your place" (lib/flood-history.ts,
+  // components/watch/PastFloods.tsx). Feet are whole numbers; under a foot
+  // gets words, not "about 0 ft".
+  pastFloodsTitle: "Past floods here",
+  // Stands in for the place's name when the pin is a town or street point.
+  pastFloodsSpot: "this spot",
+  pastFloodsIntro:
+    "If one of these crests came back today, here's how high it would reach compared with your ground.",
+  pastFloodsIntroSpot:
+    "If one of these crests came back today, here's how high it would reach compared with the ground at this spot.",
+  pastFloodsCaveat:
+    "Levees, floodwalls and the river itself have changed since many of these floods, and CrestWatch doesn't count levees or floodwalls. Treat this as a rough guide.",
+  // reached and close count only the `top` highest crests (never the extra
+  // recent row). someLeftOut: old-datum crests were dropped, so "the
+  // highest crests here" would not be the whole record.
+  pastFloodsLine: (
+    reached: number,
+    top: number,
+    close: number,
+    pin: string,
+    someLeftOut: boolean,
+  ) => {
+    const where = someLeftOut ? "CrestWatch can compare here" : "here";
+    if (top === 1) {
+      const one = `The highest crest ${where}`;
+      if (reached === 1) return `${one} would have reached ${pin}.`;
+      if (close === 1) return `${one} would have come within a foot of ${pin}.`;
+      return `${one} wouldn't have reached ${pin}.`;
+    }
+    const crests = `the ${top} highest crests ${where}`;
+    if (reached === 0) {
+      return close === 0
+        ? `None of ${crests} would have reached ${pin}.`
+        : `None of ${crests} would have reached ${pin}, but ${close === 1 ? "one" : close} would have come within a foot.`;
+    }
+    const head =
+      reached === top
+        ? `All ${top} of the highest crests ${where} would have reached ${pin}.`
+        : `${reached} of ${crests} would have reached ${pin}.`;
+    if (close === 0) return head;
+    return `${head} ${close === 1 ? "One more" : `${close} more`} would have come within a foot.`;
+  },
+  // Only when none of the highest crests reached: history is not a promise.
+  pastFloodsBigger: "A flood bigger than these could still come.",
+  pastFloodsStage: (stage: string) => `${stage} ft on the gauge`,
+  pastFloodsWater: (ft: number) => `about ${ft} ft of water here`,
+  pastFloodsWaterUnderFoot: "less than a foot of water here",
+  pastFloodsBelow: (ft: number) => `stayed about ${ft} ft below`,
+  pastFloodsWithinFoot: "stayed below, but within a foot",
+  pastFloodsRecent: "the most recent big one",
+  pastFloodsLeftOut: (n: number) =>
+    n === 1
+      ? "1 older crest was measured from an old zero mark on the gauge, so it's left out."
+      : `${n} older crests were measured from an old zero mark on the gauge, so they're left out.`,
+  pastFloodsSource: (gauge: string) =>
+    `From the Weather Service's crest records for ${gauge}.`,
+  pastFloodsShow: "See each flood",
+  pastFloodsHide: "Hide the list",
 } as const;
