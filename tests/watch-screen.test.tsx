@@ -364,7 +364,7 @@ describe("#35 announcing a changed verdict", () => {
   it("wraps the sentence in a polite, atomic live region", () => {
     const html = render();
     expect(html).toMatch(
-      /<div aria-live="polite" aria-atomic="true" data-testid="verdict-live"><p[^>]*>The Pearl River peaks/,
+      /<div aria-live="polite" aria-atomic="true" data-testid="verdict-live"><p[^>]*>The (forecast says the )?Pearl River/,
     );
   });
 

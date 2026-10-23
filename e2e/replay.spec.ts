@@ -103,11 +103,11 @@ test("replay: no saved places can replay the example places, saving nothing", as
   await page.goto("/replay");
   await page.getByRole("button", { name: "Replay with the example places" }).click();
   await expect(page.getByText(/These are example places in Vicksburg/)).toBeVisible();
-  await expect(page.getByText(/Water above Levee Street: \d+ days/)).toBeVisible({
+  await expect(page.getByText(/Water above Levee St: \d+ days/)).toBeVisible({
     timeout: 15_000,
   });
   const slider = page.getByLabel("Replay timeline");
-  await expect(slider).toHaveAttribute("aria-valuetext", /^2019-01-01\. Water at .+ ft\. Levee Street sits at 92\.7 ft\.$/);
+  await expect(slider).toHaveAttribute("aria-valuetext", /^2019-01-01\. Water at .+ ft\. Levee St sits at 92\.7 ft\.$/);
   const saved = await page.evaluate(() => localStorage.getItem("crestwatch.pins"));
   expect(saved).toBeNull();
 });

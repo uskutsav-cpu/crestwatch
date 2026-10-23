@@ -147,7 +147,7 @@ describe("verdict sentences (Appendix C)", () => {
     const s = verdictSentence({ pinName: "Home", verdict: v, gauge, now: NOW });
     expect(s).toContain("4.2 ft above flood stage at Yazoo River at Yazoo City");
     expect(s).toContain("Moderate flooding");
-    expect(s).toContain("can't do house-level math here");
+    expect(s).toContain("closely enough to do house-level math here");
   });
 
   it("CATEGORY below flood stage stays calm", () => {
@@ -344,16 +344,19 @@ describe("falling river (UNLIKELY past peak, #6/#70)", () => {
       peak: { waterElevFt: 100.8, stageFt: 10.8, t: "2026-03-03T00:00:00Z" },
       currentWaterElevFt: 100.4,
     });
-    for (const observedTrend of [null, "steady", "falling"] as const) {
+    for (const observedTrend of [null, "steady"] as const) {
       const s = verdictSentence({ pinName: "Home", verdict: v, gauge, now: NOW, observedTrend });
       expect(s).toBe(
         "The Yazoo River peaks today at 10.8 ft on the river gauge. Home stays dry by about 4 ft.",
       );
       expect(s).not.toContain("is at");
     }
+    // Next to a "river falling" chip, a small last bump is never "peaks".
+    const f = verdictSentence({ pinName: "Home", verdict: v, gauge, now: NOW, observedTrend: "falling" });
+    expect(f).toBe("The forecast says the Yazoo River won't go above 10.8 ft on the river gauge. Home stays dry by about 4 ft.");
   });
 
-  it("a falling reading that is the highest water says 'coming down' without pastPeak", () => {
+  it("a falling reading that is the highest water never says 'peaks', even without pastPeak", () => {
     // A later forecast bump stays below the reading, so pastPeak is false.
     const v = fullVerdict({ pastPeak: false, peak: fallingPeak, currentWaterElevFt: 100.8 });
     const s = verdictSentence({
@@ -364,7 +367,7 @@ describe("falling river (UNLIKELY past peak, #6/#70)", () => {
       observedTrend: "falling",
     });
     expect(s).toBe(
-      "The Yazoo River is at 10.8 ft on the river gauge and coming down. Home stays dry by about 4 ft.",
+      "The forecast says the Yazoo River won't go above 10.8 ft on the river gauge. Home stays dry by about 4 ft.",
     );
     expect(s).not.toContain("peaks");
   });
@@ -406,16 +409,26 @@ describe("falling river (UNLIKELY past peak, #6/#70)", () => {
       expect(s).not.toContain("coming down");
     });
 
-    it("falling reading with a lower bump ahead: 'is at … coming down', never 'peaks today'", () => {
+    it("falling reading with a lower bump ahead: never 'peaks today'", () => {
       const s = run([[-0.5, 15.0]], [[3, 14.0], [9, 14.5], [15, 13.0]], "falling");
       expect(s).toBe(
-        "The Mississippi River is at 15.0 ft on the river gauge and coming down. Home stays dry by about 15 ft.",
+        "The forecast says the Mississippi River won't go above 15.0 ft on the river gauge. Home stays dry by about 15 ft.",
       );
+    });
+
+    it("Vicksburg, Oct 23: reading 14.94, next forecast point 15.0, chip 'falling'", () => {
+      for (const trend of ["falling", "steady"] as const) {
+        const s = run([[-0.5, 14.94]], [[2, 15.0], [8, 14.8], [14, 14.6]], trend);
+        expect(s).toBe(
+          "The forecast says the Mississippi River won't go above 15.0 ft on the river gauge. Home stays dry by about 15 ft.",
+        );
+        expect(s).not.toMatch(/peaks|coming down|is at/);
+      }
     });
   });
 
   it.each([null, "falling", "steady"] as const)(
-    "says 'is at … and coming down', never 'peaks' (trend %s)",
+    "says the forecast shows nothing higher, never 'peaks' (trend %s)",
     (observedTrend) => {
       const s = verdictSentence({
         pinName: "Home",
@@ -425,7 +438,7 @@ describe("falling river (UNLIKELY past peak, #6/#70)", () => {
         observedTrend,
       });
       expect(s).toBe(
-        "The Yazoo River is at 10.8 ft on the river gauge and coming down. Home stays dry by about 4 ft.",
+        "The forecast says the Yazoo River won't go above 10.8 ft on the river gauge. Home stays dry by about 4 ft.",
       );
       expect(s).not.toContain("peaks");
     },

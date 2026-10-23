@@ -68,6 +68,14 @@ export function timeWord(iso: string): string {
   return `${hour} CT`;
 }
 
+/**
+ * A forecast high point must sit at least this far above the latest
+ * reading before the sentence calls it a crest that "peaks" later.
+ * Smaller bumps are forecast noise next to a live "river falling" chip.
+ * TEAM: tune with the validation pass.
+ */
+const MIN_RISE_FOR_PEAK_FT = 0.3;
+
 const wholeFt = (n: number) => String(Math.max(1, Math.round(Math.abs(n))));
 
 export interface SentenceInput {
@@ -216,14 +224,22 @@ export function verdictSentence({
           margin,
         );
   }
-  // Falling river: only when the fresh reading IS the highest water is
-  // peak.stageFt the river's level right now, so "is at … and coming
-  // down" is true, and "peaks today" next to a "river falling" chip is
-  // not. pastPeak alone isn't enough: the peak can be the next forecast
-  // point, still above the reading. A live gauge still rising keeps the
-  // "peaks" wording, as in the LIKELY branch.
-  if (fromReading && trend !== "rising") {
-    return copy.verdictUnlikelyFalling(river, stage, pinName, margin);
+  // "Peaks {day}" only when there really is a crest still to come: a
+  // forecast high point ahead of us and clearly above the latest reading.
+  // Otherwise (the reading is the high point, the forecast is behind us,
+  // or a tiny forecast bump the chip would call "falling"), say what is
+  // true in every one of those cases: the forecast shows nothing higher.
+  // A live gauge still rising keeps the "peaks" wording, as in LIKELY;
+  // a falling one only does when the forecast has a real later rise.
+  const crestAhead =
+    Date.parse(verdict.peak.t) > Date.parse(now) &&
+    (verdict.currentWaterElevFt === null ||
+      verdict.peak.waterElevFt - verdict.currentWaterElevFt >= MIN_RISE_FOR_PEAK_FT);
+  const sayPeaks =
+    trend === "rising" ||
+    (crestAhead && (!verdict.pastPeak || trend !== "falling"));
+  if (!sayPeaks) {
+    return copy.verdictUnlikelyNoHigher(river, stage, pinName, margin);
   }
   return copy.verdictUnlikely(
     river,

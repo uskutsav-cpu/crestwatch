@@ -64,7 +64,7 @@ test("CATEGORY tier: names what's missing", async ({ page }) => {
     timeout: 15_000,
   });
   await expect(
-    page.getByText(/doesn't publish its own elevation/),
+    page.getByText(/trust to within a foot/),
   ).toBeVisible();
   await expect(page.getByText("forecast crest (stage)")).toBeVisible();
 });

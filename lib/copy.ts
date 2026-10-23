@@ -27,7 +27,7 @@ export const copy = {
     ".",
   ],
   privacyFooter:
-    "No accounts, no tracking, no ads. Your places are saved only in this browser. To check them, CrestWatch's server asks public map and river services.",
+    "No accounts, no tracking, no ads. Your places are saved only in this browser. To look up an address, CrestWatch's server asks public map services. To check the river, it asks USGS and the Weather Service.",
 
   // S1 · Setup
   addressPlaceholder: "123 Main St, Vicksburg MS",
@@ -116,6 +116,8 @@ export const copy = {
     `Couldn't check the river just now. These answers are from ${time}.`,
 
   // S4 · Why
+  whyCategoryExplain:
+    "CrestWatch doesn't have a height above sea level for this gauge's zero mark that it can trust to within a foot. Some gauges don't publish one, and some publish only a rough guess. Without it, CrestWatch can't turn the gauge's readings into a water level to compare with your ground. Instead, here's the official flood-category picture for areas near the gauge.",
   whyTitle: "No magic. Here's the math.",
   pageTitleWhy: "Why this verdict · CrestWatch",
   backToWatch: "← Back to the watch",
@@ -178,18 +180,18 @@ export const copy = {
     }`,
   verdictUnlikely: (river: string, day: string, stage: string, pin: string, margin: string) =>
     `The ${river} peaks ${day} at ${stage} ft on the river gauge. ${pin} stays dry by about ${margin} ft.`,
-  verdictUnlikelyFalling: (river: string, stage: string, pin: string, margin: string) =>
-    `The ${river} is at ${stage} ft on the river gauge and coming down. ${pin} stays dry by about ${margin} ft.`,
+  verdictUnlikelyNoHigher: (river: string, stage: string, pin: string, margin: string) =>
+    `The forecast says the ${river} won't go above ${stage} ft on the river gauge. ${pin} stays dry by about ${margin} ft.`,
   verdictUnlikelyStale: (river: string, day: string, stage: string, pin: string, margin: string) =>
     `The last forecast had the ${river} peaking ${day} at ${stage} ft on the river gauge. By that forecast, ${pin} stays dry by about ${margin} ft.`,
   verdictUnlikelyStaleReading: (river: string, stage: string, pin: string, margin: string) =>
     `The last reading had the ${river} at ${stage} ft on the river gauge. By that reading, ${pin} stays dry by about ${margin} ft.`,
   verdictCategory: (x: string, gauge: string, category: string) =>
-    `The forecast crest is ${x} ft above flood stage at ${gauge}. The Weather Service calls that ${category} flooding for low areas nearby. This gauge doesn't share its height above sea level, so CrestWatch can't do house-level math here. Treat low roads as wet.`,
+    `The forecast crest is ${x} ft above flood stage at ${gauge}. The Weather Service calls that ${category} flooding for low areas nearby. CrestWatch doesn't know this gauge's height above sea level closely enough to do house-level math here. Treat low roads as wet.`,
   verdictCategoryNoMargin: (gauge: string, category: string) =>
-    `The forecast crest reaches ${category} flooding at ${gauge}. This gauge doesn't share its height above sea level, so CrestWatch can't do house-level math here. Treat low roads as wet.`,
+    `The forecast crest reaches ${category} flooding at ${gauge}. CrestWatch doesn't know this gauge's height above sea level closely enough to do house-level math here. Treat low roads as wet.`,
   verdictCategoryAction: (gauge: string) =>
-    `The forecast crest comes close to flood stage at ${gauge}. Keep an eye on it. This gauge doesn't share its height above sea level, so CrestWatch can't do house-level math here.`,
+    `The forecast crest comes close to flood stage at ${gauge}. Keep an eye on it. CrestWatch doesn't know this gauge's height above sea level closely enough to do house-level math here.`,
   verdictCategoryNone: (gauge: string) =>
     `The forecast crest at ${gauge} stays below flood stage. Low areas near the river should stay passable.`,
   verdictLikelyPastPeakButRising: (river: string, pin: string) =>
@@ -304,7 +306,7 @@ export const copy = {
     },
     {
       term: "Three kinds of answers",
-      text: "A full answer (FULL) compares the water to how high your spot sits, and it's about your house only when CrestWatch found your full street address. If a gauge doesn't share its height above sea level, you get flood-stage only (CATEGORY), and if no forecast gauge is close, you get alerts only (ALERT-ONLY).",
+      text: "A full answer (FULL) compares the water to how high your spot sits, and it's about your house only when CrestWatch found your full street address. If CrestWatch doesn't know a gauge's height above sea level closely enough, you get flood-stage only (CATEGORY), and if no forecast gauge is close, you get alerts only (ALERT-ONLY).",
     },
   ],
 } as const;

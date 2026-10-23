@@ -214,12 +214,7 @@ export function WhyClient() {
               <span className="tnum">{gauge.distanceMi.toFixed(1)} mi away</span>
             </p>
             <p className="mt-2 text-body text-dim">
-              This gauge doesn&apos;t publish its own elevation (the USGS
-              field called <span className="tnum">alt_va</span>), so
-              CrestWatch can&apos;t turn its stage readings into a
-              water-surface elevation to compare with your ground. Instead,
-              here&apos;s the official flood-category picture for areas near
-              the gauge.
+              {copy.whyCategoryExplain}
             </p>
           </div>
           <StatChart
@@ -291,7 +286,7 @@ export function WhyClient() {
               label={verdict.marginFt >= 0 ? "margin of dry ground" : "depth over this spot at the crest"}
               value={`${Math.abs(verdict.marginFt).toFixed(1)} ft`}
             />
-            {/* A town-centre pin must never pass for house-level math. */}
+            {/* An approximate pin (town or street point) must never pass for house-level math. */}
             {pin.approximate && (
               <p className="mt-3 rounded-xl bg-risewatch/10 p-3 text-small">
                 <span className="font-semibold text-risewatch">

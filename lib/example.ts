@@ -14,7 +14,7 @@ import type { Pin } from "@/lib/pins";
 export const EXAMPLE_PINS: Pin[] = [
   {
     id: "ex0",
-    name: "Levee Street",
+    name: "Levee St",
     matchedAddress: "LEVEE ST, VICKSBURG, MS",
     lat: 32.354,
     lon: -90.8825,
@@ -22,7 +22,7 @@ export const EXAMPLE_PINS: Pin[] = [
   },
   {
     id: "ex1",
-    name: "River museum",
+    name: "Museum",
     matchedAddress: "910 WASHINGTON ST, VICKSBURG, MS, 39183",
     lat: 32.35399,
     lon: -90.88152,

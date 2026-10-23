@@ -463,7 +463,7 @@ export function WatchClient() {
         )}
       </div>
 
-      {/* A town-centre pin must never masquerade as house-level math. */}
+      {/* An approximate pin (town or street point) must never pass for house-level math. */}
       {pin.approximate && (
         <p className="rounded-xl bg-risewatch/10 p-3 text-small">
           <span className="font-semibold text-risewatch">

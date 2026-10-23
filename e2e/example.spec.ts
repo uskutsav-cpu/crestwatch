@@ -6,7 +6,7 @@ test("example: one click from home shows a live watch and saves nothing", async 
   await page.goto("/");
   await page.getByRole("link", { name: /See a live example from Vicksburg/ }).click();
   await expect(page).toHaveURL(/\/watch\?wl=.+&ex=1/);
-  await expect(page.getByRole("heading", { name: "Levee Street" })).toBeVisible({
+  await expect(page.getByRole("heading", { name: "Levee St" })).toBeVisible({
     timeout: 20_000,
   });
   await expect(page.getByText(/This is an example: two spots in Vicksburg/)).toBeVisible();
