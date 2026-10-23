@@ -26,7 +26,19 @@ export function SetupFlow() {
     null,
   );
   const [isSecondPin, setIsSecondPin] = useState(false);
+  const [slow, setSlow] = useState(false);
   const confirmRef = useRef<HTMLDivElement>(null);
+
+  // A lookup that's still going after a few seconds is waiting on a slow
+  // federal service. Say so, so nobody thinks the page froze.
+  useEffect(() => {
+    if (!busy) {
+      setSlow(false);
+      return;
+    }
+    const t = setTimeout(() => setSlow(true), 6_000);
+    return () => clearTimeout(t);
+  }, [busy]);
 
   // On small phones the hero pushes the confirm card (and its Done
   // button) below the fold. Bring it into view when it appears.
@@ -47,7 +59,10 @@ export function SetupFlow() {
         headers: { "content-type": "application/json" },
         body: JSON.stringify({ address: a }),
       });
-      const json = (await res.json()) as LookupResult | { error?: string };
+      // A platform timeout or proxy error comes back as HTML, not JSON.
+      const json = (await res.json().catch(() => ({
+        error: "UPSTREAM",
+      }))) as LookupResult | { error?: string };
       if ("ok" in json && json.ok) {
         setFound(json);
         setPhase("confirm");
@@ -60,11 +75,15 @@ export function SetupFlow() {
             ? copy.elevationUnavailable
             : err === "UPSTREAM"
               ? copy.lookupUpstream
-              : copy.addressNotFound,
+              : err === "RATE_LIMITED"
+                ? copy.rateLimited
+                : copy.addressNotFound,
         );
       }
     } catch {
-      setNote(copy.addressNotFound);
+      // The request never got an answer: that's the connection, not the
+      // address the person typed.
+      setNote(copy.lookupOffline);
     }
     setBusy(false);
   }
@@ -185,6 +204,11 @@ export function SetupFlow() {
         </ButtonPrimary>
       </form>
       <p className="text-small text-dim">{copy.addressHint}</p>
+      {busy && slow && (
+        <p role="status" className="text-small text-dim">
+          {copy.lookupSlow}
+        </p>
+      )}
       {note && (
         <p className="rounded-xl bg-risewatch/10 p-3 text-small">
           {note}

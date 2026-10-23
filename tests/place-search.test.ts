@@ -147,8 +147,10 @@ describe("watch links carry the approximate flag", () => {
   });
 });
 
+const noSleep = async () => {};
+
 describe("EPQS slowness must not look like a bad address", () => {
-  it("retries once before giving up", async () => {
+  it("retries after a failure", async () => {
     const { groundElevationFt } = await import("@/lib/geo");
     let calls = 0;
     const flaky = async () => {
@@ -156,9 +158,49 @@ describe("EPQS slowness must not look like a bad address", () => {
       if (calls === 1) throw new Error("timeout");
       return { value: 241.58 };
     };
-    const elev = await groundElevationFt(32.35, -90.88, flaky);
+    const elev = await groundElevationFt(32.35, -90.88, flaky, {
+      sleep: noSleep,
+    });
     expect(calls).toBe(2);
     expect(elev).toBeCloseTo(241.58, 2);
+  });
+
+  it("rides out a burst of instant 500s (seen live, Oct 2026)", async () => {
+    const { groundElevationFt } = await import("@/lib/geo");
+    let calls = 0;
+    const pauses: number[] = [];
+    const elev = await groundElevationFt(
+      32.9,
+      -90.87,
+      async () => {
+        calls++;
+        if (calls < 3) throw new Error("upstream 500 for epqs.nationalmap.gov");
+        return { value: 105.56 };
+      },
+      { sleep: async (ms) => void pauses.push(ms) },
+    );
+    expect(calls).toBe(3);
+    expect(elev).toBeCloseTo(105.56, 2);
+    expect(pauses.every((ms) => ms > 0 && ms <= 3_000)).toBe(true);
+  });
+
+  it("never starts an attempt that would blow the time budget", async () => {
+    const { groundElevationFt, EPQS_BUDGET_MS } = await import("@/lib/geo");
+    let t = 0;
+    const timeouts: number[] = [];
+    const elev = await groundElevationFt(
+      32.35,
+      -90.88,
+      async (_u, opts) => {
+        timeouts.push(opts?.timeoutMs ?? 0);
+        t += opts?.timeoutMs ?? 0; // every attempt runs to its timeout
+        throw new Error("timed out");
+      },
+      { now: () => t, sleep: async (ms) => void (t += ms) },
+    );
+    expect(elev).toBeNull();
+    expect(t).toBeLessThanOrEqual(EPQS_BUDGET_MS);
+    expect(timeouts.length).toBeGreaterThanOrEqual(2);
   });
 
   it("asks for a long timeout, since EPQS routinely takes seconds", async () => {
@@ -171,14 +213,19 @@ describe("EPQS slowness must not look like a bad address", () => {
     expect(seen).toBeGreaterThanOrEqual(20_000);
   });
 
-  it("still gives up after the retry rather than hanging", async () => {
-    const { groundElevationFt } = await import("@/lib/geo");
+  it("still gives up after a few tries rather than hanging", async () => {
+    const { groundElevationFt, EPQS_MAX_ATTEMPTS } = await import("@/lib/geo");
     let calls = 0;
-    const elev = await groundElevationFt(32.35, -90.88, async () => {
-      calls++;
-      throw new Error("down");
-    });
-    expect(calls).toBe(2);
+    const elev = await groundElevationFt(
+      32.35,
+      -90.88,
+      async () => {
+        calls++;
+        throw new Error("down");
+      },
+      { sleep: noSleep },
+    );
+    expect(calls).toBe(EPQS_MAX_ATTEMPTS);
     expect(elev).toBeNull();
   });
 });

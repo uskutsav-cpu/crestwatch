@@ -65,9 +65,14 @@ describe("geo pipeline — 5 known addresses (recorded fixtures)", () => {
   });
 
   it("returns null elevation when EPQS is unreachable", async () => {
-    const elev = await groundElevationFt(30, -90, async () => {
-      throw new Error("timeout");
-    });
+    const elev = await groundElevationFt(
+      30,
+      -90,
+      async () => {
+        throw new Error("timeout");
+      },
+      { sleep: async () => {} },
+    );
     expect(elev).toBeNull();
   });
 });

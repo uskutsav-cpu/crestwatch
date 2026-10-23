@@ -297,6 +297,21 @@ export function epqsUrl(lat: number, lon: number): string {
   return u.toString();
 }
 
+/** EPQS's own gateway gives up at about 29 s, so waiting longer is pointless. */
+export const EPQS_ATTEMPT_MS = 29_000;
+/** Whole-call budget across retries. Fits inside the lookup route's 60 s. */
+export const EPQS_BUDGET_MS = 40_000;
+export const EPQS_MAX_ATTEMPTS = 4;
+
+export interface ElevationOptions {
+  budgetMs?: number;
+  sleep?: (ms: number) => Promise<void>;
+  now?: () => number;
+}
+
+const realSleep = (ms: number) =>
+  new Promise<void>((resolve) => setTimeout(resolve, ms));
+
 /**
  * Ground elevation in ft NAVD88, or null when EPQS has no data here
  * (open water, out of coverage, or a sentinel value).
@@ -305,21 +320,33 @@ export async function groundElevationFt(
   lat: number,
   lon: number,
   fetchImpl: FetchJson = fetchJson,
+  {
+    budgetMs = EPQS_BUDGET_MS,
+    sleep = realSleep,
+    now = Date.now,
+  }: ElevationOptions = {},
 ): Promise<number | null> {
-  // EPQS routinely takes 3-9 seconds, so it needs a far longer leash than
-  // the other federal APIs — and one retry, because a single slow tile
-  // otherwise costs the visitor their whole verdict.
+  // EPQS fails two ways under load: an instant 500, or a slow tile that
+  // takes 15-29 s. Both usually clear a moment later, so keep asking
+  // (with a short pause) until the budget runs out. One bad answer must
+  // not cost the visitor their whole verdict.
+  const start = now();
+  const left = () => budgetMs - (now() - start);
   let data: unknown;
-  let lastErr = true;
-  for (let attempt = 0; attempt < 2 && lastErr; attempt++) {
+  let got = false;
+  for (let attempt = 0; attempt < EPQS_MAX_ATTEMPTS && !got; attempt++) {
+    if (left() < 2_000) break;
     try {
-      data = await fetchImpl(epqsUrl(lat, lon), { timeoutMs: 25_000 });
-      lastErr = false;
+      data = await fetchImpl(epqsUrl(lat, lon), {
+        timeoutMs: Math.min(EPQS_ATTEMPT_MS, left()),
+      });
+      got = true;
     } catch {
-      lastErr = true;
+      const pause = Math.min(1_000 * (attempt + 1), left() - 2_000);
+      if (attempt < EPQS_MAX_ATTEMPTS - 1 && pause > 0) await sleep(pause);
     }
   }
-  if (lastErr) return null;
+  if (!got) return null;
   const value = (data as { value?: unknown })?.value;
   if (typeof value !== "number" || !Number.isFinite(value)) return null;
   // Sentinel/no-data guard: nothing in this district sits below -400 ft

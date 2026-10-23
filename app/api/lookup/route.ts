@@ -9,6 +9,10 @@ import { lookupAddress } from "@/lib/watch-service";
 import { routeFetchers } from "@/lib/test-fetchers";
 import { clientIp, rateLimitOk } from "@/lib/rate-limit";
 
+// The federal elevation service can take 15-29 s per try when it's busy,
+// and lib/geo retries it within a 40 s budget. Leave room for that.
+export const maxDuration = 60;
+
 export async function POST(request: NextRequest) {
   if (!rateLimitOk(clientIp(request.headers))) {
     return Response.json({ ok: false, error: "RATE_LIMITED" }, { status: 429 });

@@ -39,6 +39,12 @@ export const copy = {
   lookupUpstream:
     "The public map service is slow right now. Try again in a minute. Your address is fine.",
   looking: "Reading the river…",
+  lookupSlow:
+    "Still working. The government map service is slow right now, so this can take up to a minute.",
+  rateLimited:
+    "That's a lot of lookups in a short time. Wait a few minutes, then try again.",
+  lookupOffline:
+    "We couldn't reach CrestWatch. Check your internet connection and try again.",
 
   // S2 · Watch
   chipLikely: "water likely",
