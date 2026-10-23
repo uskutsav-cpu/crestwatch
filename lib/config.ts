@@ -24,7 +24,7 @@ export const RATE_LIMIT_PER_HOUR = 120;
 
 /** Descriptive UA — api.weather.gov requires one; the others appreciate it. */
 export const FETCH_USER_AGENT =
-  "CrestWatch/1.0 (Congressional App Challenge entry; github.com/crestwatch)";
+  "CrestWatch/1.0 (Congressional App Challenge entry; https://github.com/shashankmadala/crestwatch)";
 
 export interface ReplayEvent {
   id: string;

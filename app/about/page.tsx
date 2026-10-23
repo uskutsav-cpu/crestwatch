@@ -8,7 +8,9 @@ export const metadata: Metadata = {
 };
 
 /* S6 · About (T12, Appendix F). ⚠ story stats: TEAM re-verify before
-   shipping — see docs/VALIDATION.md checklist. */
+   shipping — see docs/VALIDATION.md checklist. The 2019 figures ("over
+   half a million acres", "about six months") still need a source link
+   like the CNN one. */
 export default function AboutPage() {
   return (
     <div className="flex flex-col gap-10 py-12">
@@ -31,14 +33,14 @@ export default function AboutPage() {
           for about six months. In August 2022 the Pearl River flooded
           Jackson and knocked out the city&apos;s water plant (
           <a
-            className="text-(--color-current)"
+            className="text-(--color-current) underline underline-offset-2"
             href="https://www.cnn.com/2022/09/02/us/jackson-mississippi-water-crisis-what-we-know/index.html"
             target="_blank"
             rel="noreferrer"
           >
             CNN
           </a>
-          ). Every one of these floods was forecast days ahead, on
+          ). The 2019 and 2022 floods were forecast days ahead, on
           government pages written for engineers.
         </p>
       </section>
@@ -79,12 +81,14 @@ export default function AboutPage() {
       <section className="max-w-prose">
         <h2 className="text-h2">How it was built</h2>
         <p className="mt-3 text-body text-dim">
-          We built this with automated help and say so openly. The product itself
-          uses no automated, only public data and arithmetic. It runs on Next.js
-          and TypeScript with free public APIs from USGS, NOAA, and the
-          Census. See{" "}
+          An automated coding tool, development tools by the software provider, wrote almost all of
+          this app&apos;s code, and we say so openly. The app itself uses no
+          automated, only public data and arithmetic. It runs on Next.js and
+          TypeScript with free public data from USGS, NOAA, and the Census.
+          Address search also uses OpenStreetMap&apos;s Nominatim and
+          Open-Meteo&apos;s place search, which is based on GeoNames. See{" "}
           <a
-            className="text-(--color-current)"
+            className="text-(--color-current) underline underline-offset-2"
             href="https://github.com/shashankmadala/crestwatch/blob/main/docs/VALIDATION.md"
             target="_blank"
             rel="noreferrer"
@@ -101,7 +105,8 @@ export default function AboutPage() {
         <p className="mt-3 text-body text-dim">
           Built by students in Mississippi&apos;s Second Congressional
           District. A Congressional App Challenge 2026 entry.
-          {/* TEAM: add names before submission. */}
+          {/* TEAM: add each participant's real name here before submission
+              (the same names as the video and the registration). */}
         </p>
       </section>
     </div>
