@@ -76,7 +76,7 @@ export function WaterScene(props: SceneInput) {
             y={s.crestY - 6}
             textAnchor="end"
             className="tnum"
-            fontSize="11"
+            fontSize="14"
             fill="var(--color-dim)"
           >
             forecast crest
@@ -92,16 +92,16 @@ export function WaterScene(props: SceneInput) {
             x2={focused.x + 52}
             y1={Math.min(focused.y, s.crestY)}
             y2={Math.max(focused.y, s.crestY)}
-            stroke={s.gapFt >= 0 ? "var(--color-dryland)" : "var(--color-floodline)"}
+            stroke={s.gapFt >= 0 ? "var(--color-dryland-ink)" : "var(--color-floodline-ink)"}
             strokeWidth="1.5"
           />
           <text
             x={focused.x + 58}
             y={(focused.y + s.crestY) / 2 + 4}
-            fontSize="12"
+            fontSize="16"
             fontWeight="600"
             className="tnum"
-            fill={s.gapFt >= 0 ? "var(--color-dryland)" : "var(--color-floodline)"}
+            fill={s.gapFt >= 0 ? "var(--color-dryland-ink)" : "var(--color-floodline-ink)"}
           >
             {gapLabel(s.gapFt)}
           </text>
@@ -110,7 +110,8 @@ export function WaterScene(props: SceneInput) {
 
       {/* markers */}
       {s.markers.map((m, i) => (
-        <g key={m.label}>
+        <g key={`${m.label}-${i}`}>
+          <title>{m.label}</title>
           {i === 0 ? (
             // house
             <g>
@@ -126,19 +127,22 @@ export function WaterScene(props: SceneInput) {
           )}
           <text
             x={m.x}
-            y={m.y + 16}
+            y={m.y + 18}
             textAnchor="middle"
-            fontSize="11"
+            fontSize="14"
             fontWeight="600"
             fill="var(--color-fg)"
           >
-            {m.label.toUpperCase()}
+            {(m.label.length > 11
+              ? `${m.label.slice(0, 10).trimEnd()}…`
+              : m.label
+            ).toUpperCase()}
           </text>
           <text
             x={m.x}
-            y={m.y + 29}
+            y={m.y + 34}
             textAnchor="middle"
-            fontSize="10"
+            fontSize="13"
             className="tnum"
             fill="var(--color-dim)"
           >

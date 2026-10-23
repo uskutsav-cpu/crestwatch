@@ -16,7 +16,8 @@ export const copy = {
     "Runs on public data. Nothing about you leaves your browser.",
 
   // S1 · Setup
-  addressPlaceholder: "123 Main St, Vicksburg MS (or just your town)",
+  addressPlaceholder: "123 Main St, Vicksburg MS",
+  addressHint: "A street address works best. A town or ZIP code works too.",
   cta: "Watch this place",
   howItWorks: [
     "We check the river gauges",
@@ -116,4 +117,14 @@ export const copy = {
     "Your addresses never leave your browser. We have no server memory, no accounts, no tracking.",
   honesty:
     "CrestWatch predicts river flooding, the slow kind our district gets, with days of warning. It can't predict flash floods from sudden rain. Its numbers are estimates from public elevation data, not a survey of your property. When it's too close to call, it says so.",
+  // 404 + error pages
+  notFoundTitle: "We couldn't find that page.",
+  notFoundBody:
+    "The link may be old or typed wrong. Your saved places are still safe in this browser.",
+  checkAPlace: "Check a place",
+  errorTitle: "Something went wrong on our end.",
+  errorBody:
+    "Your saved places are safe. Try again, or come back in a minute.",
+  tryAgain: "Try again",
+  goHome: "Go home",
 } as const;

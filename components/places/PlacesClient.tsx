@@ -71,7 +71,7 @@ export function PlacesClient() {
   const sorted = sortWorstFirst(watches);
 
   return (
-    <div className="flex min-h-[60vh] flex-col gap-4 py-10">
+    <div className="flex min-h-[60dvh] flex-col gap-4 py-10">
       <div className="flex items-center justify-between">
         <h1 className="text-h2">{copy.placesTitle}</h1>
         <div className="flex items-center gap-2">
@@ -79,7 +79,7 @@ export function PlacesClient() {
           <button
             onClick={refresh}
             disabled={loading}
-            className="text-small font-semibold text-dim transition-colors hover:text-(--color-current) disabled:opacity-50"
+            className="inline-flex min-h-11 items-center text-small font-semibold text-dim transition-colors hover:text-(--color-current) disabled:opacity-50"
           >
             {copy.refresh}
           </button>
@@ -94,16 +94,23 @@ export function PlacesClient() {
           if (!pin) return null;
           const crossing =
             w.verdict.tier === "FULL" ? w.verdict.crossing : null;
-          const trend = w.gauge ? trendOf(w.gauge.observed) : null;
+          // Only show a direction when the reading is fresh; a week-old
+          // "steady" would be a guess dressed up as a fact.
+          const trend =
+            w.gauge &&
+            w.verdict.tier !== "ALERT_ONLY" &&
+            !w.verdict.stale.staleObserved
+              ? trendOf(w.gauge.observed)
+              : null;
           return (
             <li key={w.pinId} className="relative">
               <Link
                 href={`/watch?pin=${pin.id}`}
-                className="block rounded-2xl bg-surface p-4 pr-20 transition-colors hover:bg-surface/70"
+                className="block rounded-2xl bg-surface p-4 pr-28 transition-colors hover:bg-surface/70"
                 style={{ borderLeft: `4px solid ${BAND_COLOR[edgeBand(w)]}` }}
               >
                 <div className="flex items-center gap-2">
-                  <p className="text-body font-semibold">{pin.name}</p>
+                  <p className="min-w-0 text-body font-semibold">{pin.name}</p>
                   {trend && (
                     <span className="text-small text-dim" aria-hidden="true">
                       {trend === "rising" ? "↑" : trend === "falling" ? "↓" : "→"}
@@ -119,18 +126,18 @@ export function PlacesClient() {
                   {statusLine(w.verdict)}
                 </p>
               </Link>
-              <div className="absolute right-3 top-3 flex gap-1">
+              <div className="absolute right-2 top-2 flex gap-2">
                 <button
                   onClick={() => renameOne(pin.id, pin.name)}
                   aria-label={`Rename ${pin.name}`}
-                  className="flex h-8 w-8 items-center justify-center rounded-full text-dim transition-colors hover:text-(--color-current)"
+                  className="flex h-11 w-11 items-center justify-center rounded-full text-dim transition-colors hover:text-(--color-current)"
                 >
                   ✎
                 </button>
                 <button
                   onClick={() => removeOne(pin.id, pin.name)}
                   aria-label={`Remove ${pin.name}`}
-                  className="flex h-8 w-8 items-center justify-center rounded-full text-dim transition-colors hover:text-floodline"
+                  className="flex h-11 w-11 items-center justify-center rounded-full text-dim transition-colors hover:text-floodline"
                 >
                   ✕
                 </button>

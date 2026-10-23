@@ -7,7 +7,7 @@ import type { SeriesPoint } from "@/lib/gauges";
 
 export const CHART_W = 400;
 export const CHART_H = 160;
-const PAD_L = 34;
+const PAD_L = 46;
 const PAD_R = 8;
 const PAD_T = 10;
 const PAD_B = 20;

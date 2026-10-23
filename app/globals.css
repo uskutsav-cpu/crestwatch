@@ -12,6 +12,10 @@
   --color-dryland: #5fc98e;
   --color-risewatch: #ffb84d;
   --color-floodline: #e4715c;
+  /* Band colours for TEXT and thin lines. Same as the band in dark mode;
+     darkened in light mode so they pass contrast on white. */
+  --color-dryland-ink: #5fc98e;
+  --color-floodline-ink: #e4715c;
   --color-paper: #f4f9fb;
 
   /* Semantic, theme-flipping (dark is the default) */
@@ -44,7 +48,29 @@
   --color-surface: #ffffff;
   --color-line: #d5e3ea;
   --color-fg: #122234;
-  --color-dim: #5a7183;
+  --color-dim: #51677a;
+  --color-dryland-ink: #15803d;
+  --color-floodline-ink: #c2410c;
+}
+
+/* Light theme: the accent colours are tuned for dark backgrounds and drop
+   to 1.5-2:1 as text on paper. Darken them for text only; buttons, chips
+   and the water fill keep the brand colours. */
+[data-theme="light"] .text-\(--color-current\),
+[data-theme="light"] .hover\:text-\(--color-current\):hover {
+  color: #0e7490;
+}
+[data-theme="light"] .text-risewatch {
+  color: #b45309;
+}
+[data-theme="light"] .text-floodline,
+[data-theme="light"] .hover\:text-floodline:hover {
+  color: #c2410c;
+}
+
+/* A 40-character name with no spaces must wrap, not push the layout. */
+main {
+  overflow-wrap: anywhere;
 }
 
 body {

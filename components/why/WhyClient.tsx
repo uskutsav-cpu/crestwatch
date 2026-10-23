@@ -8,7 +8,7 @@
 
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
-import { useMemo } from "react";
+import { useEffect, useMemo } from "react";
 import { copy } from "@/lib/copy";
 import { decodeWatchLink } from "@/lib/watch-link";
 import { useWatches } from "@/lib/use-watch";
@@ -28,11 +28,11 @@ function fmtWhen(iso: string): string {
 function Row({ label, value, op }: { label: string; value: string; op?: string }) {
   return (
     <div className="flex items-baseline justify-between gap-4">
-      <span className="text-small text-dim">
+      <span className="min-w-0 text-small text-dim">
         {op && <span className="mr-2 inline-block w-3 text-fg">{op}</span>}
         {label}
       </span>
-      <span className="tnum text-numeral">{value}</span>
+      <span className="tnum text-numeral shrink-0 whitespace-nowrap">{value}</span>
     </div>
   );
 }
@@ -45,6 +45,10 @@ export function WhyClient() {
     return wl ? decodeWatchLink(wl) : null;
   }, [params]);
   const { pins, watches, loading } = useWatches(linkedPins);
+
+  useEffect(() => {
+    window.scrollTo(0, 0);
+  }, []);
 
   const pin = pins.find((p) => p.id === params.get("pin")) ?? pins[0];
   const watch = watches.find((w) => w.pinId === pin?.id);

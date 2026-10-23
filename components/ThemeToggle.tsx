@@ -15,6 +15,11 @@ export function ThemeToggle() {
     try {
       if (localStorage.getItem(STORAGE_KEYS.theme) === "light") {
         setTheme("light");
+        // Backup for the pre-paint script, which can run before Next has
+        // added the theme-color tag to <head>.
+        document
+          .querySelector('meta[name="theme-color"]')
+          ?.setAttribute("content", "#F4F9FB");
       }
     } catch {
       // storage blocked — stay dark
@@ -31,8 +36,14 @@ export function ThemeToggle() {
     }
     if (next === "light") {
       document.documentElement.setAttribute("data-theme", "light");
+      document
+        .querySelector('meta[name="theme-color"]')
+        ?.setAttribute("content", "#F4F9FB");
     } else {
       document.documentElement.removeAttribute("data-theme");
+      document
+        .querySelector('meta[name="theme-color"]')
+        ?.setAttribute("content", "#0A1620");
     }
   }
 
@@ -42,7 +53,7 @@ export function ThemeToggle() {
       aria-label={
         theme === "dark" ? "Switch to light mode" : "Switch to dark mode"
       }
-      className="flex h-10 w-10 items-center justify-center rounded-full text-dim transition-colors hover:text-(--color-current) focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-(--color-current)/40"
+      className="flex h-11 w-11 items-center justify-center rounded-full text-dim transition-colors hover:text-(--color-current) focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-(--color-current)/40"
     >
       {theme === "dark" ? "☀️" : "🌙"}
     </button>

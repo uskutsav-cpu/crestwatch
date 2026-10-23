@@ -12,9 +12,33 @@ const inter = Inter({
   display: "swap",
 });
 
+/* Absolute base for share-preview image URLs. Vercel sets this variable
+   on every deployment; locally we fall back to the live site. */
+const SITE_URL = process.env.VERCEL_PROJECT_PRODUCTION_URL
+  ? `https://${process.env.VERCEL_PROJECT_PRODUCTION_URL}`
+  : "https://crestwatch-kalamadalas-projects.vercel.app";
+
 export const metadata: Metadata = {
+  metadataBase: new URL(SITE_URL),
   title: "CrestWatch",
   description: copy.tagline,
+  applicationName: copy.appName,
+  openGraph: {
+    title: "CrestWatch",
+    description: copy.tagline,
+    siteName: copy.appName,
+    type: "website",
+  },
+  twitter: {
+    card: "summary_large_image",
+    title: "CrestWatch",
+    description: copy.tagline,
+  },
+  appleWebApp: {
+    capable: true,
+    title: copy.appName,
+    statusBarStyle: "black-translucent",
+  },
 };
 
 export const viewport: Viewport = {
@@ -24,7 +48,7 @@ export const viewport: Viewport = {
 /* Applies the saved theme before first paint to avoid a flash. */
 const themeScript = `try{if(localStorage.getItem(${JSON.stringify(
   STORAGE_KEYS.theme,
-)})==="light")document.documentElement.setAttribute("data-theme","light")}catch(e){}`;
+)})==="light"){document.documentElement.setAttribute("data-theme","light");var m=document.querySelector('meta[name="theme-color"]');if(m)m.setAttribute("content","#F4F9FB")}}catch(e){}`;
 
 export default function RootLayout({ children }: LayoutProps<"/">) {
   return (
@@ -32,7 +56,7 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
       <head>
         <script dangerouslySetInnerHTML={{ __html: themeScript }} />
       </head>
-      <body className="flex min-h-screen flex-col font-sans">
+      <body className="flex min-h-dvh flex-col font-sans">
         <Header />
         <main className="mx-auto w-full max-w-3xl flex-1 px-4">{children}</main>
         <Footer />

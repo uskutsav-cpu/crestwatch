@@ -6,7 +6,7 @@
 
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { copy } from "@/lib/copy";
 import { decodeWatchLink, encodeWatchLink } from "@/lib/watch-link";
 import { useWatches } from "@/lib/use-watch";
@@ -59,6 +59,12 @@ export function WatchClient() {
   }, [params]);
   const { pins, watches, now, loading, error, refresh } = useWatches(linkedPins);
   const [copied, setCopied] = useState(false);
+
+  // Coming from a scrolled page, small phones landed mid-verdict with the
+  // place name and picture above the fold. Always open at the top.
+  useEffect(() => {
+    window.scrollTo(0, 0);
+  }, []);
 
   if (!loading && pins.length === 0) {
     return (
@@ -146,7 +152,7 @@ export function WatchClient() {
     <div className="flex flex-col gap-5 py-8">
       {/* Header row */}
       <div className="flex flex-wrap items-center gap-3">
-        <h1 className="text-h2">{pin.name}</h1>
+        <h1 className="min-w-0 text-h2 [overflow-wrap:anywhere]">{pin.name}</h1>
         <VerdictChip band={chip.band}>{chip.label}</VerdictChip>
         {verdict.tier !== "FULL" && (
           <TierBadge tier={verdict.tier} />
@@ -167,7 +173,15 @@ export function WatchClient() {
 
       {/* The sentence */}
       <div>
-        <p className="text-display">{sentence}</p>
+        <p
+          className={
+            sentence.length > 110
+              ? "text-h2 font-bold sm:text-display"
+              : "text-display"
+          }
+        >
+          {sentence}
+        </p>
         {glossLine && (
           <p className="mt-2 text-body text-dim">{glossLine}</p>
         )}
@@ -175,12 +189,12 @@ export function WatchClient() {
 
       {/* Chips */}
       <div className="flex flex-wrap items-center gap-2">
-        {trend && (
+        {freshTrend && (
           <span className="tnum inline-flex items-center gap-1 rounded-full bg-surface px-3 py-1.5 text-small font-semibold text-dim">
-            {trend === "rising" ? "↑" : trend === "falling" ? "↓" : "→"}{" "}
-            {trend === "rising"
+            {freshTrend === "rising" ? "↑" : freshTrend === "falling" ? "↓" : "→"}{" "}
+            {freshTrend === "rising"
               ? copy.trendRising
-              : trend === "falling"
+              : freshTrend === "falling"
                 ? copy.trendFalling
                 : copy.trendSteady}
           </span>
@@ -215,7 +229,7 @@ export function WatchClient() {
         <button
           onClick={refresh}
           disabled={loading}
-          className="rounded-full px-3 py-1.5 text-small font-semibold text-dim transition-colors hover:text-(--color-current) disabled:opacity-50"
+          className="inline-flex min-h-11 items-center rounded-full px-3 text-small font-semibold text-dim transition-colors hover:text-(--color-current) disabled:opacity-50"
         >
           {loading ? "…" : copy.refresh}
         </button>
@@ -280,7 +294,7 @@ export function WatchClient() {
               setTimeout(() => setCopied(false), 2000);
             });
           }}
-          className="text-small font-semibold text-dim hover:text-(--color-current)"
+          className="inline-flex min-h-11 items-center text-small font-semibold text-dim hover:text-(--color-current)"
         >
           {copied ? "Link copied ✓" : "Copy watch link"}
         </button>

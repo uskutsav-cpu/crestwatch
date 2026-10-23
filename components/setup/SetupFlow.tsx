@@ -7,7 +7,7 @@
  */
 
 import { useRouter } from "next/navigation";
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { copy } from "@/lib/copy";
 import { ButtonGhost, ButtonPrimary } from "@/components/ui";
 import { addPin, loadPins, newPinId } from "@/lib/pin-store";
@@ -26,6 +26,15 @@ export function SetupFlow() {
     null,
   );
   const [isSecondPin, setIsSecondPin] = useState(false);
+  const confirmRef = useRef<HTMLDivElement>(null);
+
+  // On small phones the hero pushes the confirm card (and its Done
+  // button) below the fold. Bring it into view when it appears.
+  useEffect(() => {
+    if (phase === "confirm") {
+      confirmRef.current?.scrollIntoView({ block: "start" });
+    }
+  }, [phase]);
 
   async function lookup() {
     const a = address.trim();
@@ -93,7 +102,7 @@ export function SetupFlow() {
   /* ---------------- confirm ---------------- */
   if (phase === "confirm" && found) {
     return (
-      <div className="flex w-full max-w-xl flex-col gap-4">
+      <div ref={confirmRef} className="flex w-full max-w-xl scroll-mt-20 flex-col gap-4">
         <div className="rounded-2xl bg-surface p-5">
           <div className="flex flex-wrap items-center gap-2">
             <p className="text-small text-dim">{found.matchedAddress}</p>
@@ -169,12 +178,13 @@ export function SetupFlow() {
           onChange={(e) => setAddress(e.target.value)}
           placeholder={copy.addressPlaceholder}
           aria-label="Address, town, or ZIP"
-          className="h-13 flex-1 rounded-xl bg-surface px-4 ring-1 ring-inset ring-line text-body text-fg placeholder:text-dim focus:outline-none focus:ring-(--color-current)"
+          className="h-13 shrink-0 rounded-xl bg-surface px-4 sm:flex-1 sm:shrink ring-1 ring-inset ring-line text-body text-fg placeholder:text-dim focus:outline-none focus:ring-(--color-current)"
         />
         <ButtonPrimary type="submit" disabled={busy || address.trim().length < 3}>
           {busy ? copy.looking : copy.cta}
         </ButtonPrimary>
       </form>
+      <p className="text-small text-dim">{copy.addressHint}</p>
       {note && (
         <p className="rounded-xl bg-risewatch/10 p-3 text-small">
           {note}

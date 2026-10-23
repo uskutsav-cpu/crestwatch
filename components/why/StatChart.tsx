@@ -21,14 +21,14 @@ export function StatChart(props: ChartInput) {
       {c.yTicks.map((t) => (
         <g key={t.label}>
           <line
-            x1="30"
+            x1="44"
             x2={CHART_W - 6}
             y1={t.y}
             y2={t.y}
             stroke="var(--color-line)"
             strokeWidth="0.5"
           />
-          <text x="28" y={t.y + 3} textAnchor="end" fontSize="9" className="tnum" fill="var(--color-dim)">
+          <text x="40" y={t.y + 4} textAnchor="end" fontSize="12" className="tnum" fill="var(--color-dim)">
             {t.label}
           </text>
         </g>
@@ -37,7 +37,7 @@ export function StatChart(props: ChartInput) {
       {c.floodY !== null && (
         <g>
           <line
-            x1="30"
+            x1="44"
             x2={CHART_W - 6}
             y1={c.floodY}
             y2={c.floodY}
@@ -49,7 +49,7 @@ export function StatChart(props: ChartInput) {
             x={CHART_W - 8}
             y={c.floodY - 4}
             textAnchor="end"
-            fontSize="9"
+            fontSize="12"
             fill="var(--color-risewatch)"
           >
             flood stage
@@ -78,7 +78,7 @@ export function StatChart(props: ChartInput) {
           x={l.x}
           y={CHART_H - 6}
           textAnchor={i === 0 ? "start" : i === 2 ? "end" : "middle"}
-          fontSize="9"
+          fontSize="12"
           className="tnum"
           fill="var(--color-dim)"
         >

@@ -77,12 +77,12 @@ export function ReplayClient() {
 
       {/* Pickers */}
       <div className="flex flex-wrap gap-3">
-        <label className="text-small text-dim">
+        <label className="min-w-0 max-w-full text-small text-dim">
           Place
           <select
             value={pinId ?? ""}
             onChange={(e) => setPinId(e.target.value)}
-            className="mt-1 block rounded-xl bg-surface px-3 py-2 ring-1 ring-inset ring-line text-body text-fg"
+            className="mt-1 block w-full max-w-full truncate rounded-xl bg-surface px-3 py-2 ring-1 ring-inset ring-line text-body text-fg"
           >
             {pins.map((p) => (
               <option key={p.id} value={p.id}>
@@ -91,12 +91,12 @@ export function ReplayClient() {
             ))}
           </select>
         </label>
-        <label className="text-small text-dim">
+        <label className="min-w-0 max-w-full text-small text-dim">
           Flood
           <select
             value={eventId}
             onChange={(e) => setEventId(e.target.value)}
-            className="mt-1 block rounded-xl bg-surface px-3 py-2 ring-1 ring-inset ring-line text-body text-fg"
+            className="mt-1 block w-full max-w-full truncate rounded-xl bg-surface px-3 py-2 ring-1 ring-inset ring-line text-body text-fg"
           >
             {REPLAY_EVENTS.map((e) => (
               <option key={e.id} value={e.id}>
@@ -132,7 +132,7 @@ export function ReplayClient() {
               max={days.length - 1}
               value={idx}
               onChange={(e) => setIdx(parseInt(e.target.value, 10))}
-              className="flex-1 accent-(--color-current)"
+              className="h-11 flex-1 accent-(--color-current)"
               aria-label="Replay timeline"
             />
             <span className="tnum w-28 text-right text-small text-dim">
