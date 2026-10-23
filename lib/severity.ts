@@ -21,6 +21,10 @@ export function severityRank(w: PinWatch): number {
         return 3;
       case "action":
         return 5;
+      case null:
+      case undefined:
+        // Flood stage unknown (amber): never below a calm green card.
+        return 6;
       default:
         return 7;
     }

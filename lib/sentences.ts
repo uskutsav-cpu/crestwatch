@@ -164,9 +164,11 @@ export function verdictSentence({
           ? copy.verdictLikelyPastPeakButRisingStale(river, pinName)
           : copy.verdictLikelyPastPeakButRising(river, pinName);
       }
-      return stale
-        ? copy.verdictLikelyPastPeakStale(river, pinName)
-        : copy.verdictLikelyPastPeak(river, pinName);
+      if (stale) return copy.verdictLikelyPastPeakStale(river, pinName);
+      // "Coming down" only beside a gauge that is actually falling.
+      return trend === "falling"
+        ? copy.verdictLikelyPastPeak(river, pinName)
+        : copy.verdictLikelyPastPeakNoHigher(river, pinName);
     }
     if (verdict.crossing) {
       const peakMs = Date.parse(verdict.peak.t);
@@ -239,12 +241,18 @@ export function verdictSentence({
   const crestAhead =
     Date.parse(verdict.peak.t) > Date.parse(now) &&
     (verdict.currentWaterElevFt === null ||
-      verdict.peak.waterElevFt - verdict.currentWaterElevFt >= MIN_RISE_FOR_PEAK_FT);
+      // Tolerance: 46.22 + 15.3 - (46.22 + 15.0) is 0.2999… in floats.
+      verdict.peak.waterElevFt - verdict.currentWaterElevFt >= MIN_RISE_FOR_PEAK_FT - 1e-6);
   const sayPeaks =
     trend === "rising" ||
     (crestAhead && (!verdict.pastPeak || trend !== "falling"));
   if (!sayPeaks) {
     return copy.verdictUnlikelyNoHigher(river, stage, pinName, margin);
+  }
+  // Rising past everything the forecast shows: the high point is the
+  // reading itself (in the past), so "peaks {day}" would name a past day.
+  if (!crestAhead && trend === "rising") {
+    return copy.verdictUnlikelyRisingNow(river, stage, pinName, margin);
   }
   return copy.verdictUnlikely(
     river,

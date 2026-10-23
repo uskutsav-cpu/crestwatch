@@ -133,20 +133,20 @@ export function categoryFor(
     "minor",
     "action",
   ];
-  let anyPublished = false;
+  const floodStageKnown = typeof categories.minor === "number";
   for (const level of levels) {
     const threshold = categories[level];
-    if (typeof threshold === "number") {
-      anyPublished = true;
-      if (peakStageFt >= threshold) return level;
+    if (typeof threshold === "number" && peakStageFt >= threshold) {
+      // "Close to flood stage" needs a flood stage to be close to. Above
+      // action with no published minor stage could already be flooding.
+      if (level === "action" && !floodStageKnown) return null;
+      return level;
     }
   }
   // "Below flood stage" is only knowable when flood stage (minor) or the
   // lower action stage is published. With only moderate/major published,
   // a crest under them could still be minor flooding: unknown, not calm.
-  void anyPublished;
-  return typeof categories.minor === "number" ||
-    typeof categories.action === "number"
+  return floodStageKnown || typeof categories.action === "number"
     ? "none"
     : null;
 }

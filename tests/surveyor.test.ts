@@ -249,6 +249,12 @@ describe("categoryFor: 'below flood stage' only when it's knowable", () => {
     expect(categoryFor(31, { moderate: 30, major: 35 })).toBe("moderate");
   });
 
+  it("never says 'close to flood stage' when no flood stage is published", async () => {
+    const { categoryFor } = await import("@/lib/surveyor");
+    expect(categoryFor(40, { action: 20 })).toBeNull();
+    expect(categoryFor(21, { action: 20, minor: 25 })).toBe("action");
+  });
+
   it("is unknown (null) when nothing is published", async () => {
     const { categoryFor } = await import("@/lib/surveyor");
     expect(categoryFor(5, {})).toBeNull();

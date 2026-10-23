@@ -29,7 +29,7 @@ export const copy = {
     ".",
   ],
   privacyFooter:
-    "No accounts, no tracking, no ads. Your places are saved only in this browser. To look up an address, CrestWatch's server asks public map services. To check the river, it asks USGS and the Weather Service.",
+    "No accounts, no tracking, no ads. Places you save stay only in this browser. To look up an address, CrestWatch's server asks public map services. To check the river, it asks USGS and the Weather Service.",
 
   // S1 · Setup
   addressPlaceholder: "123 Main St, Vicksburg MS",
@@ -119,7 +119,7 @@ export const copy = {
 
   // S4 · Why
   whyCategoryExplain:
-    "CrestWatch doesn't have a height above sea level for this gauge's zero mark that it can trust to within a foot. Some gauges don't publish one, and some publish only a rough guess. Without it, CrestWatch can't turn the gauge's readings into a water level to compare with your ground. Instead, here's the official flood-category picture for areas near the gauge.",
+    "CrestWatch doesn't have a height above sea level for this gauge's zero mark that it can trust to within a foot. Some gauges don't publish one, and some publish only a rough guess. Without it, CrestWatch can't turn the gauge's readings into a water level to compare with your ground. Instead, here's what the gauge shows, with its official flood stage when one is published.",
   whyTitle: "No magic. Here's the math.",
   pageTitleWhy: "Why this verdict · CrestWatch",
   backToWatch: "← Back to the watch",
@@ -171,6 +171,8 @@ export const copy = {
     `The last forecast had the ${river} peaking ${day} around ${time}. By that forecast, water likely reaches ${pin} about ${hours(h)} before that.`,
   verdictLikelyPastPeak: (river: string, pin: string) =>
     `The ${river} has peaked and is coming down, but ${pin} is likely still in the water today.`,
+  verdictLikelyPastPeakNoHigher: (river: string, pin: string) =>
+    `The forecast says the ${river} won't go any higher, but ${pin} is likely still in the water today.`,
   verdictLikelyPastPeakStale: (river: string, pin: string) =>
     `The last forecast had the ${river} coming down from its peak, with ${pin} likely still in the water. Check back after the next forecast.`,
   verdictBorderline: (pin: string, margin: string, nextTime: string | null) =>
@@ -181,6 +183,8 @@ export const copy = {
     }`,
   verdictUnlikely: (river: string, day: string, stage: string, pin: string, margin: string) =>
     `The ${river} peaks ${day} at ${stage} ft on the river gauge. ${pin} stays dry by about ${margin} ft.`,
+  verdictUnlikelyRisingNow: (river: string, stage: string, pin: string, margin: string) =>
+    `The ${river} is at ${stage} ft on the river gauge and still rising. Right now ${pin} stays dry by about ${margin} ft.`,
   verdictUnlikelyNoHigher: (river: string, stage: string, pin: string, margin: string) =>
     `The forecast says the ${river} won't go above ${stage} ft on the river gauge. ${pin} stays dry by about ${margin} ft.`,
   verdictUnlikelyStale: (river: string, day: string, stage: string, pin: string, margin: string) =>
@@ -194,7 +198,7 @@ export const copy = {
   verdictCategoryAction: (gauge: string) =>
     `The forecast crest comes close to flood stage at ${gauge}. Keep an eye on it. CrestWatch doesn't know this gauge's height above sea level closely enough to do house-level math here.`,
   verdictCategoryUnknown: (gauge: string) =>
-    `No flood stage is published for ${gauge}, so CrestWatch can't tell if this crest will flood anything. Watch the official flood alerts.`,
+    `No flood stage is published for ${gauge}, so CrestWatch can't tell if this crest will flood anything. Check the official flood alerts at weather.gov.`,
   verdictCategoryNone: (gauge: string) =>
     `The forecast crest at ${gauge} stays below flood stage. Low areas near the river should stay passable.`,
   verdictLikelyPastPeakButRising: (river: string, pin: string) =>

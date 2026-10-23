@@ -26,7 +26,7 @@ import type { PinWatch } from "@/lib/watch-service";
 
 /**
  * Card edge colour. The CATEGORY tier follows the Watch chip table:
- * below flood stage (or no category) is calm, action and minor are
+ * below flood stage is calm; no published flood stage is amber, action and minor are
  * too close to call, moderate and major mean water is likely.
  */
 export function edgeBand(w: PinWatch): VerdictBand {

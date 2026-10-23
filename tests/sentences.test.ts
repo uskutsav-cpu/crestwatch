@@ -111,15 +111,31 @@ describe("verdict sentences (Appendix C)", () => {
     expect(s).toContain("Water likely reaches The road about 10 hours before that.");
   });
 
-  it("LIKELY past peak: coming down but still wet", () => {
+  it("LIKELY past peak: coming down but still wet (gauge falling)", () => {
     const s = verdictSentence({
       pinName: "The road",
       verdict: fullVerdict({ band: "LIKELY", pastPeak: true, currentlyAbove: true }),
       gauge,
       now: NOW,
+      observedTrend: "falling",
     });
     expect(s).toContain("has peaked and is coming down");
     expect(s).toContain("The road is likely still in the water today");
+  });
+
+  it("LIKELY past peak never says 'coming down' beside a steady or unknown gauge", () => {
+    for (const observedTrend of [null, "steady"] as const) {
+      const s = verdictSentence({
+        pinName: "The road",
+        verdict: fullVerdict({ band: "LIKELY", pastPeak: true, currentlyAbove: true }),
+        gauge,
+        now: NOW,
+        observedTrend,
+      });
+      expect(s).toBe(
+        "The forecast says the Yazoo River won't go any higher, but The road is likely still in the water today.",
+      );
+    }
   });
 
   it("BORDERLINE: margin + next forecast time", () => {
@@ -460,7 +476,8 @@ describe("falling river (UNLIKELY past peak, #6/#70)", () => {
     },
   );
 
-  it("a live gauge still rising keeps the 'peaks' wording", () => {
+  it("a gauge rising past the forecast says so, never 'peaks' on a past day", () => {
+    // The high point is the reading itself (14:00Z, before NOW).
     const s = verdictSentence({
       pinName: "Home",
       verdict: falling,
@@ -468,8 +485,33 @@ describe("falling river (UNLIKELY past peak, #6/#70)", () => {
       now: NOW,
       observedTrend: "rising",
     });
-    expect(s).toContain("Yazoo River peaks today at 10.8 ft on the river gauge.");
-    expect(s).not.toContain("coming down");
+    expect(s).toBe(
+      "The Yazoo River is at 10.8 ft on the river gauge and still rising. Right now Home stays dry by about 4 ft.",
+    );
+    // Just after midnight CT the reading's date is "yesterday": still no "peaks".
+    const late = verdictSentence({
+      pinName: "Home",
+      verdict: fullVerdict({
+        pastPeak: true,
+        peak: { waterElevFt: 100.8, stageFt: 10.8, t: "2026-03-03T05:45:00Z" },
+        currentWaterElevFt: 100.8,
+      }),
+      gauge,
+      now: "2026-03-03T06:30:00Z",
+      observedTrend: "rising",
+    });
+    expect(late).not.toMatch(/peaks/);
+  });
+
+  it("an exact 0.3 ft forecast rise counts as a crest despite float rounding", () => {
+    const v = fullVerdict({
+      pastPeak: true,
+      peak: { waterElevFt: 46.22 + 15.3, stageFt: 15.3, t: "2026-03-03T00:00:00Z" },
+      currentWaterElevFt: 46.22 + 15.0,
+      marginFt: 30,
+    });
+    const s = verdictSentence({ pinName: "Home", verdict: v, gauge, now: NOW, observedTrend: "steady" });
+    expect(s).toContain("peaks today at 15.3 ft");
   });
 
   it("without pastPeak the sentence is unchanged", () => {
