@@ -11,9 +11,17 @@ export const copy = {
   appName: "CrestWatch",
   tagline: "Will the water reach your house? One sentence, days early.",
   headerPill: "Live river data · no account ✓",
-  footerLine: "Built on free public data from USGS, NOAA, and the Census.",
+  // Data credits. Strings are plain text; { text, href } parts render as
+  // links (OpenStreetMap's ODbL and Open-Meteo's CC BY both ask for one).
+  footerLine: [
+    "Built on free public data from USGS, NOAA, and the Census. Address search also uses ",
+    { text: "© OpenStreetMap contributors", href: "https://www.openstreetmap.org/copyright" },
+    " and ",
+    { text: "Open-Meteo", href: "https://open-meteo.com/" },
+    ".",
+  ],
   privacyFooter:
-    "Runs on public data. Nothing about you leaves your browser.",
+    "No accounts, no tracking, no ads. Your saved places stay in this browser. To look up an address, CrestWatch sends it to public map services.",
 
   // S1 · Setup
   addressPlaceholder: "123 Main St, Vicksburg MS",
@@ -73,7 +81,7 @@ export const copy = {
   placesTitle: "Your places",
   addPlace: "+ Add a place",
   placesEmpty:
-    "Add your home, grandma's place, or the road to school. CrestWatch checks them all every 15 minutes.",
+    "Add your home, grandma's place, or the road to school. Open CrestWatch to see them all at once. While it's open, it checks again every 15 minutes.",
   removePlace: (name: string) =>
     `Remove ${name} from this browser? This can't be undone.`,
   renamePrompt: "What should we call this place?",
@@ -124,9 +132,9 @@ export const copy = {
 
   // About
   aboutPrivacy:
-    "Your addresses never leave your browser. We have no server memory, no accounts, no tracking.",
+    "Your saved places live only in this browser. To look an address up, CrestWatch's server sends it to public map services: the US Census first, then OpenStreetMap (Nominatim) or Open-Meteo if the Census can't find it. Then it asks USGS and the Weather Service about that spot. It keeps lookups in short-term memory for up to a day so repeat checks are fast. A watch link you share has your places inside it. No accounts, no database, no tracking, no ads.",
   honesty:
-    "CrestWatch predicts river flooding, the slow kind our district gets, with days of warning. It can't predict flash floods from sudden rain. Its numbers are estimates from public elevation data, not a survey of your property. When it's too close to call, it says so.",
+    "CrestWatch predicts river flooding, the slow kind our district gets, with days of warning. It can't predict flash floods from sudden rain. Its numbers are estimates from public elevation data, not a survey of your property. When it's too close to call, it says so. It only checks the river while it's open, and it doesn't send alerts. Keep the emergency alerts on your phone turned on.",
   // 404 + error pages
   notFoundTitle: "We couldn't find that page.",
   notFoundBody:
