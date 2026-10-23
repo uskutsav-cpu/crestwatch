@@ -11,6 +11,18 @@ import { toPng } from "html-to-image";
 import { copy } from "@/lib/copy";
 import { ButtonGhost } from "@/components/ui";
 
+/** "Oct 23, 2:09 PM CT": the card leaves the app, so it names its zone. */
+export function shareStamp(at: Date): string {
+  const t = at.toLocaleString("en-US", {
+    timeZone: "America/Chicago",
+    month: "short",
+    day: "numeric",
+    hour: "numeric",
+    minute: "2-digit",
+  });
+  return `${t} CT`;
+}
+
 export function ShareButton({ card }: { card: React.ReactNode }) {
   const ref = useRef<HTMLDivElement>(null);
   const [busy, setBusy] = useState(false);
@@ -73,14 +85,7 @@ export function ShareButton({ card }: { card: React.ReactNode }) {
               letterSpacing: "0.02em",
             }}
           >
-            crestwatch · public federal data ·{" "}
-            {new Date().toLocaleString("en-US", {
-              timeZone: "America/Chicago",
-              month: "short",
-              day: "numeric",
-              hour: "numeric",
-              minute: "2-digit",
-            })}
+            crestwatch · public federal data · {shareStamp(new Date())}
           </p>
         </div>
       </div>
