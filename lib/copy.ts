@@ -69,6 +69,12 @@ export const copy = {
     `${n}-highest forecast here since ${year}`,
   fallingNote: "the river is coming down",
 
+  // Shared failure states (Watch, Places, Why use the same words)
+  riverDataDown:
+    "The river data didn't answer. Your places are still saved. Try again in a minute.",
+  brokenLink:
+    "This shared link didn't open. Ask for a new link, or add your own place.",
+
   // S3 · Places
   placesTitle: "Your places",
   addPlace: "+ Add a place",
@@ -80,9 +86,22 @@ export const copy = {
   deleteAll: "Delete all my data",
   deleteAllConfirm:
     "Remove every saved place from this browser? This can't be undone.",
+  placeUnchecked: "Couldn't check right now",
+  refreshFailedPlaces: (time: string) =>
+    `Couldn't check the river just now. These answers are from ${time}.`,
 
   // S4 · Why
   whyTitle: "No magic. Here's the math.",
+  backToWatch: "← Back to the watch",
+  chartLabel: (latest: string | null, high: string | null, flood: string | null) =>
+    [
+      "River stage chart, in feet on the gauge.",
+      latest ? `Latest reading ${latest} ft.` : "No recent readings.",
+      high ? `Forecast high ${high} ft.` : "No forecast.",
+      flood ? `Flood stage ${flood} ft.` : null,
+    ]
+      .filter(Boolean)
+      .join(" "),
   tierFull: "FULL",
   tierCategory: "CATEGORY",
   tierAlertOnly: "ALERT-ONLY",

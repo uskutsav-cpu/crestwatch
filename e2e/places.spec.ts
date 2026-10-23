@@ -81,3 +81,27 @@ test("a place can be renamed and removed on its own", async ({ page }) => {
   expect(pins).toHaveLength(1);
   expect(pins[0].name).toBe("Grandma's porch");
 });
+
+test("river data down: saved places stay listed, with a way to retry", async ({
+  page,
+}) => {
+  await page.route("**/api/watch", (r) => r.abort());
+  await page.goto("/places");
+  await expect(page.getByText(/The river data didn't answer/)).toBeVisible({
+    timeout: 15_000,
+  });
+  await expect(page.getByText("Couldn't check right now")).toHaveCount(2);
+  await expect(page.getByRole("button", { name: "Remove Home" })).toBeVisible();
+  await expect(
+    page.getByRole("button", { name: "Rename The farm road" }),
+  ).toBeVisible();
+
+  // Once the river answers again, Check again brings the verdicts back.
+  await page.unroute("**/api/watch");
+  await page.getByRole("button", { name: "Check again" }).click();
+  await expect(page.locator("li a").first()).toContainText(
+    /stays dry by about \d+ ft/,
+    { timeout: 15_000 },
+  );
+  await expect(page.getByText(/The river data didn't answer/)).toHaveCount(0);
+});
