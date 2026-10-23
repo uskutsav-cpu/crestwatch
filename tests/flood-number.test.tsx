@@ -2,11 +2,42 @@
  * Package floodnumber: "Your flood number" and the what-if slider.
  * Pure math in lib/flood-number.ts; the card rendered to static HTML and
  * its stateless panel called as a plain function to poke its handlers.
+ * Its effects (what it tells the parent on mount, refresh and unmount) run
+ * through a small hook harness, since there is no DOM in these tests.
  */
 
 import type { ReactElement, ReactNode } from "react";
 import { renderToStaticMarkup } from "react-dom/server";
 import { beforeEach, describe, expect, it, vi } from "vitest";
+
+/* ------------------------------------------------------------------ */
+/* Hook harness: React's hooks, unless a harness render is running     */
+/* ------------------------------------------------------------------ */
+
+type EffectFn = () => void | (() => void);
+
+interface FakeHooks {
+  useId(): string;
+  useState(init: unknown): [unknown, (v: unknown) => void];
+  useRef(init: unknown): { current: unknown };
+  useEffect(fn: EffectFn, deps?: readonly unknown[]): void;
+}
+
+const harness = vi.hoisted(() => ({ active: null as FakeHooks | null }));
+
+vi.mock("react", async (importOriginal) => {
+  const real = await importOriginal<typeof import("react")>();
+  const h = () => harness.active;
+  return {
+    ...real,
+    useId: (() => h()?.useId() ?? real.useId()) as typeof real.useId,
+    useState: ((init: unknown) =>
+      h() ? h()!.useState(init) : real.useState(init)) as typeof real.useState,
+    useRef: ((init: unknown) => (h() ? h()!.useRef(init) : real.useRef(init))) as typeof real.useRef,
+    useEffect: ((fn: EffectFn, deps?: readonly unknown[]) =>
+      h() ? h()!.useEffect(fn, deps) : real.useEffect(fn, deps)) as typeof real.useEffect,
+  };
+});
 import { copy } from "@/lib/copy";
 import { bandFor, survey } from "@/lib/surveyor";
 import { clearCache } from "@/lib/cache";
@@ -17,6 +48,7 @@ import {
   floodNumberFt,
   floodNumberInputFor,
   floodNumberShort,
+  floodNumberShortFor,
   floodNumberView,
   fmtRounded,
   fmtStage,
@@ -31,7 +63,11 @@ import {
   type FloodNumberCrest,
   type FloodNumberInput,
 } from "@/lib/flood-number";
-import { FloodNumber, FloodNumberPanel } from "@/components/watch/FloodNumber";
+import {
+  FloodNumber,
+  FloodNumberPanel,
+  type FloodNumberPanelProps,
+} from "@/components/watch/FloodNumber";
 import type { Pin } from "@/lib/pins";
 import type { GaugeSummary } from "@/lib/watch-service";
 
@@ -91,6 +127,111 @@ function findAll(
   };
   visit(node);
   return out;
+}
+
+/**
+ * A tiny stand-in for React's commit phase: runs a component as a plain
+ * function with hooks that persist across renders, then runs its effects
+ * the way React does (cleanups of changed effects first, then setups).
+ * Enough to check mount, re-render, unmount and StrictMode's extra
+ * unmount and mount.
+ */
+function mountWithHooks<P>(Component: (props: P) => ReactElement | null, first: P) {
+  const slots: unknown[] = [];
+  const effects: Array<{ fn: EffectFn; deps?: readonly unknown[]; cleanup?: () => void }> = [];
+  let props = first;
+  let element: ReactElement | null = null;
+  let dirty = false;
+  let slot = 0;
+  let eff = 0;
+  let changed: number[] = [];
+  let mounted = true;
+
+  const setup = (j: number) => {
+    const c = effects[j].fn();
+    effects[j].cleanup = typeof c === "function" ? c : undefined;
+  };
+  const teardown = (j: number) => {
+    const c = effects[j].cleanup;
+    effects[j].cleanup = undefined;
+    c?.();
+  };
+
+  const fake: FakeHooks = {
+    useId: () => "fn",
+    useState(init) {
+      const i = slot++;
+      if (!(i in slots)) slots[i] = init;
+      return [
+        slots[i],
+        (v) => {
+          if (Object.is(slots[i], v)) return;
+          slots[i] = v;
+          dirty = true;
+        },
+      ];
+    },
+    useRef(init) {
+      const i = slot++;
+      if (!(i in slots)) slots[i] = { current: init };
+      return slots[i] as { current: unknown };
+    },
+    useEffect(fn, deps) {
+      const j = eff++;
+      const prev = effects[j];
+      const same =
+        prev !== undefined &&
+        deps !== undefined &&
+        prev.deps !== undefined &&
+        deps.length === prev.deps.length &&
+        deps.every((d, k) => Object.is(d, prev.deps![k]));
+      effects[j] = { fn, deps, cleanup: prev?.cleanup };
+      if (!same) changed.push(j);
+    },
+  };
+
+  const render = () => {
+    do {
+      dirty = false;
+      slot = 0;
+      eff = 0;
+      changed = [];
+      harness.active = fake;
+      try {
+        element = Component(props);
+      } finally {
+        harness.active = null;
+      }
+      changed.forEach(teardown);
+      changed.forEach(setup);
+    } while (dirty);
+  };
+  render();
+
+  return {
+    /** The FloodNumberPanel props of the last render; null when it rendered nothing. */
+    get panel(): FloodNumberPanelProps | null {
+      return element === null ? null : (element.props as FloodNumberPanelProps);
+    },
+    /** An event: run it, then re-render if it set state. */
+    act(fn: () => void) {
+      fn();
+      if (dirty && mounted) render();
+    },
+    rerender(next: P) {
+      props = next;
+      render();
+    },
+    unmount() {
+      mounted = false;
+      effects.forEach((_, j) => teardown(j));
+    },
+    /** StrictMode in development: every effect torn down and set up again. */
+    strictRemount() {
+      effects.forEach((_, j) => teardown(j));
+      effects.forEach((_, j) => setup(j));
+    },
+  };
 }
 
 /* ------------------------------------------------------------------ */
@@ -631,6 +772,52 @@ describe("floodNumberInputFor", () => {
   it("reads no reading as null", () => {
     expect(floodNumberInputFor(PIN, full({ observed: [] }))!.currentStageFt).toBeNull();
   });
+
+  describe("floodNumberShortFor (the Places card line)", () => {
+    it("gives the line for a FULL verdict, rough for an approximate place", () => {
+      expect(floodNumberShortFor(PIN, full())).toBe("floods at about 46.5 ft");
+      expect(floodNumberShortFor({ ...PIN, approximate: true }, full())).toBe(
+        "floods at roughly 46 ft",
+      );
+    });
+
+    it("is null for a CATEGORY verdict even with a gauge zero, from the Surveyor itself", () => {
+      // The ground is 238 ft from the water this zero implies, so the
+      // Surveyor rejects the datum (datumLooksSane) and drops to CATEGORY,
+      // yet the gauge still carries the zero it didn't trust.
+      const hill: Pin = { ...PIN, elevationFt: 300 };
+      const verdict = survey({
+        pinElevationFt: hill.elevationFt,
+        now: "2026-10-23T19:00:00Z",
+        gauge: {
+          observed: GAUGE.observed,
+          forecast: [
+            { t: "2026-10-24T12:00:00Z", stageFt: 16 },
+            { t: "2026-10-25T12:00:00Z", stageFt: 17.2 },
+          ],
+          forecastIssued: "2026-10-23T15:00:00Z",
+          categories: GAUGE.categories,
+          gaugeZeroFt: ZERO,
+          gaugeDatum: "NGVD29",
+        },
+      });
+      expect(verdict.tier).toBe("CATEGORY");
+      const watch = { verdict, gauge: GAUGE };
+      expect(watch.gauge.gaugeZeroFt).toBe(ZERO);
+      // The ungated helper on that zero would say "floods at about 254 ft".
+      expect(floodNumberShort(floodNumberFt(hill.elevationFt, ZERO))).toBe(
+        "floods at about 254 ft",
+      );
+      expect(floodNumberShortFor(hill, watch)).toBeNull();
+    });
+
+    it("is null for ALERT-ONLY, no gauge, no gauge zero or no flood number", () => {
+      expect(floodNumberShortFor(PIN, { verdict: { tier: "ALERT_ONLY" }, gauge: null })).toBeNull();
+      expect(floodNumberShortFor(PIN, { ...full(), gauge: null })).toBeNull();
+      expect(floodNumberShortFor(PIN, full({ gaugeZeroFt: null }))).toBeNull();
+      expect(floodNumberShortFor({ ...PIN, elevationFt: 40 }, full())).toBeNull();
+    });
+  });
 });
 
 describe("end to end on recorded data (Pearl River at Jackson)", () => {
@@ -710,6 +897,112 @@ describe("<FloodNumber>", () => {
 
   it("works with no parent wiring", () => {
     expect(() => render(<FloodNumber {...input()} />)).not.toThrow();
+  });
+});
+
+describe("<FloodNumber> keeps the parent's picture in step with the card", () => {
+  /** A parent that holds the what-if stage, like WatchClient would. */
+  function parent() {
+    const p = {
+      stage: null as number | null,
+      onWhatIf: vi.fn((s: number | null) => {
+        p.stage = s;
+      }),
+    };
+    return p;
+  }
+
+  it("says nothing on a plain mount, and reports the slider", () => {
+    const p = parent();
+    const card = mountWithHooks(FloodNumber, { ...input(), onWhatIf: p.onWhatIf });
+    expect(p.onWhatIf).not.toHaveBeenCalled();
+    card.act(() => card.panel!.onSlide("50"));
+    expect(p.onWhatIf.mock.calls).toEqual([[50]]);
+    expect(card.panel!.stageFt).toBe(50);
+    expect(card.panel!.atForecast).toBe(false);
+    card.act(() => card.panel!.onBack());
+    expect(p.onWhatIf.mock.calls).toEqual([[50], [null]]);
+    expect(card.panel!.atForecast).toBe(true);
+  });
+
+  it("goes back to the forecast when the card unmounts (a refresh drops to CATEGORY)", () => {
+    const p = parent();
+    const first = mountWithHooks(FloodNumber, { ...input(), onWhatIf: p.onWhatIf });
+    first.act(() => first.panel!.onSlide("50"));
+    expect(p.stage).toBe(50);
+    // The gauge zero goes missing on a refresh: the parent stops rendering
+    // the card, so it unmounts.
+    first.unmount();
+    expect(p.stage).toBeNull();
+    // FULL comes back: a new card at the forecast, and the parent agrees.
+    const second = mountWithHooks(FloodNumber, { ...input(), onWhatIf: p.onWhatIf });
+    expect(second.panel!.atForecast).toBe(true);
+    expect(second.panel!.stageFt).toBe(17.2);
+    expect(p.stage).toBeNull();
+    expect(p.onWhatIf.mock.calls).toEqual([[50], [null]]);
+  });
+
+  it("calls the latest callback, never an old one", () => {
+    const old = vi.fn();
+    const latest = vi.fn();
+    const card = mountWithHooks(FloodNumber, { ...input(), onWhatIf: old });
+    card.rerender({ ...input(), onWhatIf: latest });
+    card.act(() => card.panel!.onSlide("50"));
+    card.unmount();
+    expect(old).not.toHaveBeenCalled();
+    expect(latest.mock.calls).toEqual([[50], [null]]);
+  });
+
+  it("is harmless under StrictMode's extra unmount and mount", () => {
+    const p = parent();
+    const card = mountWithHooks(FloodNumber, { ...input(), onWhatIf: p.onWhatIf });
+    card.strictRemount();
+    expect(p.stage).toBeNull();
+    expect(card.panel!.atForecast).toBe(true);
+    card.act(() => card.panel!.onSlide("50"));
+    expect(p.stage).toBe(50);
+    // Hidden and shown again (React re-runs effects): the parent gets the
+    // stage back, since the card still shows it.
+    card.strictRemount();
+    expect(p.stage).toBe(50);
+    card.unmount();
+    expect(p.stage).toBeNull();
+  });
+
+  it("tells the parent when a refresh clamps the chosen stage into a new range", () => {
+    const p = parent();
+    const card = mountWithHooks(FloodNumber, { ...input(), onWhatIf: p.onWhatIf });
+    card.act(() => card.panel!.onSlide("63"));
+    expect(p.stage).toBe(63);
+    // No record any more: the top of the slider falls to ceil(46.48 + 5) = 52.
+    card.rerender({ ...input({ historicCrests: [] }), onWhatIf: p.onWhatIf });
+    expect(card.panel!.stageFt).toBe(52);
+    expect(p.stage).toBe(52);
+    // And back up when the record returns: the card shows 63 again.
+    card.rerender({ ...input(), onWhatIf: p.onWhatIf });
+    expect(card.panel!.stageFt).toBe(63);
+    expect(p.stage).toBe(63);
+    expect(p.onWhatIf.mock.calls).toEqual([[63], [52], [63]]);
+  });
+
+  it("tells the parent when the number goes away while the card stays mounted", () => {
+    const p = parent();
+    const card = mountWithHooks(FloodNumber, { ...input(), onWhatIf: p.onWhatIf });
+    card.act(() => card.panel!.onSlide("50"));
+    card.rerender({ ...input({ gaugeZeroFt: null }), onWhatIf: p.onWhatIf });
+    expect(card.panel).toBeNull();
+    expect(p.stage).toBeNull();
+  });
+
+  it("works through the whole life of the card with no parent wiring", () => {
+    expect(() => {
+      const card = mountWithHooks(FloodNumber, input());
+      card.strictRemount();
+      card.act(() => card.panel!.onSlide("50"));
+      card.rerender(input({ historicCrests: [] }));
+      card.act(() => card.panel!.onBack());
+      card.unmount();
+    }).not.toThrow();
   });
 });
 

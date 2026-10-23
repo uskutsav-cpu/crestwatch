@@ -11,7 +11,7 @@
  * ---------------------------------------------------------------------
  *
  *   import { FloodNumber } from "@/components/watch/FloodNumber";
- *   import { floodNumberInputFor } from "@/lib/flood-number";
+ *   import { floodNumberInputFor, floodNumberShortFor } from "@/lib/flood-number";
  *
  *   const fn = floodNumberInputFor(pin, watch); // null unless FULL tier
  *   {fn && <FloodNumber key={pin.id} {...fn} onWhatIf={setWhatIfStage} />}
@@ -37,28 +37,40 @@
  *                                 maps `oldDatum: c.olddatum` no record
  *                                 line or tick shows (never a guess).
  *   onWhatIf?            (stageFt: number | null) => void
- *                                 called from the slider with the chosen
- *                                 stage (ft on the gauge, 0.5 ft steps),
- *                                 and with null on "Back to the forecast".
- *                                 Optional: the card works on its own.
+ *                                 the stage the picture should show (ft on
+ *                                 the gauge, 0.5 ft steps), or null for
+ *                                 the forecast. Called when the slider
+ *                                 moves, on "Back to the forecast", when a
+ *                                 refresh clamps the chosen stage into a
+ *                                 new range, and with null when the card
+ *                                 unmounts or loses its number. So while
+ *                                 the card is mounted the parent holds
+ *                                 exactly the stage it shows, and null
+ *                                 after. Optional: the card works on its
+ *                                 own.
  *
  * Only render it for a FULL verdict; floodNumberInputFor does that check.
  * Key it by pin id so a different place starts back at the forecast.
+ * The parent should also reset its what-if state to null whenever pin.id
+ * or verdict.tier changes, so a stage from one gauge is never drawn on
+ * another gauge's zero, even for one frame.
  *
  * Redrawing the picture (optional): keep the stage from onWhatIf in state
  * and give WaterScene
  *   crestElevFt={whatIf === null ? verdict.peak.waterElevFt : gaugeZeroFt + whatIf}
  *   crestLabel={whatIf === null ? undefined : copy.floodNumberSceneLabel}
  *
- * Places card: floodNumberShort(floodNumberFt(pin.elevationFt, zero),
- * pin.approximate) -> "floods at about 46.5 ft" (or null).
+ * Places card: floodNumberShortFor(pin, watch) -> "floods at about 46.5 ft",
+ * or null unless the verdict is FULL. Use it rather than floodNumberShort on
+ * a raw zero: a CATEGORY verdict can still carry a gauge zero the Surveyor
+ * didn't trust.
  *
  * Not a "use client" entry: import it from a client component (WatchClient
  * is one). It takes a function prop, which a server component can't pass.
  * Works at 320 px; the slider and button are 44 px tall.
  */
 
-import { useId, useState } from "react";
+import { useEffect, useId, useRef, useState } from "react";
 import { copy } from "@/lib/copy";
 import {
   floodNumberView,
@@ -212,12 +224,51 @@ export function FloodNumberPanel({
 export function FloodNumber({ onWhatIf, ...input }: FloodNumberProps) {
   const idBase = useId();
   const [chosen, setChosen] = useState<number | null>(null);
+  // The latest callback, so an effect or a handler never calls an old one.
+  const cb = useRef(onWhatIf);
+  // The stage the parent was last told (null = the forecast).
+  const told = useRef<number | null>(null);
+
   const view = floodNumberView(input);
-  if (view === null) return null;
-  const { range } = view;
   // A refresh can move the range; keep a chosen stage inside it.
-  const stageFt = chosen === null ? range.start : snapWhatIf(chosen, range);
-  const { slide, back } = whatIfHandlers(range, setChosen, onWhatIf);
+  const stageFt =
+    view === null ? null : chosen === null ? view.range.start : snapWhatIf(chosen, view.range);
+  // What the parent's picture should show: null on the forecast, or when
+  // this card has no number to show.
+  const whatIf = chosen === null ? null : stageFt;
+
+  useEffect(() => {
+    cb.current = onWhatIf;
+  });
+  // Keep the parent on the stage this card shows, even when a refresh
+  // clamps it into a new range or takes the number away.
+  useEffect(() => {
+    if (whatIf !== told.current) {
+      told.current = whatIf;
+      cb.current?.(whatIf);
+    }
+  });
+  // Gone (the tier dropped, or another place): back to the forecast, so
+  // the picture never keeps a what-if line this card no longer shows.
+  // Harmless under StrictMode's extra unmount and mount.
+  useEffect(
+    () => () => {
+      told.current = null;
+      cb.current?.(null);
+    },
+    [],
+  );
+
+  if (view === null || stageFt === null) return null;
+  const { range } = view;
+  // Tell the parent from the event itself, so the picture moves with the
+  // slider in the same render; `told` stops the effect saying it twice.
+  const report = (s: number | null) => {
+    told.current = s;
+    onWhatIf?.(s);
+  };
+  const slide = (raw: string) => whatIfHandlers(range, setChosen, report).slide(raw);
+  const back = () => whatIfHandlers(range, setChosen, report).back();
   return (
     <FloodNumberPanel
       view={view}

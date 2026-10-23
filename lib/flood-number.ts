@@ -406,7 +406,7 @@ export function floodNumberView(input: FloodNumberInput): FloodNumberView | null
 /**
  * One short line for a Places card: "floods at about 46.5 ft" (rough:
  * "floods at roughly 47 ft"). Takes the raw flood number. Null when there
- * is none.
+ * is none. It can't check the tier: for a place, use floodNumberShortFor.
  */
 export function floodNumberShort(
   ft: number | null,
@@ -454,6 +454,21 @@ export function floodNumberInputFor(
     categories: gauge.categories,
     historicCrests: gauge.historicCrests,
   };
+}
+
+/**
+ * The Places card line for one place, or null when the card must not show
+ * a number. Gated like the card itself (floodNumberInputFor): a CATEGORY
+ * verdict can carry a gauge zero the Surveyor rejected (datumLooksSane),
+ * and that is never turned into house-level math.
+ */
+export function floodNumberShortFor(
+  pin: Pick<Pin, "name" | "elevationFt" | "approximate">,
+  watch: Pick<PinWatch, "verdict" | "gauge">,
+): string | null {
+  const fn = floodNumberInputFor(pin, watch);
+  if (fn === null) return null;
+  return floodNumberShort(floodNumberFt(fn.pinElevationFt, fn.gaugeZeroFt), fn.approximate);
 }
 
 /**
