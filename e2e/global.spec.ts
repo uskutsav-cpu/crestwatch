@@ -7,7 +7,7 @@ const TITLES: Array<[string, string]> = [
   ["/watch", "Watch · CrestWatch"],
   ["/places", "Your places · CrestWatch"],
   ["/why", "Why this verdict · CrestWatch"],
-  ["/replay", "Replay a flood · CrestWatch"],
+  ["/replay", "Replay a real flood · CrestWatch"],
   ["/about", "About · CrestWatch"],
 ];
 

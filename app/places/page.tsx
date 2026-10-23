@@ -1,8 +1,9 @@
 import type { Metadata } from "next";
 import { PlacesClient } from "@/components/places/PlacesClient";
+import { copy } from "@/lib/copy";
 
 export const metadata: Metadata = {
-  title: "Your places · CrestWatch",
+  title: copy.pageTitlePlaces,
 };
 
 /* S3 · Places. */

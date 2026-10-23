@@ -30,8 +30,6 @@ export default function SetupPage() {
           </li>
         ))}
       </ol>
-
-      <p className="text-small text-dim">{copy.privacyFooter}</p>
     </div>
   );
 }

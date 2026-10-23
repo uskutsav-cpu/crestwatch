@@ -73,6 +73,7 @@ export const copy = {
     "This browser isn't saving places, so this one won't be here next time. Here's its answer for now.",
 
   // S2 · Watch
+  pageTitleWatch: "Watch · CrestWatch",
   chipLikely: "water likely",
   chipBorderline: "too close to call",
   chipUnlikely: "stays dry",
@@ -100,6 +101,7 @@ export const copy = {
 
   // S3 · Places
   placesTitle: "Your places",
+  pageTitlePlaces: "Your places · CrestWatch",
   addPlace: "+ Add a place",
   placesEmpty:
     "Add your home, grandma's place, or the road to school. Open CrestWatch to see them all at once. While it's open, it checks again every 15 minutes.",
@@ -115,6 +117,7 @@ export const copy = {
 
   // S4 · Why
   whyTitle: "No magic. Here's the math.",
+  pageTitleWhy: "Why this verdict · CrestWatch",
   backToWatch: "← Back to the watch",
   chartLabel: (latest: string | null, high: string | null, flood: string | null) =>
     [
@@ -132,6 +135,7 @@ export const copy = {
 
   // S5 · Replay
   replayTitle: "Replay a real flood",
+  pageTitleReplay: "Replay a real flood · CrestWatch",
   replayResult: (pin: string, days: number) =>
     `Water above ${pin}: ${days} days`,
   replayNeverReached: (pin: string, ft: number) =>
@@ -300,7 +304,7 @@ export const copy = {
     },
     {
       term: "Three kinds of answers",
-      text: "A house-level answer (FULL) compares the water to how high your spot sits. If a gauge doesn't share its height above sea level, you get flood-stage only (CATEGORY), and if no forecast gauge is close, you get alerts only (ALERT-ONLY).",
+      text: "A full answer (FULL) compares the water to how high your spot sits, and it's about your house only when CrestWatch found your full street address. If a gauge doesn't share its height above sea level, you get flood-stage only (CATEGORY), and if no forecast gauge is close, you get alerts only (ALERT-ONLY).",
     },
   ],
 } as const;
