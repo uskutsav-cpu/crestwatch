@@ -100,11 +100,57 @@ export function nwpsListUrl(lat: number, lon: number, radiusMi: number): string 
 export const nwpsDetailUrl = (lid: string) => `${NWPS}/gauges/${lid}`;
 export const nwpsStageflowUrl = (lid: string) => `${NWPS}/gauges/${lid}/stageflow`;
 
+/* Legacy USGS WaterServices: slowed from 2026-11-16, shut 2027-02-22. */
 export const usgsSiteUrl = (site: string) =>
   `https://waterservices.usgs.gov/nwis/site/?sites=${site}&siteOutput=expanded&format=rdb`;
 
 export const usgsIvUrl = (site: string, hours = 48) =>
   `https://waterservices.usgs.gov/nwis/iv/?sites=${site}&parameterCd=00065&format=json&period=PT${hours}H`;
+
+/* Its replacement, the USGS Water Data OGC API (keyless; key optional). */
+const WATERDATA = "https://api.waterdata.usgs.gov/ogcapi/v1/collections";
+
+export const waterdataSiteUrl = (site: string) =>
+  `${WATERDATA}/monitoring-locations/items/USGS-${encodeURIComponent(site)}?f=json`;
+
+export const waterdataIvUrl = (site: string, hours = 48) =>
+  `${WATERDATA}/continuous/items?monitoring_location_id=USGS-${encodeURIComponent(site)}` +
+  `&parameter_code=00065&time=PT${hours}H&properties=time,value&skipGeometry=true&limit=1000&f=json`;
+
+/* ---------------------------------------------------------------- */
+/* USGS source order                                                 */
+/* ---------------------------------------------------------------- */
+
+/**
+ * USGS's published schedule adds 10 s to every legacy call from this
+ * instant (2 s from 2026-11-16, gone for good 2027-02-22). Before it the
+ * legacy service is still the better first try: no anonymous rate limit
+ * and fast enough. From it on, the new API goes first.
+ */
+export const WATERDATA_FIRST_FROM = "2027-01-11T00:00:00Z";
+const WATERDATA_FIRST_FROM_MS = Date.parse(WATERDATA_FIRST_FROM);
+
+/**
+ * Legacy gets a tight timeout: pickForecastGauge walks up to 6 gauges, so
+ * a hung legacy service must cost seconds, not 6 x the 10 s default.
+ * +2 s of scheduled delay still fits comfortably.
+ */
+export const LEGACY_USGS_TIMEOUT_MS = 6_000;
+/** The new API answers in under a second; this only bounds a hang. */
+export const WATERDATA_TIMEOUT_MS = 8_000;
+
+export type UsgsSource = "legacy" | "waterdata";
+
+export interface UsgsOptions {
+  /** Clock (ms since epoch) that picks the source order. Tests inject it. */
+  now?: () => number;
+}
+
+export function usgsSourceOrder(nowMs: number): UsgsSource[] {
+  return nowMs < WATERDATA_FIRST_FROM_MS
+    ? ["legacy", "waterdata"]
+    : ["waterdata", "legacy"];
+}
 
 /* ---------------------------------------------------------------- */
 /* Adapters (one per drifting upstream shape)                        */
@@ -186,21 +232,57 @@ export function parseIvSeries(data: unknown): SeriesPoint[] {
 }
 
 /**
+ * Series from the new USGS continuous collection. Values arrive as
+ * STRINGS ("3.14") and the order is not promised, so parse and sort here.
+ * Yields exactly the shape parseIvSeries does.
+ */
+export function parseWaterdataSeries(data: unknown): SeriesPoint[] {
+  const features = (
+    data as { features?: Array<{ properties?: { time?: unknown; value?: unknown } }> }
+  )?.features;
+  if (!Array.isArray(features)) return [];
+  const byTime = new Map<string, number>();
+  for (const f of features) {
+    const time = f?.properties?.time;
+    const raw = f?.properties?.value;
+    if (typeof time !== "string" || raw === null || raw === undefined) continue;
+    const v = parseFloat(String(raw));
+    const ms = Date.parse(time);
+    if (!Number.isFinite(v) || v <= -100 || !Number.isFinite(ms)) continue;
+    const t = new Date(ms).toISOString();
+    if (!byTime.has(t)) byTime.set(t, v);
+  }
+  return [...byTime.entries()]
+    .sort(([a], [b]) => Date.parse(a) - Date.parse(b))
+    .map(([t, stageFt]) => ({ t, stageFt }));
+}
+
+export interface GaugeZero {
+  altVaFt: number;
+  datum: string | null;
+}
+
+/**
  * Parse gauge-zero elevation + vertical datum from USGS site RDB text.
  * Robust to multi-row responses: matches the requested site number when
  * given, and always skips the RDB format row ("5s\t15s\t…") wherever it
  * falls rather than assuming a fixed line index.
+ *
+ * Only a USGS row counts. Vicksburg (07289000) lists an Army Corps row
+ * first ("73", NAVD88) and the USGS gauge zero second (46.22, NGVD29);
+ * the first-row answer put the river ~27 ft too high. Another agency's
+ * alt_va can be a different reference entirely, so when rows match the
+ * site but none is USGS this returns null and the gauge drops to the
+ * CATEGORY tier instead of risking a wrong FULL verdict.
  */
-export function parseAltVa(
-  rdb: string,
-  site?: string,
-): { altVaFt: number; datum: string | null } | null {
+export function parseAltVa(rdb: string, site?: string): GaugeZero | null {
   const lines = rdb.split("\n").filter((l) => l && !l.startsWith("#"));
   if (lines.length < 3) return null;
   const cols = lines[0].split("\t");
   const iAlt = cols.indexOf("alt_va");
   const iDatum = cols.indexOf("alt_datum_cd");
   const iSite = cols.indexOf("site_no");
+  const iAgency = cols.indexOf("agency_cd");
   if (iAlt < 0) return null;
 
   const isFormatRow = (cells: string[]) =>
@@ -210,12 +292,39 @@ export function parseAltVa(
     const row = line.split("\t");
     if (isFormatRow(row)) continue;
     if (site && iSite >= 0 && (row[iSite] ?? "").trim() !== site) continue;
+    // No agency column at all (never seen live) keeps the old behaviour.
+    if (iAgency >= 0 && (row[iAgency] ?? "").trim() !== "USGS") continue;
     const altVaFt = parseFloat((row[iAlt] ?? "").trim());
     if (!Number.isFinite(altVaFt)) continue;
     const datum = (row[iDatum] ?? "").trim();
     return { altVaFt, datum: datum || null };
   }
   return null;
+}
+
+/**
+ * Gauge zero from the new monitoring-locations record. `altitude` is a
+ * number there (233.39) but is read leniently; 0 is a real value (some
+ * reservoir gauges publish stage as elevation). Same USGS-only rule as
+ * parseAltVa.
+ */
+export function parseWaterdataSite(data: unknown, site?: string): GaugeZero | null {
+  const p = (data as { properties?: Record<string, unknown> })?.properties;
+  if (!p || typeof p !== "object") return null;
+  if (p.agency_code !== undefined && p.agency_code !== "USGS") return null;
+  if (
+    site &&
+    typeof p.monitoring_location_number === "string" &&
+    p.monitoring_location_number.trim() !== site
+  ) {
+    return null;
+  }
+  const alt = p.altitude;
+  if (alt === null || alt === undefined || alt === "") return null;
+  const altVaFt = typeof alt === "number" ? alt : parseFloat(String(alt));
+  if (!Number.isFinite(altVaFt)) return null;
+  const datum = typeof p.vertical_datum === "string" ? p.vertical_datum.trim() : "";
+  return { altVaFt, datum: datum || null };
 }
 
 interface NwpsDetail {
@@ -273,9 +382,80 @@ export function datumLooksSane(
 /* Composition                                                       */
 /* ---------------------------------------------------------------- */
 
-export async function fetchGaugeBundle(
-  candidate: GaugeCandidate,
+/** An HTML body is an outage page (USGS redirects to its blog), not data. */
+function looksLikeHtml(body: unknown): boolean {
+  return typeof body === "string" && /^\s*</.test(body);
+}
+
+/**
+ * Ask each source in order. A throw (timeout, non-2xx, HTML that fails
+ * JSON parsing) or a null (no usable value) moves on to the next one.
+ */
+async function firstUsable<T>(
+  order: UsgsSource[],
+  tries: Record<UsgsSource, () => Promise<T | null>>,
+): Promise<T | null> {
+  for (const source of order) {
+    try {
+      const value = await tries[source]();
+      if (value !== null) return value;
+    } catch {
+      // fall through to the other source
+    }
+  }
+  return null;
+}
+
+/** Gauge zero + datum: the FULL-tier key. Null when neither source has it. */
+export async function fetchUsgsGaugeZero(
+  site: string,
   fetchers: Fetchers = defaultFetchers,
+  { now = Date.now }: UsgsOptions = {},
+): Promise<GaugeZero | null> {
+  return firstUsable(usgsSourceOrder(now()), {
+    legacy: async () => {
+      const rdb = await fetchers.text(usgsSiteUrl(site), {
+        timeoutMs: LEGACY_USGS_TIMEOUT_MS,
+      });
+      if (typeof rdb !== "string" || looksLikeHtml(rdb)) return null;
+      return parseAltVa(rdb, site);
+    },
+    waterdata: async () => {
+      const data = await fetchers.json(waterdataSiteUrl(site), {
+        timeoutMs: WATERDATA_TIMEOUT_MS,
+      });
+      return looksLikeHtml(data) ? null : parseWaterdataSite(data, site);
+    },
+  });
+}
+
+/** 48 h gage-height series, oldest → newest. Null when neither source has one. */
+export async function fetchUsgsObserved(
+  site: string,
+  fetchers: Fetchers = defaultFetchers,
+  { now = Date.now }: UsgsOptions = {},
+): Promise<SeriesPoint[] | null> {
+  const nonEmpty = (s: SeriesPoint[]) => (s.length > 0 ? s : null);
+  return firstUsable(usgsSourceOrder(now()), {
+    legacy: async () => {
+      const data = await fetchers.json(usgsIvUrl(site), {
+        timeoutMs: LEGACY_USGS_TIMEOUT_MS,
+      });
+      return looksLikeHtml(data) ? null : nonEmpty(parseIvSeries(data));
+    },
+    waterdata: async () => {
+      const data = await fetchers.json(waterdataIvUrl(site), {
+        timeoutMs: WATERDATA_TIMEOUT_MS,
+      });
+      return looksLikeHtml(data) ? null : nonEmpty(parseWaterdataSeries(data));
+    },
+  });
+}
+
+/** NWPS half of a bundle: detail + stageflow. No USGS calls. */
+async function fetchNwpsBundle(
+  candidate: GaugeCandidate,
+  fetchers: Fetchers,
 ): Promise<GaugeBundle> {
   const [detailRaw, stageflowRaw] = await Promise.all([
     fetchers.json(nwpsDetailUrl(candidate.lid)),
@@ -289,30 +469,6 @@ export async function fetchGaugeBundle(
 
   const usgsId = detail.usgsId?.trim() ? detail.usgsId.trim() : null;
 
-  let observed = parseStageflowSeries(stageflow.observed);
-  let gaugeZeroFt: number | null = null;
-  let gaugeDatum: string | null = null;
-
-  if (usgsId) {
-    // USGS side is best-effort: IV gives finer observed data; site info
-    // gives the FULL-tier key. Either failing must not sink the bundle.
-    const [ivRes, siteRes] = await Promise.allSettled([
-      fetchers.json(usgsIvUrl(usgsId)),
-      fetchers.text(usgsSiteUrl(usgsId)),
-    ]);
-    if (ivRes.status === "fulfilled") {
-      const iv = parseIvSeries(ivRes.value);
-      if (iv.length > 0) observed = iv;
-    }
-    if (siteRes.status === "fulfilled") {
-      const alt = parseAltVa(siteRes.value, usgsId);
-      if (alt) {
-        gaugeZeroFt = alt.altVaFt;
-        gaugeDatum = alt.datum ?? null;
-      }
-    }
-  }
-
   return {
     lid: candidate.lid,
     name: detail.name ?? candidate.name,
@@ -320,14 +476,46 @@ export async function fetchGaugeBundle(
     lat: candidate.lat,
     lon: candidate.lon,
     distanceMi: candidate.distanceMi,
-    observed,
+    observed: parseStageflowSeries(stageflow.observed),
     forecast: parseStageflowSeries(stageflow.forecast),
     forecastIssued: stageflow.forecast?.issuedTime ?? null,
     categories: parseCategories(detail),
-    gaugeZeroFt,
-    gaugeDatum,
+    gaugeZeroFt: null,
+    gaugeDatum: null,
     historicCrests: parseHistoricCrests(detail),
   };
+}
+
+/**
+ * USGS half: the finer observed series and the gauge zero, each from the
+ * legacy service or the new API (whichever answers first in date order).
+ * Best-effort: neither failing may sink the bundle. The NWPS observed
+ * series stays when USGS has none; no gauge zero means CATEGORY tier.
+ */
+async function withUsgs(
+  bundle: GaugeBundle,
+  fetchers: Fetchers,
+  opts: UsgsOptions,
+): Promise<GaugeBundle> {
+  if (!bundle.usgsId) return bundle;
+  const [observed, zero] = await Promise.all([
+    fetchUsgsObserved(bundle.usgsId, fetchers, opts),
+    fetchUsgsGaugeZero(bundle.usgsId, fetchers, opts),
+  ]);
+  return {
+    ...bundle,
+    observed: observed ?? bundle.observed,
+    gaugeZeroFt: zero ? zero.altVaFt : null,
+    gaugeDatum: zero ? zero.datum : null,
+  };
+}
+
+export async function fetchGaugeBundle(
+  candidate: GaugeCandidate,
+  fetchers: Fetchers = defaultFetchers,
+  opts: UsgsOptions = {},
+): Promise<GaugeBundle> {
+  return withUsgs(await fetchNwpsBundle(candidate, fetchers), fetchers, opts);
 }
 
 /**
@@ -347,12 +535,15 @@ export async function pickForecastGauge(
   radiusMi: number,
   fetchers: Fetchers = defaultFetchers,
   maxProbe = 6,
+  opts: UsgsOptions = {},
 ): Promise<GaugeBundle | null> {
   const candidates = await findNearbyGauges(lat, lon, radiusMi, fetchers.json);
   for (const c of candidates.slice(0, maxProbe)) {
     try {
-      const bundle = await fetchGaugeBundle(c, fetchers);
-      if (bundle.forecast.length >= 2) return bundle;
+      // USGS only for the gauge we keep: a probe that has no forecast is
+      // thrown away, so it must not pay for (or wait on) USGS calls.
+      const nwps = await fetchNwpsBundle(c, fetchers);
+      if (nwps.forecast.length >= 2) return await withUsgs(nwps, fetchers, opts);
     } catch {
       // one broken gauge must not sink the search
     }

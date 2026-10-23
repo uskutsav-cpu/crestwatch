@@ -2,6 +2,20 @@
   {
     "lat": "32.8449085",
     "lon": "-90.4151037",
-    "display_name": "North Main Street, Yazoo City, Yazoo County, Mississippi, 39194, United States"
+    "class": "highway",
+    "type": "tertiary",
+    "addresstype": "tertiary",
+    "name": "North Main Street",
+    "display_name": "North Main Street, Yazoo City, Yazoo County, Mississippi, 39194, United States",
+    "address": {
+      "road": "North Main Street",
+      "town": "Yazoo City",
+      "county": "Yazoo County",
+      "state": "Mississippi",
+      "ISO3166-2-lvl4": "US-MS",
+      "postcode": "39194",
+      "country": "United States",
+      "country_code": "us"
+    }
   }
 ]

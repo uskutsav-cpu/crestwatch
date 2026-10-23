@@ -19,6 +19,10 @@ export function isTestMode(): boolean {
   return process.env.CRESTWATCH_TEST === "1";
 }
 
+/** USGS sites with recorded fixtures (both sources); others get Jackson's. */
+const knownUsgsSite = (site: string) =>
+  ["02486000", "07289730"].includes(site) ? site : "02486000";
+
 function fixtureJson(url: string): unknown {
   const u = new URL(url);
 
@@ -64,8 +68,17 @@ function fixtureJson(url: string): unknown {
 
   if (u.hostname === "waterservices.usgs.gov" && u.pathname.includes("/iv/")) {
     const site = u.searchParams.get("sites") ?? "02486000";
-    const known = ["02486000", "07289730"].includes(site) ? site : "02486000";
-    return readJson("gauges", `usgs_iv_${known}.json`);
+    return readJson("gauges", `usgs_iv_${knownUsgsSite(site)}.json`);
+  }
+
+  // The new USGS Water Data API (the second source for both calls above).
+  if (u.hostname === "api.waterdata.usgs.gov") {
+    const ml = u.pathname.match(/\/collections\/monitoring-locations\/items\/USGS-(\w+)$/);
+    if (ml) return readJson("gauges", `waterdata_site_${knownUsgsSite(ml[1])}.json`);
+    if (u.pathname.endsWith("/collections/continuous/items")) {
+      const site = (u.searchParams.get("monitoring_location_id") ?? "").replace(/^USGS-/, "");
+      return readJson("gauges", `waterdata_iv_${knownUsgsSite(site)}.json`);
+    }
   }
 
   if (u.hostname === "nominatim.openstreetmap.org") {
@@ -99,8 +112,7 @@ function fixtureText(url: string): string {
   const u = new URL(url);
   if (u.hostname === "waterservices.usgs.gov" && u.pathname.includes("/site/")) {
     const site = u.searchParams.get("sites") ?? "02486000";
-    const known = ["02486000", "07289730"].includes(site) ? site : "02486000";
-    return readText("gauges", `usgs_site_${known}.rdb`);
+    return readText("gauges", `usgs_site_${knownUsgsSite(site)}.rdb`);
   }
   throw new Error(`no text fixture route for ${url}`);
 }

@@ -222,6 +222,73 @@ describe("parseAltVa + datum sanity", () => {
     expect(parseAltVa(rdb)).toEqual({ altVaFt: 99.99, datum: "NAVD88" });
   });
 
+  it("Vicksburg: the USGS row (46.22 NGVD29), not the Army Corps row listed first (73 NAVD88)", () => {
+    const rdb = [
+      "agency_cd\tsite_no\tstation_nm\talt_va\talt_meth_cd\talt_acy_va\talt_datum_cd",
+      "5s\t15s\t50s\t8s\t1s\t3s\t10s",
+      "USCE\t07289000\t(USACE) Mississippi River at Vicksburg, MS\t73\tN\t1.6\tNAVD88",
+      "USGS\t07289000\tMISSISSIPPI RIVER AT VICKSBURG, MS\t 46.22\tL\t0.1\tNGVD29",
+    ].join("\n");
+    expect(parseAltVa(rdb, "07289000")).toEqual({ altVaFt: 46.22, datum: "NGVD29" });
+    // Same answer with no site hint.
+    expect(parseAltVa(rdb)).toEqual({ altVaFt: 46.22, datum: "NGVD29" });
+  });
+
+  it("Vicksburg: the live RDB recorded 2026-10-23 gives 46.22 NGVD29", () => {
+    expect(parseAltVa(readText("usgs_site_07289000.rdb"), "07289000")).toEqual({
+      altVaFt: 46.22,
+      datum: "NGVD29",
+    });
+  });
+
+  it("rows for the site but none from USGS → null (CATEGORY, not a wrong FULL)", () => {
+    const rdb = [
+      "agency_cd\tsite_no\talt_va\talt_datum_cd",
+      "5s\t15s\t8s\t10s",
+      "USCE\t07289000\t73\tNAVD88",
+    ].join("\n");
+    expect(parseAltVa(rdb, "07289000")).toBeNull();
+    expect(parseAltVa(rdb)).toBeNull();
+  });
+
+  it("a USGS row with no alt_va doesn't let another agency's row through", () => {
+    const rdb = [
+      "agency_cd\tsite_no\talt_va\talt_datum_cd",
+      "5s\t15s\t8s\t10s",
+      "USGS\t07275950\t\t",
+      "USCE\t07275950\t140.5\tNGVD29",
+    ].join("\n");
+    expect(parseAltVa(rdb, "07275950")).toBeNull();
+  });
+
+  it("Vicksburg end to end: FULL-tier bundle carries 46.22 NGVD29", async () => {
+    const candidate = {
+      lid: "VCKM6",
+      name: "Mississippi River at Vicksburg",
+      lat: 32.315,
+      lon: -90.905833,
+      distanceMi: 2.7,
+    };
+    const detail = {
+      ...(readJson("nwps_detail_JACM6.json") as object),
+      lid: "VCKM6",
+      usgsId: "07289000",
+      name: "Mississippi River at Vicksburg",
+    };
+    const f = fixtureFetchers(
+      {
+        [nwpsDetailUrl("VCKM6")]: detail,
+        [nwpsStageflowUrl("VCKM6")]: readJson("nwps_stageflow_JACM6.json"),
+      },
+      { [usgsSiteUrl("07289000")]: readText("usgs_site_07289000.rdb") },
+    );
+    const b = await fetchGaugeBundle(candidate, f, {
+      now: () => Date.parse("2026-10-23T12:00:00Z"),
+    });
+    expect(b.gaugeZeroFt).toBeCloseTo(46.22, 2);
+    expect(b.gaugeDatum).toBe("NGVD29");
+  });
+
   it("skips rows whose alt_va is blank", () => {
     const rdb = [
       "agency_cd\tsite_no\talt_va\talt_datum_cd",
