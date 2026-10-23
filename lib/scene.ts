@@ -8,6 +8,14 @@ export const SCENE_H = 220;
 const TOP_PAD = 26;
 const BOTTOM_PAD = 18;
 
+/**
+ * Below this many feet of gap (or this many px between the two lines) the
+ * gap label can't fit between the pin and the crest, so it sits just above
+ * the higher of the two instead of on top of the dashed line.
+ */
+export const GAP_LABEL_LIFT_FT = 1.5;
+const GAP_LABEL_MIN_PX = 24;
+
 export interface SceneMarker {
   label: string;
   elevationFt: number;
@@ -27,7 +35,22 @@ export interface SceneLayout {
   markers: Array<SceneMarker & { x: number; y: number }>;
   /** Gap between focused pin and crest, ft (positive = pin above crest). */
   gapFt: number | null;
+  /** Baseline y for the gap label; null when there is no gap to label. */
+  gapLabelY: number | null;
   groundPath: string;
+}
+
+/**
+ * Where the gap label's baseline goes. Normally halfway between the pin
+ * and the crest; for a small gap, just above the higher line so the text
+ * never sits on the dashed crest line.
+ */
+export function gapLabelY(pinY: number, crestY: number, gapFt: number): number {
+  const tight =
+    Math.abs(gapFt) < GAP_LABEL_LIFT_FT ||
+    Math.abs(pinY - crestY) < GAP_LABEL_MIN_PX;
+  if (!tight) return (pinY + crestY) / 2 + 4;
+  return Math.max(16, Math.min(pinY, crestY) - 8);
 }
 
 export function sceneLayout(input: SceneInput): SceneLayout {
@@ -64,14 +87,18 @@ export function sceneLayout(input: SceneInput): SceneLayout {
   d += ` L ${SCENE_W} ${SCENE_H} L 0 ${SCENE_H} Z`;
 
   const focused = input.markers[0];
+  const crestY = input.crestElevFt !== null ? y(input.crestElevFt) : null;
+  const gapFt =
+    input.crestElevFt !== null ? focused.elevationFt - input.crestElevFt : null;
   return {
     y,
     waterY: input.currentWaterElevFt !== null ? y(input.currentWaterElevFt) : null,
-    crestY: input.crestElevFt !== null ? y(input.crestElevFt) : null,
+    crestY,
     markers,
-    gapFt:
-      input.crestElevFt !== null
-        ? focused.elevationFt - input.crestElevFt
+    gapFt,
+    gapLabelY:
+      crestY !== null && gapFt !== null
+        ? gapLabelY(markers[0].y, crestY, gapFt)
         : null,
     groundPath: d,
   };

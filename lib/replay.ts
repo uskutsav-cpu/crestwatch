@@ -1,16 +1,11 @@
 /**
  * Replay engine (T10) — historical daily stages replayed against a pin's
- * elevation. Pure math over recorded/fetched daily values.
+ * elevation. Pure math over the recorded daily values in lib/replay-data.
+ * Client-safe: no server modules, no network.
  */
 
 import type { ReplayEvent } from "@/lib/config";
 import type { SeriesPoint } from "@/lib/gauges";
-
-export function usgsDvUrl(site: string, startDT: string, endDT: string): string {
-  // statCd=00003 pins the daily MEAN — some sites also publish min/max
-  // statistics and the series order isn't guaranteed.
-  return `https://waterservices.usgs.gov/nwis/dv/?sites=${site}&parameterCd=00065&statCd=00003&startDT=${startDT}&endDT=${endDT}&format=json`;
-}
 
 /**
  * DV daily points. dateTime arrives offset-less ("2020-02-01T00:00:00.000"
@@ -89,4 +84,72 @@ export function replayStats(
     firstAbove: above[0]?.date ?? null,
     lastAbove: above.at(-1)?.date ?? null,
   };
+}
+
+/* ------------------------------------------------------------------ */
+/* Distance: a recorded river level only speaks for places near it     */
+/* ------------------------------------------------------------------ */
+
+const EARTH_RADIUS_MI = 3958.8;
+
+/** Great-circle miles. A local copy so the client never loads lib/gauges. */
+export function haversineMi(
+  lat1: number,
+  lon1: number,
+  lat2: number,
+  lon2: number,
+): number {
+  const rad = (d: number) => (d * Math.PI) / 180;
+  const dLat = rad(lat2 - lat1);
+  const dLon = rad(lon2 - lon1);
+  const a =
+    Math.sin(dLat / 2) ** 2 +
+    Math.cos(rad(lat1)) * Math.cos(rad(lat2)) * Math.sin(dLon / 2) ** 2;
+  return 2 * EARTH_RADIUS_MI * Math.asin(Math.min(1, Math.sqrt(a)));
+}
+
+export function eventDistanceMi(
+  event: Pick<ReplayEvent, "gaugeLat" | "gaugeLon">,
+  place: { lat: number; lon: number },
+): number {
+  return haversineMi(place.lat, place.lon, event.gaugeLat, event.gaugeLon);
+}
+
+export function isNearEvent(
+  event: Pick<ReplayEvent, "gaugeLat" | "gaugeLon" | "maxMi">,
+  place: { lat: number; lon: number },
+): boolean {
+  return eventDistanceMi(event, place) <= event.maxMi;
+}
+
+/**
+ * The closest event whose gauge is within its own radius of the place, or
+ * null when none is. Events that share a gauge tie, and the tie goes to
+ * `preferId` (the flood already on screen) so switching between two
+ * Jackson places doesn't jump from 2022 back to 2020.
+ */
+export function nearestEventFor<
+  E extends Pick<ReplayEvent, "id" | "gaugeLat" | "gaugeLon" | "maxMi">,
+>(events: readonly E[], place: { lat: number; lon: number }, preferId?: string): E | null {
+  let best: E | null = null;
+  let bestMi = Infinity;
+  for (const e of events) {
+    const mi = eventDistanceMi(e, place);
+    if (mi > e.maxMi) continue;
+    const tie = Math.abs(mi - bestMi) < 0.01;
+    if (mi < bestMi - 0.01 || (tie && e.id === preferId)) {
+      best = e;
+      bestMi = Math.min(mi, bestMi);
+    }
+  }
+  return best;
+}
+
+/** Index of the highest day, the stop for "jump to the crest". */
+export function crestIndex(days: readonly ReplayDay[]): number {
+  let best = 0;
+  for (let i = 1; i < days.length; i++) {
+    if (days[i].waterElevFt > days[best].waterElevFt) best = i;
+  }
+  return best;
 }

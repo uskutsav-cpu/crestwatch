@@ -4,9 +4,27 @@
  * The S2 picture (Appendix B3): side-view of the ground, the pins, the
  * water at its current level (40% current-color layer, 800ms rise), and
  * the dashed forecast-crest ghost line with the gap labeled in feet.
+ * Replay reuses it with its own crestLabel for a flood that already
+ * happened.
  */
 
 import { sceneLayout, SCENE_H, SCENE_W, type SceneInput } from "@/lib/scene";
+
+/**
+ * Every label gets a surface-coloured halo so it stays readable where it
+ * crosses the translucent water layer (WCAG 1.4.3).
+ */
+const HALO = {
+  stroke: "var(--color-surface)",
+  strokeWidth: 3,
+  strokeLinejoin: "round",
+  paintOrder: "stroke",
+} as const;
+
+export interface WaterSceneProps extends SceneInput {
+  /** Name of the dashed line. Default "forecast crest" (the /watch view). */
+  crestLabel?: string;
+}
 
 function gapLabel(gapFt: number): string {
   const a = Math.abs(gapFt);
@@ -14,9 +32,13 @@ function gapLabel(gapFt: number): string {
   return `${Math.round(a)} ft`;
 }
 
-export function WaterScene(props: SceneInput) {
+export function WaterScene({
+  crestLabel = "forecast crest",
+  ...props
+}: WaterSceneProps) {
   const s = sceneLayout(props);
   const focused = s.markers[0];
+  const crestName = crestLabel.charAt(0).toUpperCase() + crestLabel.slice(1);
 
   return (
     <svg
@@ -26,8 +48,8 @@ export function WaterScene(props: SceneInput) {
         s.gapFt === null
           ? "Side view of the ground and river level"
           : s.gapFt >= 0
-            ? `Forecast crest stays ${gapLabel(s.gapFt)} below ${focused.label}`
-            : `Forecast crest reaches ${gapLabel(s.gapFt)} above ${focused.label}`
+            ? `${crestName} stays ${gapLabel(s.gapFt)} below ${focused.label}`
+            : `${crestName} reaches ${gapLabel(s.gapFt)} above ${focused.label}`
       }
       className="w-full rounded-2xl bg-surface"
     >
@@ -78,14 +100,15 @@ export function WaterScene(props: SceneInput) {
             className="tnum"
             fontSize="14"
             fill="var(--color-dim)"
+            {...HALO}
           >
-            forecast crest
+            {crestLabel}
           </text>
         </g>
       )}
 
       {/* gap label between the focused pin and the crest */}
-      {s.crestY !== null && s.gapFt !== null && (
+      {s.crestY !== null && s.gapFt !== null && s.gapLabelY !== null && (
         <g>
           <line
             x1={focused.x + 52}
@@ -97,11 +120,12 @@ export function WaterScene(props: SceneInput) {
           />
           <text
             x={focused.x + 58}
-            y={(focused.y + s.crestY) / 2 + 4}
+            y={s.gapLabelY}
             fontSize="16"
             fontWeight="600"
             className="tnum"
             fill={s.gapFt >= 0 ? "var(--color-dryland-ink)" : "var(--color-floodline-ink)"}
+            {...HALO}
           >
             {gapLabel(s.gapFt)}
           </text>
@@ -132,6 +156,7 @@ export function WaterScene(props: SceneInput) {
             fontSize="14"
             fontWeight="600"
             fill="var(--color-fg)"
+            {...HALO}
           >
             {(m.label.length > 11
               ? `${m.label.slice(0, 10).trimEnd()}…`
@@ -145,6 +170,7 @@ export function WaterScene(props: SceneInput) {
             fontSize="13"
             className="tnum"
             fill="var(--color-dim)"
+            {...HALO}
           >
             {m.elevationFt.toFixed(1)} ft
           </text>

@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { sceneLayout, SCENE_H } from "@/lib/scene";
+import { gapLabelY, sceneLayout, SCENE_H } from "@/lib/scene";
 
 describe("WaterScene geometry", () => {
   const base = {
@@ -54,5 +54,45 @@ describe("WaterScene geometry", () => {
     expect(s.waterY!).toBeGreaterThan(0);
     expect(s.waterY!).toBeLessThan(SCENE_H);
     expect(Math.abs(s.waterY! - s.crestY!)).toBeGreaterThan(0.5);
+  });
+
+  it("a small gap puts its label above the higher line, never on the crest line", () => {
+    for (const crest of [99.5, 100.4, 100]) {
+      const s = sceneLayout({
+        markers: [{ label: "Home", elevationFt: 100 }],
+        currentWaterElevFt: 95,
+        crestElevFt: crest,
+      });
+      const top = Math.min(s.markers[0].y, s.crestY!);
+      expect(s.gapLabelY!).toBeLessThan(top - 4);
+      expect(s.gapLabelY!).toBeGreaterThan(0);
+    }
+  });
+
+  it("a roomy gap keeps its label between the pin and the crest", () => {
+    const s = sceneLayout({
+      markers: [{ label: "Home", elevationFt: 100 }],
+      currentWaterElevFt: 90,
+      crestElevFt: 94,
+    });
+    const top = Math.min(s.markers[0].y, s.crestY!);
+    const bottom = Math.max(s.markers[0].y, s.crestY!);
+    expect(s.gapLabelY!).toBeGreaterThan(top);
+    expect(s.gapLabelY!).toBeLessThan(bottom);
+  });
+
+  it("lifts the label when the lines are close on screen, even past 1.5 ft", () => {
+    // 3 ft of gap squeezed by a 40 ft tall scene: only a few px apart.
+    expect(gapLabelY(100, 108, 3)).toBeLessThan(100);
+    expect(gapLabelY(100, 160, 3)).toBe(134);
+  });
+
+  it("no crest, no gap label", () => {
+    const s = sceneLayout({
+      markers: [{ label: "Home", elevationFt: 100 }],
+      currentWaterElevFt: 95,
+      crestElevFt: null,
+    });
+    expect(s.gapLabelY).toBeNull();
   });
 });

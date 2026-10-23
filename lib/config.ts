@@ -42,6 +42,15 @@ export interface ReplayEvent {
    */
   toElevation: { mode: "direct" } | { mode: "addGaugeZero"; gaugeZeroFt: number };
   blurb: string;
+  /**
+   * Where the gauge sits (USGS monitoring-location record, WGS84). Replay
+   * only compares a place with a flood when the place is within maxMi of
+   * this point. A recorded river level says nothing about a house on a
+   * different river.
+   */
+  gaugeLat: number;
+  gaugeLon: number;
+  maxMi: number;
 }
 
 /** Recorded crests check out against history: 100.19 (Redwood 2019),
@@ -57,6 +66,11 @@ export const REPLAY_EVENTS: ReplayEvent[] = [
     toElevation: { mode: "direct" },
     blurb:
       "The south Delta stayed underwater for about six months. The slowest flood in district memory.",
+    // USGS-07288800 site record, read Oct 2026.
+    gaugeLat: 32.48736,
+    gaugeLon: -90.81733,
+    // Covers Vicksburg (~10 mi) and Rolling Fork (~29 mi), not Jackson (~39 mi).
+    maxMi: 35,
   },
   {
     id: "pearl2020",
@@ -67,7 +81,11 @@ export const REPLAY_EVENTS: ReplayEvent[] = [
     endDT: "2020-03-05",
     toElevation: { mode: "addGaugeZero", gaugeZeroFt: 233.39 },
     blurb:
-      "The Pearl crested at 36.6 ft — the third-highest on record at Jackson.",
+      "The Pearl crested at 36.6 ft, the third-highest on record at Jackson.",
+    // USGS-02486000 site record, read Oct 2026.
+    gaugeLat: 32.28139,
+    gaugeLon: -90.17889,
+    maxMi: 20,
   },
   {
     id: "pearl2022",
@@ -78,6 +96,9 @@ export const REPLAY_EVENTS: ReplayEvent[] = [
     endDT: "2022-09-15",
     toElevation: { mode: "addGaugeZero", gaugeZeroFt: 233.39 },
     blurb: "The flood that helped knock out Jackson's water plant.",
+    gaugeLat: 32.28139,
+    gaugeLon: -90.17889,
+    maxMi: 20,
   },
 ];
 
