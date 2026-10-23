@@ -92,6 +92,25 @@ export const copy = {
   replayTitle: "Replay a real flood",
   replayResult: (pin: string, days: number) =>
     `Water above ${pin}: ${days} days`,
+  replayNeverReached: (pin: string, ft: number) =>
+    `The water never reached ${pin}. The highest it got was ${ft} ft below your spot.`,
+  replayPlaceLabel: "Place",
+  replayFloodLabel: "Flood",
+  replayData: (gauge: string, site: string) => `Data: ${gauge} (USGS ${site}).`,
+  replayWaterThatDay: (water: string, spot: string) =>
+    `Water that day: ${water} ft · your spot: ${spot} ft`,
+  replayTimeline: "Replay timeline",
+  replaySliderValue: (date: string, water: string, pin: string, spot: string) =>
+    `${date}. Water at ${water} ft. ${pin} sits at ${spot} ft.`,
+  replayCrestLabel: "highest it got",
+  replayPlay: "Play the flood",
+  replayPause: "Pause",
+  replayTooFar: (gauge: string, mi: number, pin: string) =>
+    `This flood was on the ${gauge}, about ${mi} miles from ${pin}. Replay only compares places near that river gauge.`,
+  replayFailed: "The flood records didn't load. Try again in a minute.",
+  replayExampleCta: "Replay with the example places",
+  replayExampleNote:
+    "These are example places in Vicksburg, MS. Nothing was saved on this device.",
 
   // Verdict sentences (Appendix C, hand-tuned by the team)
   verdictLikely: (river: string, day: string, time: string, pin: string, h: number) =>

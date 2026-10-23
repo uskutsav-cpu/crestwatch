@@ -1,9 +1,22 @@
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
-import { describe, expect, it } from "vitest";
+import { afterEach, describe, expect, it, vi } from "vitest";
+import { NextRequest } from "next/server";
 import { REPLAY_EVENTS } from "@/lib/config";
-import { parseDvSeries, replayStats, toElevationSeries } from "@/lib/replay";
+import { EXAMPLE_PINS } from "@/lib/example";
+import {
+  crestIndex,
+  eventDistanceMi,
+  haversineMi,
+  isNearEvent,
+  nearestEventFor,
+  parseDvSeries,
+  replayStats,
+  toElevationSeries,
+  type ReplayDay,
+} from "@/lib/replay";
 import { crestCompare, ordinal } from "@/lib/crest-compare";
+import { POST } from "@/app/api/replay/route";
 
 const readFix = (f: string) =>
   JSON.parse(
@@ -96,5 +109,136 @@ describe("crest compare", () => {
       "11th",
       "21st",
     ]);
+  });
+});
+
+/* Places from tests/fixtures/geo_fixtures.json (Census lookups). */
+const VICKSBURG = { lat: 32.349033641592, lon: -90.882368787159 };
+const ROLLING_FORK = { lat: 32.908491588415, lon: -90.87486015929 };
+const JACKSON = { lat: 32.300441828077, lon: -90.188419699815 };
+const TUPELO = { lat: 34.2576, lon: -88.7034 };
+
+describe("replay only compares places near the flood's gauge", () => {
+  it("haversine gives sane miles", () => {
+    expect(haversineMi(0, 0, 0, 0)).toBe(0);
+    // Vicksburg to downtown Jackson is about 40 miles as the crow flies.
+    expect(haversineMi(VICKSBURG.lat, VICKSBURG.lon, JACKSON.lat, JACKSON.lon)).toBeGreaterThan(38);
+    expect(haversineMi(VICKSBURG.lat, VICKSBURG.lon, JACKSON.lat, JACKSON.lon)).toBeLessThan(42);
+  });
+
+  it("every event names its gauge's position and a radius", () => {
+    for (const e of REPLAY_EVENTS) {
+      expect(Math.abs(e.gaugeLat - 32.4)).toBeLessThan(1); // central Mississippi
+      expect(Math.abs(e.gaugeLon + 90.5)).toBeLessThan(1);
+      expect(e.maxMi).toBeGreaterThan(0);
+    }
+  });
+
+  it("Vicksburg and Rolling Fork are near the 2019 backwater, not the Pearl", () => {
+    expect(eventDistanceMi(event("backwater2019"), VICKSBURG)).toBeCloseTo(10, -1);
+    expect(eventDistanceMi(event("backwater2019"), ROLLING_FORK)).toBeCloseTo(29, -1);
+    expect(isNearEvent(event("backwater2019"), VICKSBURG)).toBe(true);
+    expect(isNearEvent(event("backwater2019"), ROLLING_FORK)).toBe(true);
+    for (const id of ["pearl2020", "pearl2022"]) {
+      expect(isNearEvent(event(id), VICKSBURG)).toBe(false);
+      expect(isNearEvent(event(id), ROLLING_FORK)).toBe(false);
+    }
+  });
+
+  it("Jackson is near the Pearl, too far from the Yazoo at Redwood", () => {
+    expect(isNearEvent(event("pearl2020"), JACKSON)).toBe(true);
+    expect(isNearEvent(event("pearl2022"), JACKSON)).toBe(true);
+    expect(isNearEvent(event("backwater2019"), JACKSON)).toBe(false);
+    expect(eventDistanceMi(event("backwater2019"), JACKSON)).toBeGreaterThan(35);
+  });
+
+  it("picks the nearest in-range flood, keeping the current one on a tie", () => {
+    expect(nearestEventFor(REPLAY_EVENTS, ROLLING_FORK)?.id).toBe("backwater2019");
+    expect(nearestEventFor(REPLAY_EVENTS, VICKSBURG, "pearl2022")?.id).toBe("backwater2019");
+    expect(nearestEventFor(REPLAY_EVENTS, JACKSON)?.id).toBe("pearl2020");
+    expect(nearestEventFor(REPLAY_EVENTS, JACKSON, "pearl2022")?.id).toBe("pearl2022");
+    expect(nearestEventFor(REPLAY_EVENTS, TUPELO)).toBeNull();
+  });
+
+  it("the example places land on a flood they're near", () => {
+    const e = nearestEventFor(REPLAY_EVENTS, EXAMPLE_PINS[0]);
+    expect(e?.id).toBe("backwater2019");
+    const stats = replayStats(
+      toElevationSeries(parseDvSeries(readFix("dv_backwater2019.json")), e!),
+      EXAMPLE_PINS[0].elevationFt,
+    )!;
+    expect(stats.daysAbove).toBeGreaterThan(0);
+  });
+});
+
+describe("replay play button helpers", () => {
+  it("crestIndex finds the highest day (the reduced-motion jump)", () => {
+    const days = toElevationSeries(
+      parseDvSeries(readFix("dv_backwater2019.json")),
+      event("backwater2019"),
+    );
+    expect(days[crestIndex(days)].date).toBe("2019-03-16");
+    expect(crestIndex([{ date: "2020-01-01", waterElevFt: 1 }])).toBe(0);
+  });
+});
+
+describe("POST /api/replay serves recorded data with no network", () => {
+  afterEach(() => {
+    vi.unstubAllGlobals();
+  });
+
+  const post = (body: unknown, ip = "10.0.0.1") =>
+    POST(
+      new NextRequest("http://localhost/api/replay", {
+        method: "POST",
+        headers: { "content-type": "application/json", "x-real-ip": ip },
+        body: JSON.stringify(body),
+      }),
+    );
+
+  it("the shipped series are the recorded fixtures, byte for byte", () => {
+    for (const f of ["dv_backwater2019.json", "dv_pearl2020.json", "dv_pearl2022.json"]) {
+      const shipped = readFileSync(join(__dirname, "..", "lib", "replay-data", f), "utf8");
+      const recorded = readFileSync(join(__dirname, "fixtures", "replay", f), "utf8");
+      expect(shipped).toBe(recorded);
+    }
+  });
+
+  it("answers every event with fetch disabled", async () => {
+    const fetchSpy = vi.fn(() => {
+      throw new Error("network is off");
+    });
+    vi.stubGlobal("fetch", fetchSpy);
+    const crests: Record<string, number> = {
+      backwater2019: 100.19,
+      pearl2020: 233.39 + 36.62,
+      pearl2022: 233.39 + 35.19,
+    };
+    for (const e of REPLAY_EVENTS) {
+      const res = await post({ eventId: e.id }, `10.0.1.${e.id.length}`);
+      expect(res.status).toBe(200);
+      const json = (await res.json()) as { ok: boolean; event: string; days: ReplayDay[] };
+      expect(json.ok).toBe(true);
+      expect(json.event).toBe(e.id);
+      expect(json.days.length).toBeGreaterThan(20);
+      expect(json.days[0].date >= e.startDT).toBe(true);
+      expect(json.days.at(-1)!.date <= e.endDT).toBe(true);
+      const crest = Math.max(...json.days.map((d) => d.waterElevFt));
+      expect(crest).toBeCloseTo(crests[e.id], 1);
+    }
+    expect(fetchSpy).not.toHaveBeenCalled();
+  });
+
+  it("rejects an unknown event", async () => {
+    const res = await post({ eventId: "nope" }, "10.0.2.1");
+    expect(res.status).toBe(400);
+  });
+
+  it("keeps the rate limit", async () => {
+    let last = 200;
+    for (let i = 0; i < 125; i++) {
+      last = (await post({ eventId: "pearl2020" }, "10.0.3.1")).status;
+    }
+    expect(last).toBe(429);
   });
 });
