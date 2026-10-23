@@ -30,10 +30,40 @@ test("replay: 2019 backwater against a low farm road", async ({ page }) => {
     .textContent();
   const days = parseInt(/(\d+) days/.exec(text ?? "")![1], 10);
   expect(days).toBeGreaterThan(90);
+  // A street-level pin carries no approximate caveat.
+  await expect(page.getByText("approximate spot", { exact: true })).toHaveCount(0);
 
   // Scrub the slider to the end — the date readout follows.
   await page.getByLabel("Replay timeline").fill("216");
   await expect(page.getByText("2019-08-31")).toBeVisible();
+});
+
+test("replay: an approximate (town centre) pin says so next to the result", async ({
+  page,
+}) => {
+  await page.addInitScript(() => {
+    localStorage.setItem(
+      "crestwatch.pins",
+      JSON.stringify([
+        {
+          id: "ptown",
+          name: "Valley Park",
+          matchedAddress: "VALLEY PARK, MS",
+          lat: 32.6,
+          lon: -90.8,
+          elevationFt: 94,
+          approximate: true,
+        },
+      ]),
+    );
+  });
+  await page.goto("/replay");
+  await expect(page.getByLabel("Flood")).toHaveValue("backwater2019");
+  await expect(page.getByText(/Water above Valley Park: \d+ days/)).toBeVisible({
+    timeout: 15_000,
+  });
+  await expect(page.getByText("approximate spot", { exact: true })).toBeVisible();
+  await expect(page.getByText(/This is the middle of your town or street, not your house\./)).toBeVisible();
 });
 
 test("replay: a place far from the flood's gauge gets no made-up result", async ({

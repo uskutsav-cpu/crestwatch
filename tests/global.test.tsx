@@ -71,6 +71,7 @@ describe("focus outline (#37)", () => {
     "components/Header.tsx",
     "components/ThemeToggle.tsx",
     "components/Glossary.tsx",
+    "components/replay/ReplayClient.tsx",
   ];
 
   it("uses a solid fg outline and never outline-none", () => {
