@@ -67,6 +67,9 @@ export async function lookupAddress(
   fetchers: Fetchers = defaultFetchers,
 ): Promise<LookupResult> {
   const key = address.trim().toLowerCase();
+  // Set when any tier was down during this lookup. Each call gets its own
+  // flag, and cached() checks it right after the lookup below resolves.
+  let degraded = false;
   const geo = await cached(
     `geo:${key}`,
     GEO_TTL_MS,
@@ -75,10 +78,9 @@ export async function lookupAddress(
       // math deserves, but never dead-end a real person over a house
       // number some federal file happens to be missing, or over one
       // service being down: an outage falls through like a miss does.
-      let sawUpstream = false;
       const settle = (r: GeocodeResult): GeocodeResult | null => {
         if (r.ok) return r;
-        if (r.error === "UPSTREAM") sawUpstream = true;
+        if (r.error === "UPSTREAM") degraded = true;
         return null;
       };
 
@@ -109,11 +111,14 @@ export async function lookupAddress(
       // Every tier missed. If any of them was down, the honest answer is
       // UPSTREAM: a NOT_FOUND would be cached and blank this address for
       // a day after the service comes back.
-      return { ok: false, error: sawUpstream ? "UPSTREAM" : "NOT_FOUND" };
+      return { ok: false, error: degraded ? "UPSTREAM" : "NOT_FOUND" };
     },
     // A NOT_FOUND is a stable answer worth caching; an UPSTREAM blip is
-    // not — caching it would blank this address for a day.
-    (g) => g.ok || g.error === "NOT_FOUND",
+    // not — caching it would blank this address for a day. Nor is any
+    // answer given while a tier was down: a town or street point that
+    // stood in for a Census outage would hide the house-level match for
+    // a day after Census came back.
+    (g) => !degraded && (g.ok || g.error === "NOT_FOUND"),
   );
   if (!geo.ok) return { ok: false, error: geo.error };
 

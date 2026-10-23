@@ -11,6 +11,7 @@ import {
   nwpsDetailUrl,
   nwpsListUrl,
   nwpsStageflowUrl,
+  parseAltVa,
   parseWaterdataSeries,
   parseWaterdataSite,
   pickForecastGauge,
@@ -22,6 +23,8 @@ import {
   type Fetchers,
 } from "@/lib/gauges";
 import { testFetchers } from "@/lib/test-fetchers";
+import { MAX_GAUGE_ZERO_ACCURACY_FT } from "@/lib/config";
+import { survey } from "@/lib/surveyor";
 
 /**
  * #50: USGS is shutting down waterservices.usgs.gov (2 s delay from
@@ -386,5 +389,153 @@ describe("whole bundles are the same shape from either source", () => {
     await expect(
       testFetchers.json("https://api.waterdata.usgs.gov/ogcapi/v1/collections/daily/items"),
     ).rejects.toThrow(/no fixture route/);
+  });
+});
+
+/**
+ * Gauge-zero accuracy guard. Greenville (GEEM6), Sarah (SARM6) and
+ * Lambert (LMGM6) publish a gauge zero good only to ±10 ft, wider than
+ * the BORDERLINE band. A gauge zero looser than MAX_GAUGE_ZERO_ACCURACY_FT
+ * counts as missing (CATEGORY tier), the same way on both sources.
+ */
+describe("gauge-zero accuracy guard", () => {
+  // GEEM6's real legacy USGS row, with alt_acy_va swapped in.
+  const greenvilleRdb = (acy: string) =>
+    [
+      "agency_cd\tsite_no\tstation_nm\talt_va\talt_meth_cd\talt_acy_va\talt_datum_cd",
+      "5s\t15s\t50s\t8s\t1s\t3s\t10s",
+      `USGS\t07265455\tMISSISSIPPI RIVER NEAR GREENVILLE, MS\t 74.92\tU\t${acy}\tNGVD29`,
+    ].join("\n");
+  // GEEM6's new-API record, with altitude_accuracy swapped in.
+  const greenvilleSite = (acy?: unknown) => ({
+    type: "Feature",
+    properties: {
+      agency_code: "USGS",
+      monitoring_location_number: "07265455",
+      altitude: 74.92,
+      altitude_method_code: "U",
+      vertical_datum: "NGVD29",
+      ...(acy === undefined ? {} : { altitude_accuracy: acy }),
+    },
+  });
+  const GREENVILLE = { altVaFt: 74.92, datum: "NGVD29" };
+
+  it("is a team-owned 1 ft", () => {
+    expect(MAX_GAUGE_ZERO_ACCURACY_FT).toBe(1);
+  });
+
+  it("legacy alt_acy_va: 0.1 ok, 10 rejected, blank ok", () => {
+    expect(parseAltVa(greenvilleRdb("0.1"), "07265455")).toEqual(GREENVILLE);
+    expect(parseAltVa(greenvilleRdb(".1"), "07265455")).toEqual(GREENVILLE);
+    expect(parseAltVa(greenvilleRdb("1"), "07265455")).toEqual(GREENVILLE); // the limit itself
+    expect(parseAltVa(greenvilleRdb(" 10"), "07265455")).toBeNull();
+    expect(parseAltVa(greenvilleRdb("1.6"), "07265455")).toBeNull();
+    expect(parseAltVa(greenvilleRdb(""), "07265455")).toEqual(GREENVILLE);
+    expect(parseAltVa(greenvilleRdb(" "), "07265455")).toEqual(GREENVILLE);
+    // No accuracy column at all keeps today's behaviour too.
+    const noColumn = [
+      "agency_cd\tsite_no\talt_va\talt_datum_cd",
+      "5s\t15s\t8s\t10s",
+      "USGS\t07265455\t 74.92\tNGVD29",
+    ].join("\n");
+    expect(parseAltVa(noColumn, "07265455")).toEqual(GREENVILLE);
+  });
+
+  it("legacy: the USCE row at ±1 ft can't stand in for the USGS row at ±10 ft", () => {
+    // GEEM6's real layout: the Army Corps row is listed first.
+    const rdb = [
+      "agency_cd\tsite_no\tstation_nm\talt_va\talt_meth_cd\talt_acy_va\talt_datum_cd",
+      "5s\t15s\t50s\t8s\t1s\t3s\t10s",
+      "USCE\t07265455\t(USACE) Mississippi River near Greenville, MS\t74.92\tR\t1\tNGVD29",
+      "USGS\t07265455\tMISSISSIPPI RIVER NEAR GREENVILLE, MS\t 74.92\tU\t 10\tNGVD29",
+    ].join("\n");
+    expect(parseAltVa(rdb, "07265455")).toBeNull();
+  });
+
+  it("the recorded fixtures (±0.1 ft) still pass", () => {
+    for (const site of ["02486000", "07289000", "07289730"]) {
+      expect(parseAltVa(readText(`usgs_site_${site}.rdb`), site)).not.toBeNull();
+      expect(parseWaterdataSite(readJson(`waterdata_site_${site}.json`), site)).not.toBeNull();
+    }
+  });
+
+  it("new API altitude_accuracy: 0.1 ok, 10 rejected, blank ok", () => {
+    expect(parseWaterdataSite(greenvilleSite(0.1), "07265455")).toEqual(GREENVILLE);
+    expect(parseWaterdataSite(greenvilleSite(1), "07265455")).toEqual(GREENVILLE);
+    expect(parseWaterdataSite(greenvilleSite(10), "07265455")).toBeNull();
+    expect(parseWaterdataSite(greenvilleSite(10.0), "07265455")).toBeNull();
+    expect(parseWaterdataSite(greenvilleSite("10"), "07265455")).toBeNull();
+    expect(parseWaterdataSite(greenvilleSite(null), "07265455")).toEqual(GREENVILLE);
+    expect(parseWaterdataSite(greenvilleSite(""), "07265455")).toEqual(GREENVILLE);
+    expect(parseWaterdataSite(greenvilleSite(), "07265455")).toEqual(GREENVILLE);
+  });
+
+  /** Jackson's recorded fixtures with both sources' accuracy set to `acy`. */
+  function looseJackson(acy: number) {
+    const base = usgsFetchers();
+    const rdb = readText(`usgs_site_${SITE}.rdb`);
+    const header = rdb.split("\n").find((l) => l.startsWith("agency_cd"))!.split("\t");
+    const iAcy = header.indexOf("alt_acy_va");
+    const looseRdb = rdb
+      .split("\n")
+      .map((l) => {
+        if (!l.startsWith("USGS\t")) return l;
+        const cells = l.split("\t");
+        cells[iAcy] = String(acy);
+        return cells.join("\t");
+      })
+      .join("\n");
+    const site = readJson(`waterdata_site_${SITE}.json`) as { properties: Record<string, unknown> };
+    const looseSite = { ...site, properties: { ...site.properties, altitude_accuracy: acy } };
+    const fetchers: Fetchers = {
+      json: async (url, o) => {
+        if (url === nwpsDetailUrl("JACM6")) return readJson("nwps_detail_JACM6.json");
+        if (url === nwpsStageflowUrl("JACM6")) return readJson("nwps_stageflow_JACM6.json");
+        const v = await base.fetchers.json(url, o);
+        return url === waterdataSiteUrl(SITE) ? looseSite : v;
+      },
+      text: async (url, o) => {
+        const v = await base.fetchers.text(url, o);
+        return url === usgsSiteUrl(SITE) ? looseRdb : v;
+      },
+    };
+    return { fetchers, calls: base.calls };
+  }
+
+  it("both sources, both dates: ±10 ft is null, so the 2027-01-11 switch can't flip a tier", async () => {
+    const before = looseJackson(10);
+    expect(await fetchUsgsGaugeZero(SITE, before.fetchers, { now: BEFORE })).toBeNull();
+    // Rejected by legacy, then by the new API: same rule on both.
+    expect(hosts(before.calls)).toEqual([LEGACY, NEW]);
+
+    const after = looseJackson(10);
+    expect(await fetchUsgsGaugeZero(SITE, after.fetchers, { now: AFTER })).toBeNull();
+    expect(hosts(after.calls)).toEqual([NEW, LEGACY]);
+
+    for (const now of [BEFORE, AFTER]) {
+      const tight = looseJackson(0.1);
+      expect(await fetchUsgsGaugeZero(SITE, tight.fetchers, { now })).toEqual({
+        altVaFt: 233.39,
+        datum: "NAVD88",
+      });
+    }
+  });
+
+  it("a ±10 ft gauge zero gives a CATEGORY verdict, not FULL", async () => {
+    const candidate = {
+      lid: "JACM6",
+      name: "Pearl River at Jackson",
+      lat: 32.28138889,
+      lon: -90.1788889,
+      distanceMi: 1.2,
+    };
+    const verdictTier = async (acy: number, now: () => number) => {
+      const b = await fetchGaugeBundle(candidate, looseJackson(acy).fetchers, { now });
+      return survey({ pinElevationFt: 275.5, gauge: b, now: "2026-08-25T05:00:00Z" }).tier;
+    };
+    for (const now of [BEFORE, AFTER]) {
+      expect(await verdictTier(10, now)).toBe("CATEGORY");
+      expect(await verdictTier(0.1, now)).toBe("FULL");
+    }
   });
 });
