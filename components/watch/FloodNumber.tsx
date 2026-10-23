@@ -33,9 +33,9 @@
  *   historicCrests       FloodNumberCrest[] ({ stageFt, time, oldDatum? });
  *                                 only oldDatum === false counts toward the
  *                                 record. lib/gauges parseHistoricCrests
- *                                 drops NWPS `olddatum` today, so until it
- *                                 maps `oldDatum: c.olddatum` no record
- *                                 line or tick shows (never a guess).
+ *                                 maps NWPS `olddatum` to `oldDatum`; a
+ *                                 crest without it never counts (never a
+ *                                 guess).
  *   onWhatIf?            (stageFt: number | null) => void
  *                                 the stage the picture should show (ft on
  *                                 the gauge, 0.5 ft steps), or null for

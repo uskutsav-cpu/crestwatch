@@ -40,7 +40,7 @@ export const WHAT_IF_PAD_FT = 5;
  * `olddatum` flag. Only a crest with `oldDatum === false` counts: a crest
  * read from an older zero mark isn't on today's scale, and a crest whose
  * datum is unknown can't be trusted to be. (HistoricCrest[] is assignable
- * here; until parseHistoricCrests carries `oldDatum`, no record shows.)
+ * here; parseHistoricCrests in lib/gauges carries `oldDatum`.)
  */
 export interface FloodNumberCrest {
   stageFt: number;

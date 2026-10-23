@@ -823,7 +823,7 @@ describe("floodNumberInputFor", () => {
 describe("end to end on recorded data (Pearl River at Jackson)", () => {
   beforeEach(() => clearCache());
 
-  it("a FULL pin gets its number; crests without a datum flag show no record", async () => {
+  it("a FULL pin gets its number and the record on today's zero mark", async () => {
     const home: Pin = {
       id: "p1",
       name: "Home",
@@ -841,9 +841,10 @@ describe("end to end on recorded data (Pearl River at Jackson)", () => {
       "Your flood number: about 42 ft on the Pearl River gauge at Jackson.",
     );
     expect(v.context).toContain("Your number is about 14 ft above flood stage, 28.0 ft.");
-    // lib/gauges drops NWPS olddatum today, so no record is claimed.
-    expect(v.context.some((l) => /record/.test(l))).toBe(false);
-    expect(v.marks.some((m) => m.kind === "record")).toBe(false);
+    // lib/gauges carries NWPS olddatum (all false for JACM6), so the
+    // highest crest is on today's zero mark and counts as the record.
+    expect(v.context).toContain("The highest crest on record here was 43.3 ft, in April 1979.");
+    expect(v.marks.some((m) => m.kind === "record" && m.stageFt === 43.28)).toBe(true);
     expect(whatIfReadout(v.range.start, fn)).toMatch(/stays dry by about \d+ ft/);
   });
 });
