@@ -215,10 +215,7 @@ export const copy = {
   goHome: "Go home",
 
   // S2 · Watch: failure states, honesty and next steps
-  riverDataDown:
-    "The river data didn't answer. Your places are still saved. Try again in a minute.",
-  brokenLink:
-    "This shared link didn't open. Ask for a new link, or add your own place.",
+  // (riverDataDown and brokenLink are defined once above, shared.)
   refreshFailed: (time: string) =>
     `Couldn't check the river just now. This is the answer from ${time}.`,
   chipCategoryNone: "below flood stage",
