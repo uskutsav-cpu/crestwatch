@@ -13,6 +13,7 @@ import { copy } from "@/lib/copy";
 import { decodeWatchLink } from "@/lib/watch-link";
 import { useWatches } from "@/lib/use-watch";
 import { staleLineFor } from "@/lib/staleness";
+import { fmtTime } from "@/lib/time";
 import { StatChart } from "@/components/why/StatChart";
 import { LiveDot, TierBadge } from "@/components/ui";
 import type { Pin } from "@/lib/pins";
@@ -75,7 +76,7 @@ export function WhyClient() {
     [wl],
   );
   const linkBroken = linkedPins === BROKEN_LINK;
-  const { pins, watches, loading, error, refresh } = useWatches(linkedPins);
+  const { pins, watches, updatedAt, loading, error, refresh } = useWatches(linkedPins);
 
   useEffect(() => {
     window.scrollTo(0, 0);
@@ -144,6 +145,10 @@ export function WhyClient() {
   const { verdict, gauge, alerts } = watch;
   const lastObs = gauge?.observed.at(-1) ?? null;
   const staleLine = staleLineFor(verdict);
+  // The latest check failed and an older answer is up (from earlier this
+  // visit, or saved in this browser): say how old, same words as Watch.
+  const refreshFailedLine =
+    error && updatedAt !== null ? copy.refreshFailed(fmtTime(updatedAt)) : null;
 
   return (
     <div className="flex flex-col gap-6 py-10">
@@ -160,6 +165,11 @@ export function WhyClient() {
           <span className="font-semibold text-risewatch">
             {staleLine}
           </span>
+        </p>
+      )}
+      {refreshFailedLine && (
+        <p className="rounded-xl bg-risewatch/10 p-3 text-small" role="status">
+          {refreshFailedLine}
         </p>
       )}
 
@@ -185,7 +195,9 @@ export function WhyClient() {
                 </li>
               ))}
             </ul>
-          ) : watch.alertsOk ? (
+          ) : watch.alertsOk && !error ? (
+            // "Right now" only after a check that just worked, never from
+            // an older answer.
             <p className="text-small text-dim">
               No flood alerts are active for this spot right now.
             </p>

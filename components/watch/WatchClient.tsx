@@ -364,7 +364,11 @@ export function WatchClient() {
   );
 
   const staleLine = staleLineFor(verdict);
-  const freshness = freshnessChip(watch, updatedAt);
+  const lastFreshness = freshnessChip(watch, updatedAt);
+  // After a failed check nothing on screen is live, however recent the
+  // reading: drop "live · updated" and let refreshFailedLine give the time.
+  // "data delayed" and "alerts checked {time}" are still true, so they stay.
+  const freshness = error && lastFreshness?.live ? null : lastFreshness;
   // A failed refresh keeps the last good answer up; say how old it is.
   const refreshFailedLine =
     error && updatedAt !== null ? copy.refreshFailed(fmtTime(updatedAt)) : null;
