@@ -318,4 +318,17 @@ export const copy = {
       text: "A full answer (FULL) compares the water to how high your spot sits, and it's about your house only when CrestWatch found your full street address. If CrestWatch doesn't know a gauge's height above sea level closely enough, you get flood-stage only (CATEGORY), and if no forecast gauge is close, you get alerts only (ALERT-ONLY).",
     },
   ],
+
+  // Package rivers: the home page "Right now on our rivers" strip.
+  // Chips reuse chipCategory* and delayedChip; failure reuses
+  // riverDataDownLinked and refresh; trend words reuse trend*.
+  riversTitle: "Right now on our rivers",
+  riversFloodStage: (ft: string) => `flood stage ${ft} ft`,
+  riversExpectedHigh: (ft: string, day: string) => `expected high ${ft} ft ${day}`,
+  riversNoBigRise: "no big rise in the forecast",
+  // The forecast high reaches a worse category than the river is in now.
+  riversChipNearing: "nearing flood stage",
+  riversChipForecast: (category: string) => `${category} flooding forecast`,
+  riversReadingUnknown: "reading time unknown",
+  riversSource: (time: string) => `River data from NOAA, checked ${time}.`,
 } as const;
