@@ -18,6 +18,18 @@ export const BANDS = {
   borderline: 3.5, // margin ≤ this → BORDERLINE; above → UNLIKELY
 } as const;
 
+/**
+ * Loosest gauge-zero accuracy, in ft, that still unlocks house-level
+ * (FULL) math. USGS publishes it with the gauge zero (legacy alt_acy_va,
+ * new API altitude_accuracy). Greenville (GEEM6), Sarah (SARM6) and
+ * Lambert (LMGM6) say ±10 ft, wider than the BORDERLINE band, so a FULL
+ * verdict there would claim precision the data lacks: a gauge zero worse
+ * than this counts as missing and the gauge drops to CATEGORY. A blank
+ * or missing accuracy keeps the gauge zero.
+ * TEAM: own this number. Re-check it after the Appendix H validation pass.
+ */
+export const MAX_GAUGE_ZERO_ACCURACY_FT = 1;
+
 export const OBS_STALE_H = 2;
 export const FCST_STALE_H = 24;
 export const RATE_LIMIT_PER_HOUR = 120;

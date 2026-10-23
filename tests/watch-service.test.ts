@@ -156,20 +156,55 @@ describe("#51: a Census outage falls through to the other tiers", () => {
     expect(await lookupAddress(q, testFetchers)).toEqual({ ok: false, error: "NOT_FOUND" });
   });
 
+  const nominatimDown: Fetchers = {
+    json: async (url, opts) => {
+      if (new URL(url).hostname === "nominatim.openstreetmap.org") {
+        throw new Error("upstream 429 for nominatim.openstreetmap.org");
+      }
+      return testFetchers.json(url, opts);
+    },
+    text: testFetchers.text,
+  };
+
   it("any tier being down counts (the street fallback here)", async () => {
-    const nominatimDown: Fetchers = {
-      json: async (url, opts) => {
-        if (new URL(url).hostname === "nominatim.openstreetmap.org") {
-          throw new Error("upstream 429 for nominatim.openstreetmap.org");
-        }
-        return testFetchers.json(url, opts);
-      },
-      text: testFetchers.text,
-    };
     expect(await lookupAddress("zzz not a real place xx", nominatimDown)).toEqual({
       ok: false,
       error: "UPSTREAM",
     });
+  });
+
+  it("a stand-in answer given while Census was down is not cached", async () => {
+    const q = "1400 Washington St, Vicksburg, MS";
+    const during = await lookupAddress(q, censusDown);
+    expect(during.ok && during.precision).toBe("place");
+    // Census is back: the house-level match shows, not a day-old town center.
+    const after = await lookupAddress(q, testFetchers);
+    expect(after.ok).toBe(true);
+    if (!after.ok) return;
+    expect(after.precision).toBe("address");
+    expect(after.matchedAddress).toContain("WASHINGTON");
+  });
+
+  it("a stand-in answer given while the street tier was down is not cached", async () => {
+    const q = "1234 Main Street, Yazoo City, MS";
+    const during = await lookupAddress(q, nominatimDown);
+    expect(during.ok).toBe(true);
+    if (!during.ok) return;
+    expect(during.matchedAddress).toBe("Yazoo City, Mississippi"); // town tier
+    // The street tier is back: its point on Main Street shows.
+    const after = await lookupAddress(q, testFetchers);
+    expect(after.ok).toBe(true);
+    if (!after.ok) return;
+    expect(after.matchedAddress).toContain("Main Street");
+  });
+
+  it("a healthy answer is still cached", async () => {
+    const q = "1400 Washington St, Vicksburg, MS";
+    const healthy = await lookupAddress(q, testFetchers);
+    expect(healthy.ok && healthy.precision).toBe("address");
+    // A later Census outage doesn't matter: the cached match answers.
+    const later = await lookupAddress(q, censusDown);
+    expect(later).toEqual(healthy);
   });
 });
 

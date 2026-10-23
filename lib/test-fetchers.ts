@@ -59,19 +59,13 @@ function fixtureJson(url: string): unknown {
       : readJson("gauges", `nwps_detail_${lid}.json`);
   }
 
-  if (u.hostname === "waterservices.usgs.gov" && u.pathname.includes("/dv/")) {
-    const start = u.searchParams.get("startDT") ?? "";
-    if (start.startsWith("2019")) return readJson("replay", "dv_backwater2019.json");
-    if (start.startsWith("2020")) return readJson("replay", "dv_pearl2020.json");
-    return readJson("replay", "dv_pearl2022.json");
-  }
-
   if (u.hostname === "waterservices.usgs.gov" && u.pathname.includes("/iv/")) {
     const site = u.searchParams.get("sites") ?? "02486000";
     return readJson("gauges", `usgs_iv_${knownUsgsSite(site)}.json`);
   }
 
-  // The new USGS Water Data API (the second source for both calls above).
+  // The new USGS Water Data API: the other source for the legacy series
+  // above and the legacy site RDB in fixtureText below.
   if (u.hostname === "api.waterdata.usgs.gov") {
     const ml = u.pathname.match(/\/collections\/monitoring-locations\/items\/USGS-(\w+)$/);
     if (ml) return readJson("gauges", `waterdata_site_${knownUsgsSite(ml[1])}.json`);

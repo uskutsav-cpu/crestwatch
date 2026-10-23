@@ -209,8 +209,8 @@ export function PlacesClient() {
                   className="block rounded-2xl bg-surface p-4 pr-28 transition-colors hover:bg-surface/70"
                   style={{ borderLeft: "4px solid var(--color-line)" }}
                 >
-                  <div className="flex items-center gap-2">
-                    <p className="min-w-0 text-body font-semibold">{pin.name}</p>
+                  <div className="flex flex-wrap items-center gap-x-2 gap-y-1">
+                    <p className="min-w-0 text-body font-semibold [overflow-wrap:anywhere]">{pin.name}</p>
                     {approxTag(pin)}
                   </div>
                   <p className="mt-1 text-small text-dim">
@@ -238,8 +238,8 @@ export function PlacesClient() {
                 className="block rounded-2xl bg-surface p-4 pr-28 transition-colors hover:bg-surface/70"
                 style={{ borderLeft: `4px solid ${BAND_COLOR[edgeBand(w)]}` }}
               >
-                <div className="flex items-center gap-2">
-                  <p className="min-w-0 text-body font-semibold">{pin.name}</p>
+                <div className="flex flex-wrap items-center gap-x-2 gap-y-1">
+                  <p className="min-w-0 text-body font-semibold [overflow-wrap:anywhere]">{pin.name}</p>
                   {approxTag(pin)}
                   {trend && (
                     <span className="text-small text-dim">

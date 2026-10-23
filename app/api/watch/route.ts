@@ -11,6 +11,10 @@ import { watchPins } from "@/lib/watch-service";
 import { routeFetchers } from "@/lib/test-fetchers";
 import { clientIp, rateLimitOk } from "@/lib/rate-limit";
 
+// Worst case for 5 pins is now about 25 s: each gauge's USGS calls can
+// wait out a slow legacy source before the new API answers. Leave room.
+export const maxDuration = 60;
+
 export async function POST(request: NextRequest) {
   if (!rateLimitOk(clientIp(request.headers))) {
     return Response.json({ ok: false, error: "RATE_LIMITED" }, { status: 429 });

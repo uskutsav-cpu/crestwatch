@@ -228,7 +228,7 @@ export const copy = {
   copyLink: "Copy watch link",
   linkCopied: "Link copied ✓",
   copyLinkPrompt: "Copy this link:",
-  approximateShare: "This is the middle of town, not this house.",
+  approximateShare: "This is the middle of a town or street, not this house.",
   stalenessUnknown:
     "Heads up: we can't tell how fresh this data is. The river may have moved.",
   nextStepsTitle: "What to do now",

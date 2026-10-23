@@ -189,8 +189,8 @@ export async function geocodePlace(
 /**
  * True when the query really is a street address — a house number
  * followed by a name, or a street-type word. Bare towns and ZIPs must
- * NOT take the street path: a match there would be labelled house-level
- * precision and silently drop the "town center" warning.
+ * NOT take the street path: a house-level hit there would silently drop
+ * the "approximate spot" warning.
  */
 export function looksLikeStreetAddress(query: string): boolean {
   const q = query.trim();
@@ -258,8 +258,8 @@ export function isHouseLevelHit(hit: NominatimHit, query: string): boolean {
  * falls through to the town lookup. If it ever blocks us the app quietly
  * degrades to town-level answers instead of breaking.
  *
- * Often it finds only the street. That comes back as precision "place"
- * so the approximate warning shows, same as a town center.
+ * Often it finds only the street. That comes back as precision "place",
+ * an approximate spot just like a town center, so the warning shows.
  */
 export async function geocodeStreetFallback(
   query: string,

@@ -4,6 +4,7 @@
  * responses. Injectable fetchers; no other file touches these APIs.
  */
 
+import { MAX_GAUGE_ZERO_ACCURACY_FT } from "@/lib/config";
 import { fetchJson, fetchText, type FetchJson, type FetchText } from "@/lib/net";
 
 export interface Fetchers {
@@ -263,6 +264,19 @@ export interface GaugeZero {
 }
 
 /**
+ * True when USGS states the gauge zero's accuracy and it is looser than
+ * MAX_GAUGE_ZERO_ACCURACY_FT (Greenville, Sarah and Lambert say ±10 ft).
+ * Both sources go through this one rule, so the 2027-01-11 source switch
+ * can't move a gauge between tiers. Blank, missing or unreadable keeps
+ * today's behaviour: the gauge zero stands.
+ */
+function accuracyTooLoose(raw: unknown): boolean {
+  if (raw === null || raw === undefined) return false;
+  const ft = typeof raw === "number" ? raw : parseFloat(String(raw).trim());
+  return Number.isFinite(ft) && ft > MAX_GAUGE_ZERO_ACCURACY_FT;
+}
+
+/**
  * Parse gauge-zero elevation + vertical datum from USGS site RDB text.
  * Robust to multi-row responses: matches the requested site number when
  * given, and always skips the RDB format row ("5s\t15s\t…") wherever it
@@ -273,13 +287,15 @@ export interface GaugeZero {
  * the first-row answer put the river ~27 ft too high. Another agency's
  * alt_va can be a different reference entirely, so when rows match the
  * site but none is USGS this returns null and the gauge drops to the
- * CATEGORY tier instead of risking a wrong FULL verdict.
+ * CATEGORY tier instead of risking a wrong FULL verdict. So does a USGS
+ * gauge zero whose alt_acy_va is looser than MAX_GAUGE_ZERO_ACCURACY_FT.
  */
 export function parseAltVa(rdb: string, site?: string): GaugeZero | null {
   const lines = rdb.split("\n").filter((l) => l && !l.startsWith("#"));
   if (lines.length < 3) return null;
   const cols = lines[0].split("\t");
   const iAlt = cols.indexOf("alt_va");
+  const iAcy = cols.indexOf("alt_acy_va");
   const iDatum = cols.indexOf("alt_datum_cd");
   const iSite = cols.indexOf("site_no");
   const iAgency = cols.indexOf("agency_cd");
@@ -296,6 +312,7 @@ export function parseAltVa(rdb: string, site?: string): GaugeZero | null {
     if (iAgency >= 0 && (row[iAgency] ?? "").trim() !== "USGS") continue;
     const altVaFt = parseFloat((row[iAlt] ?? "").trim());
     if (!Number.isFinite(altVaFt)) continue;
+    if (iAcy >= 0 && accuracyTooLoose(row[iAcy])) return null;
     const datum = (row[iDatum] ?? "").trim();
     return { altVaFt, datum: datum || null };
   }
@@ -305,8 +322,8 @@ export function parseAltVa(rdb: string, site?: string): GaugeZero | null {
 /**
  * Gauge zero from the new monitoring-locations record. `altitude` is a
  * number there (233.39) but is read leniently; 0 is a real value (some
- * reservoir gauges publish stage as elevation). Same USGS-only rule as
- * parseAltVa.
+ * reservoir gauges publish stage as elevation). Same USGS-only rule and
+ * same accuracy rule (altitude_accuracy here) as parseAltVa.
  */
 export function parseWaterdataSite(data: unknown, site?: string): GaugeZero | null {
   const p = (data as { properties?: Record<string, unknown> })?.properties;
@@ -323,6 +340,7 @@ export function parseWaterdataSite(data: unknown, site?: string): GaugeZero | nu
   if (alt === null || alt === undefined || alt === "") return null;
   const altVaFt = typeof alt === "number" ? alt : parseFloat(String(alt));
   if (!Number.isFinite(altVaFt)) return null;
+  if (accuracyTooLoose(p.altitude_accuracy)) return null;
   const datum = typeof p.vertical_datum === "string" ? p.vertical_datum.trim() : "";
   return { altVaFt, datum: datum || null };
 }
@@ -406,7 +424,10 @@ async function firstUsable<T>(
   return null;
 }
 
-/** Gauge zero + datum: the FULL-tier key. Null when neither source has it. */
+/**
+ * Gauge zero + datum: the FULL-tier key. Null when neither source has a
+ * usable one (missing, not USGS, or too loose to trust).
+ */
 export async function fetchUsgsGaugeZero(
   site: string,
   fetchers: Fetchers = defaultFetchers,
