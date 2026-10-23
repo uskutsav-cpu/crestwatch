@@ -11,6 +11,8 @@ import { afterEach, describe, expect, it, vi } from "vitest";
 import { copy } from "@/lib/copy";
 import {
   ACTION_BUTTON,
+  ACTION_BUTTON_INERT,
+  READ_ALOUD_PRESSED,
   ReadAloud,
   SPEECH_RATE,
   pickVoice,
@@ -32,11 +34,13 @@ import {
   CALENDAR_MIME,
   CREST_EVENT_MIN,
   REVOKE_AFTER_MS,
+  calendarButtonState,
   calendarTitle,
   crestCalendarFile,
   downloadTextFile,
   isFutureCrest,
   reminderMinutesBefore,
+  saidAtLine,
   type DownloadEnv,
 } from "@/components/watch/AddToCalendar";
 
@@ -48,6 +52,8 @@ const NOW = "2026-10-23T19:00:00Z";
 const NOW_MS = Date.parse(NOW);
 const URL_ = "https://crestwatch-kalamadalas-projects.vercel.app/watch?wl=abc_-123";
 const SENTENCE = "The Pearl River peaks Sunday around 12pm CT. Water likely reaches Home about 6 hours before that.";
+/** NOW is 2:00 PM on Friday, Oct 23, Central daylight time. */
+const STAMP = "On Fri, Oct 23, 2:00 PM CT, CrestWatch said:";
 
 afterEach(() => {
   vi.unstubAllGlobals();
@@ -274,6 +280,46 @@ describe("<ReadAloud />", () => {
     expect(ACTION_BUTTON).toMatch(/\bmin-w-11\b/);
     expect(ACTION_BUTTON).toMatch(/focus-visible:outline-2/);
   });
+
+  it("keeps \"Stop\" readable in the light theme", () => {
+    // globals.css darkens only text-(--color-current) and its hover form
+    // on paper. Any other variant of it would be #4fc3e8 on #f4f9fb
+    // (about 1.9:1) in the light theme.
+    expect(READ_ALOUD_PRESSED).toBe("aria-pressed:text-fg");
+    const s = src("components/watch/ReadAloud.tsx");
+    expect(s).toMatch(/className=\{`\$\{ACTION_BUTTON\} \$\{READ_ALOUD_PRESSED\}`\}/);
+  });
+});
+
+describe("ACTION_BUTTON colour contract", () => {
+  const css = src("app/globals.css");
+  const files = [
+    "components/watch/ReadAloud.tsx",
+    "components/watch/SendToFamily.tsx",
+    "components/watch/AddToCalendar.tsx",
+  ];
+
+  it("uses --color-current as text only in forms the light theme darkens", () => {
+    for (const f of files) {
+      const used = src(f).match(/[\w:-]*text-\(--color-current\)/g) ?? [];
+      for (const cls of used) {
+        expect(["text-(--color-current)", "hover:text-(--color-current)"], `${f}: ${cls}`).toContain(cls);
+      }
+    }
+    expect(css).toContain('[data-theme="light"] .text-\\(--color-current\\)');
+    expect(css).toContain('[data-theme="light"] .hover\\:text-\\(--color-current\\):hover');
+  });
+
+  it("gives every state a 44 px target and a focus ring", () => {
+    for (const cls of [ACTION_BUTTON, ACTION_BUTTON_INERT]) {
+      expect(cls).toMatch(/\bmin-h-11\b/);
+      expect(cls).toMatch(/\bmin-w-11\b/);
+      expect(cls).toMatch(/focus-visible:outline-2/);
+      expect(cls).toMatch(/\btext-dim\b/);
+    }
+    expect(ACTION_BUTTON).toMatch(/\bhover:text-\(--color-current\)/);
+    expect(ACTION_BUTTON_INERT).not.toMatch(/hover:/);
+  });
 });
 
 /* ------------------------------------------------------------------ */
@@ -281,12 +327,32 @@ describe("<ReadAloud />", () => {
 /* ------------------------------------------------------------------ */
 
 describe("familyShareData", () => {
-  it("shares the sentence and the watch link, titled with the place", () => {
-    expect(familyShareData({ pinName: "Home", sentence: SENTENCE, url: URL_ })).toEqual({
+  it("shares when it was said, the sentence and the watch link, titled with the place", () => {
+    expect(familyShareData({ pinName: "Home", sentence: SENTENCE, url: URL_, now: NOW })).toEqual({
       title: "Home · CrestWatch",
-      text: SENTENCE,
+      text: `${STAMP}\n${SENTENCE}`,
       url: URL_,
     });
+  });
+
+  it("dates a \"tomorrow\" so a text read after midnight isn't a day off", () => {
+    // Fri Oct 23, 2pm CDT: "tomorrow" is Saturday. Read on Saturday, the
+    // first line still says which day "tomorrow" meant.
+    const data = familyShareData({
+      pinName: "Home",
+      sentence: "The Pearl River peaks tomorrow around 12pm CT.",
+      url: URL_,
+      now: "2026-10-23T19:00:00Z",
+    });
+    expect(data.text?.split("\n")[0]).toBe(STAMP);
+  });
+
+  it("dates by the answer's clock, in Central time, in any season", () => {
+    // Winter (CST, UTC-6), just after midnight Central.
+    expect(
+      familyShareData({ pinName: "Home", sentence: SENTENCE, url: URL_, now: "2027-01-05T06:05:00Z" })
+        .text?.split("\n")[0],
+    ).toBe("On Tue, Jan 5, 12:05 AM CT, CrestWatch said:");
   });
 
   it("never sends a stale or approximate answer without its warning", () => {
@@ -294,9 +360,18 @@ describe("familyShareData", () => {
       pinName: "Home",
       sentence: SENTENCE,
       url: URL_,
+      now: NOW,
       notes: [copy.staleness(30), null, "", copy.approximateShare],
     });
-    expect(data.text).toBe(`${SENTENCE}\n${copy.staleness(30)}\n${copy.approximateShare}`);
+    expect(data.text).toBe(
+      `${STAMP}\n${SENTENCE}\n${copy.staleness(30)}\n${copy.approximateShare}`,
+    );
+  });
+
+  it("leaves the date out rather than make one up when the answer has no time", () => {
+    expect(familyShareData({ pinName: "Home", sentence: SENTENCE, url: URL_, now: "" }).text).toBe(
+      SENTENCE,
+    );
   });
 });
 
@@ -353,7 +428,7 @@ describe("<SendToFamily />", () => {
     vi.stubGlobal("navigator", { share: async () => {} });
     expect(
       renderToStaticMarkup(
-        <SendToFamily pinName="Home" sentence={SENTENCE} url={URL_} onFallback={() => {}} />,
+        <SendToFamily pinName="Home" sentence={SENTENCE} url={URL_} now={NOW} onFallback={() => {}} />,
       ),
     ).toBe("");
   });
@@ -433,11 +508,44 @@ describe("crestCalendarFile", () => {
     expect(field(ics, "URL")).toBe(URL_);
   });
 
-  it("describes it with the sentence, then where to check the latest", () => {
+  it("describes it with when it was said, the sentence, then where to check the latest", () => {
     const ics = crestCalendarFile(INPUT, NOW_MS) as string;
     expect(unescapeText(field(ics, "DESCRIPTION") ?? "")).toBe(
-      `${SENTENCE}\n\nForecasts change. Check the latest: ${URL_}`,
+      `${STAMP}\n${SENTENCE}\n\nForecasts change. Check the latest: ${URL_}`,
     );
+  });
+
+  it("dates a \"tomorrow\" so the saved event isn't a day off when it's read", () => {
+    // The review probe: now Fri Oct 23 2pm CDT, crest Sat Oct 24 noon CDT.
+    // The event and its 12 h reminder sit on Saturday, where "tomorrow"
+    // alone would point at Sunday.
+    const ics = crestCalendarFile(
+      {
+        ...INPUT,
+        crestIso: "2026-10-24T17:00:00Z",
+        sentence:
+          "The Pearl River peaks tomorrow around 12pm CT. Water likely reaches Home about 6 hours before that.",
+      },
+      NOW_MS,
+    ) as string;
+    expect(field(ics, "DTSTART")).toBe("20261024T170000Z");
+    expect(field(ics, "TRIGGER")).toBe("-PT12H");
+    const description = unescapeText(field(ics, "DESCRIPTION") ?? "");
+    expect(description.startsWith(`${STAMP}\n`)).toBe(true);
+    expect(description.split("\n")[1]).toMatch(/^The Pearl River peaks tomorrow/);
+  });
+
+  it("dates the sentence by when it was worked out, not by the tap", () => {
+    // The page sat open 10 hours past midnight: the sentence's "tomorrow"
+    // still counts from the answer's 2pm Friday.
+    const tapMs = NOW_MS + 10 * HOUR;
+    const ics = crestCalendarFile(INPUT, tapMs, NOW_MS) as string;
+    expect(unescapeText(field(ics, "DESCRIPTION") ?? "").split("\n")[0]).toBe(STAMP);
+    expect(field(ics, "DTSTAMP")).toBe("20261024T050000Z");
+  });
+
+  it("isn't made when the sentence has no time to count its days from", () => {
+    expect(crestCalendarFile(INPUT, NOW_MS, Number.NaN)).toBeNull();
   });
 
   it("carries the honesty notes it's given", () => {
@@ -446,7 +554,7 @@ describe("crestCalendarFile", () => {
       NOW_MS,
     ) as string;
     expect(unescapeText(field(ics, "DESCRIPTION") ?? "")).toBe(
-      `${SENTENCE}\n\n${copy.approximateShare}\n\n${copy.calendarCheckLatest(URL_)}`,
+      `${STAMP}\n${SENTENCE}\n\n${copy.approximateShare}\n\n${copy.calendarCheckLatest(URL_)}`,
     );
   });
 
@@ -480,6 +588,56 @@ describe("crestCalendarFile", () => {
     expect(crestCalendarFile({ ...INPUT, crestIso: NOW }, NOW_MS)).toBeNull();
     expect(crestCalendarFile({ ...INPUT, crestIso: "soon" }, NOW_MS)).toBeNull();
     expect(crestCalendarFile(INPUT, Number.NaN)).toBeNull();
+  });
+});
+
+describe("saidAtLine", () => {
+  it("names the weekday, date and Central time, with plain spaces", () => {
+    expect(saidAtLine(NOW_MS)).toBe(STAMP);
+    expect(saidAtLine(NOW_MS)).not.toMatch(/[\u00a0\u202f]/);
+    expect(saidAtLine(Date.parse("2026-10-24T04:59:00Z"))).toBe(
+      "On Fri, Oct 23, 11:59 PM CT, CrestWatch said:",
+    );
+  });
+
+  it("is null without a real time", () => {
+    expect(saidAtLine(Number.NaN)).toBeNull();
+  });
+});
+
+describe("calendarButtonState", () => {
+  const CREST = "2026-10-25T17:00:00Z";
+  const LATER_CREST = "2026-10-27T17:00:00Z";
+
+  it("is the button while the crest is ahead and no tap found it gone", () => {
+    expect(calendarButtonState(CREST, NOW, null)).toBe("ready");
+  });
+
+  it("keeps the button, saying the crest has passed, after a tap found it gone", () => {
+    expect(calendarButtonState(CREST, NOW, CREST)).toBe("passed");
+  });
+
+  it("comes back when a refresh brings a later crest (a second rise)", () => {
+    // Same mounted button: the latch was for CREST, the new data has LATER_CREST.
+    expect(calendarButtonState(LATER_CREST, NOW, CREST)).toBe("ready");
+  });
+
+  it("is hidden once the answer's own clock passes the crest", () => {
+    expect(calendarButtonState(CREST, "2026-10-26T00:00:00Z", CREST)).toBe("hidden");
+    expect(calendarButtonState(CREST, "2026-10-26T00:00:00Z", null)).toBe("hidden");
+    expect(calendarButtonState("", NOW, null)).toBe("hidden");
+  });
+
+  it("ties the latch to the crest it was set for, in the component", () => {
+    const s = src("components/watch/AddToCalendar.tsx");
+    expect(s).toMatch(/useState<string \| null>\(null\)/);
+    expect(s).toMatch(/setPassedCrest\(input\.crestIso\)/);
+    expect(s).toMatch(/calendarButtonState\(input\.crestIso, now, passedCrest\)/);
+    // The passed state keeps focus: aria-disabled, not disabled or unmounted.
+    expect(s).toMatch(/aria-disabled=\{passed \|\| undefined\}/);
+    expect(s).not.toMatch(/(?<![\w-])disabled=\{/);
+    // The sentence is dated by the answer's clock.
+    expect(s).toMatch(/crestCalendarFile\(input, nowMs, saidAtMs\)/);
   });
 });
 
@@ -582,6 +740,8 @@ describe("actions copy", () => {
     copy.calendarTitleNoRiver("Home"),
     copy.calendarCheckLatest(URL_),
     copy.calendarAlarm,
+    copy.calendarPassed,
+    copy.answerAsOf("Fri, Oct 23, 2:00 PM CT"),
   ];
 
   it("follows the copy rules", () => {
@@ -619,6 +779,8 @@ describe("actions copy", () => {
       "calendarTitleNoRiver:",
       "calendarCheckLatest:",
       "calendarAlarm:",
+      "calendarPassed:",
+      "answerAsOf:",
     ]) {
       expect(block, key).toContain(key);
     }

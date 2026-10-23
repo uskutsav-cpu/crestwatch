@@ -336,4 +336,9 @@ export const copy = {
   // The file keeps one forecast; the river doesn't wait for it.
   calendarCheckLatest: (url: string) => `Forecasts change. Check the latest: ${url}`,
   calendarAlarm: "Check CrestWatch for the latest river forecast before the crest.",
+  // Shown in place of the calendar button when a tap finds this crest already gone.
+  calendarPassed: "This crest time has passed",
+  // Leads a saved or sent answer. Its "today" and "tomorrow" count from
+  // this moment, not from whenever someone reads it.
+  answerAsOf: (when: string) => `On ${when}, CrestWatch said:`,
 } as const;

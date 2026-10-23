@@ -14,12 +14,26 @@
 import { useEffect, useRef, useState, useSyncExternalStore } from "react";
 import { copy } from "@/lib/copy";
 
+const ACTION_BUTTON_BASE =
+  "inline-flex min-h-11 min-w-11 items-center gap-1.5 rounded-lg text-small font-semibold text-dim transition-colors focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-fg";
+
 /**
  * The small text buttons in the Watch actions row (same look as "Copy
  * watch link"), with a 44 px touch target and a visible focus ring.
+ *
+ * Colour rule: --color-current is too light for text on the light theme.
+ * app/globals.css darkens only `text-(--color-current)` and
+ * `hover:text-(--color-current)`, so no other variant of it (pressed,
+ * active, focus) may be used here. Use a colour that flips with the
+ * theme, like text-fg.
  */
-export const ACTION_BUTTON =
-  "inline-flex min-h-11 min-w-11 items-center gap-1.5 rounded-lg text-small font-semibold text-dim transition-colors hover:text-(--color-current) focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-fg";
+export const ACTION_BUTTON = `${ACTION_BUTTON_BASE} hover:text-(--color-current)`;
+
+/** The same button while it can't be used (aria-disabled): no hover colour. */
+export const ACTION_BUTTON_INERT = `${ACTION_BUTTON_BASE} cursor-default`;
+
+/** "Stop" while reading: full-strength text in either theme. */
+export const READ_ALOUD_PRESSED = "aria-pressed:text-fg";
 
 /** A touch slower than default, for older ears and new readers. */
 export const SPEECH_RATE = 0.95;
@@ -272,7 +286,7 @@ export function ReadAloud({ sentence, secondLine, notes }: ReadAloudProps) {
       onClick={toggle}
       aria-pressed={speaking}
       data-testid="read-aloud"
-      className={`${ACTION_BUTTON} aria-pressed:text-(--color-current)`}
+      className={`${ACTION_BUTTON} ${READ_ALOUD_PRESSED}`}
     >
       <SpeakerIcon speaking={speaking} />
       {speaking ? copy.readAloudStop : copy.readAloud}

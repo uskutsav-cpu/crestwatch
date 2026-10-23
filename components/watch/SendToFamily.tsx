@@ -12,6 +12,7 @@
 import { useRef } from "react";
 import { copy } from "@/lib/copy";
 import { ACTION_BUTTON, useBrowserSupport } from "@/components/watch/ReadAloud";
+import { saidAtLine } from "@/components/watch/AddToCalendar";
 
 export function shareSupported(): boolean {
   return typeof navigator !== "undefined" && typeof navigator.share === "function";
@@ -25,18 +26,28 @@ export interface ShareNavigator {
 
 export interface FamilyShareInput {
   pinName: string;
+  /** The verdict sentence, exactly as shown. */
   sentence: string;
+  /** The live watch link for this place. */
   url: string;
+  /** Honesty lines that must travel with the sentence (stale, approximate spot). */
   notes?: ReadonlyArray<string | null | undefined>;
+  /**
+   * The answer's "now", the same one the sentence was built with
+   * (useWatches().now ?? new Date().toISOString()).
+   */
+  now: string;
 }
 
 /**
- * Title, text and link for the share sheet. The text is the sentence,
- * then each honesty note on its own line, so a stale answer or an
- * approximate spot never travels without its warning.
+ * Title, text and link for the share sheet. The text starts with when
+ * CrestWatch said it, because a message read after midnight would
+ * otherwise put "tomorrow" a day late. Then the sentence, then each
+ * honesty note on its own line, so a stale answer or an approximate spot
+ * never travels without its warning.
  */
-export function familyShareData({ pinName, sentence, url, notes }: FamilyShareInput): ShareData {
-  const lines = [sentence, ...(notes ?? [])].filter(
+export function familyShareData({ pinName, sentence, url, notes, now }: FamilyShareInput): ShareData {
+  const lines = [saidAtLine(Date.parse(now)), sentence, ...(notes ?? [])].filter(
     (s): s is string => typeof s === "string" && s.trim() !== "",
   );
   return { title: copy.sendToFamilyTitle(pinName), text: lines.join("\n"), url };
@@ -97,7 +108,7 @@ function ShareIcon() {
   );
 }
 
-export function SendToFamily({ pinName, sentence, url, notes, onFallback }: SendToFamilyProps) {
+export function SendToFamily({ pinName, sentence, url, notes, now, onFallback }: SendToFamilyProps) {
   const supported = useBrowserSupport(shareSupported);
   // A second tap while the sheet is open would throw InvalidStateError
   // and wrongly trigger the fallback.
@@ -109,7 +120,7 @@ export function SendToFamily({ pinName, sentence, url, notes, onFallback }: Send
     if (busy.current) return;
     busy.current = true;
     try {
-      await shareOrFallback(familyShareData({ pinName, sentence, url, notes }), onFallback);
+      await shareOrFallback(familyShareData({ pinName, sentence, url, notes, now }), onFallback);
     } finally {
       busy.current = false;
     }
