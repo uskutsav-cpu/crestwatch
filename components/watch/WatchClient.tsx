@@ -9,6 +9,7 @@ import { useRouter, useSearchParams } from "next/navigation";
 import { useEffect, useMemo, useState } from "react";
 import { copy } from "@/lib/copy";
 import { MAX_PINS } from "@/lib/config";
+import { fmtTime } from "@/lib/time";
 import { decodeWatchLink, encodeWatchLink } from "@/lib/watch-link";
 import { useWatches } from "@/lib/use-watch";
 import { addPin, loadPins, newPinId } from "@/lib/pin-store";
@@ -57,16 +58,6 @@ export function chipFor(w: PinWatch): { band: VerdictBand; label: string } {
   return { band: "BORDERLINE", label: copy.chipAlertOnly };
 }
 
-/** "1:30 PM CT". Visitors outside Central time must not misread the age. */
-export function fmtTime(at: string | number): string {
-  const t = new Intl.DateTimeFormat("en-US", {
-    timeZone: "America/Chicago",
-    hour: "numeric",
-    minute: "2-digit",
-  }).format(new Date(at));
-  return `${t} CT`;
-}
-
 /**
  * The whole-foot margin a reader sees. Same rounding as the sentence
  * (lib/sentences.ts), so the sentence's number and the kid-scale gloss
@@ -85,9 +76,7 @@ export function glossLineFor(verdict: Verdict): string | null {
   const ft = shownFeet(m);
   const gloss = heightGloss(ft);
   if (gloss === null) return null;
-  return m >= 0
-    ? `That ${ft} ft gap is ${gloss}.`
-    : `That could put about ${ft} ft of water here, ${gloss}.`;
+  return m >= 0 ? copy.glossGap(ft, gloss) : copy.glossWater(ft, gloss);
 }
 
 /** Newest observed reading, whatever order the series arrived in. */
@@ -146,32 +135,58 @@ export function freshnessChip(
 const pinKey = (p: Pin) =>
   `${sanitizeName(p.matchedAddress.slice(0, 120))}|${p.lat.toFixed(4)}|${p.lon.toFixed(4)}`;
 
+export interface SaveLinkedResult {
+  /** How many linked places were stored. */
+  added: number;
+  /** A linked place didn't fit: MAX_PINS places are already saved. */
+  full: boolean;
+  /** This browser wouldn't keep a place (storage blocked or full). */
+  storageFailed: boolean;
+}
+
 /**
  * "Save to this device" on a shared link: add the linked places that
  * aren't already saved (same address, same spot to 4 decimals), stopping
  * at MAX_PINS. Fresh ids, so a link's wl0 never replaces an earlier one.
- * Returns how many were added.
+ * Says how many were added and why any weren't.
  */
-export function saveLinkedPins(linked: Pin[]): number {
+export function saveLinkedPins(linked: Pin[]): SaveLinkedResult {
   const existing = loadPins();
   const seen = new Set(existing.map(pinKey));
   let count = existing.length;
-  let added = 0;
+  const result: SaveLinkedResult = { added: 0, full: false, storageFailed: false };
   for (const p of linked) {
-    if (count >= MAX_PINS) break;
     const k = pinKey(p);
+    // Already saved is fine even on a full board; only a new place is "full".
     if (seen.has(k)) continue;
-    const res = addPin({ ...p, id: newPinId() });
-    if (!res.ok) {
-      // A browser that keeps nothing won't keep the next one either.
-      if (res.reason === "storage") break;
-      continue;
+    if (count >= MAX_PINS) {
+      result.full = true;
+      break;
     }
-    seen.add(k);
-    count++;
-    added++;
+    const r = addPin({ ...p, id: newPinId() });
+    if (r.ok) {
+      seen.add(k);
+      count++;
+      result.added++;
+    } else if (r.reason === "full") {
+      result.full = true;
+      break;
+    } else {
+      result.storageFailed = true;
+      break;
+    }
   }
-  return added;
+  return result;
+}
+
+/**
+ * What to say after Save to this device, or null to go to Your places.
+ * Go when something was saved or everything already was; otherwise stay
+ * on the shared answer and say why nothing was saved.
+ */
+export function saveLinkedNote(r: SaveLinkedResult): string | null {
+  if (r.added > 0 || (!r.full && !r.storageFailed)) return null;
+  return r.storageFailed ? copy.storageBlocked : copy.placesFull(MAX_PINS);
 }
 
 interface CopyEnv {
@@ -258,6 +273,7 @@ export function WatchClient() {
   // Setup sends a place here when this browser wouldn't save it.
   const noSave = isLinked && params.get("nosave") === "1";
   const [copied, setCopied] = useState(false);
+  const [saveNote, setSaveNote] = useState<string | null>(null);
 
   // Coming from a scrolled page, small phones landed mid-verdict with the
   // place name and picture above the fold. Always open at the top.
@@ -321,7 +337,9 @@ export function WatchClient() {
     // Kept mounted while a retry runs, so the button keeps focus.
     return (
       <div className="py-14">
-        <p className="text-body text-dim">{copy.riverDataDown}</p>
+        <p className="text-body text-dim">
+          {isLinked ? copy.riverDataDownLinked : copy.riverDataDown}
+        </p>
         {checkAgain(
           "mt-4 inline-flex min-h-11 items-center font-semibold text-(--color-current)",
         )}
@@ -473,8 +491,7 @@ export function WatchClient() {
       <AlertStrip alerts={watch.alerts} />
       {verdict.tier === "ALERT_ONLY" && !watch.alertsOk && (
         <p className="rounded-xl bg-risewatch/10 p-3 text-small">
-          CrestWatch couldn&apos;t reach the alert service just now. That is
-          not an all-clear. Check weather.gov directly.
+          {copy.alertServiceDown}
         </p>
       )}
 
@@ -533,17 +550,23 @@ export function WatchClient() {
           </span>
         </button>
         {noSave ? null : isLinked && linkedPins ? (
-          // Not offered when storage is blocked: the save would fail.
-          <button
-            type="button"
-            onClick={() => {
-              saveLinkedPins(linkedPins);
-              router.push("/places");
-            }}
-            className="inline-flex min-h-11 items-center font-semibold text-(--color-current)"
-          >
-            {copy.saveLinkedPins}
-          </button>
+          <div className="flex flex-col">
+            <button
+              type="button"
+              onClick={() => {
+                const note = saveLinkedNote(saveLinkedPins(linkedPins));
+                if (note === null) router.push("/places");
+                else setSaveNote(note);
+              }}
+              className="inline-flex min-h-11 items-center self-start font-semibold text-(--color-current)"
+            >
+              {copy.saveLinkedPins}
+            </button>
+            {/* Mounted before it has words, so the reason is announced. */}
+            <p role="status" className="text-small" data-testid="save-note">
+              {saveNote}
+            </p>
+          </div>
         ) : (
           <Link href="/places" className="text-dim hover:text-(--color-current)">
             {copy.placesTitle} →
@@ -564,14 +587,7 @@ export function WatchClient() {
       )}
       {isLinked && !isExample && (
         <p className="text-small text-dim">
-          {noSave ? (
-            copy.storageBlocked
-          ) : (
-            <>
-              You&apos;re viewing a shared watch link. Nothing was saved on
-              this device.
-            </>
-          )}
+          {noSave ? copy.storageBlocked : copy.sharedLinkNote}
         </p>
       )}
     </div>

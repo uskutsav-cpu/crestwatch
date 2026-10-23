@@ -38,14 +38,15 @@ import {
   WatchClient,
   chipFor,
   copyWithFallback,
-  fmtTime,
   freshnessChip,
   glossLineFor,
   latestReadingIso,
+  saveLinkedNote,
   saveLinkedPins,
   shownFeet,
   staleLineFor,
 } from "@/components/watch/WatchClient";
+import { fmtTime } from "@/lib/time";
 import { AlertStrip, dedupeAlerts } from "@/components/watch/AlertStrip";
 import {
   NEXT_STEP_LINKS,
@@ -207,6 +208,10 @@ describe("watch copy keys", () => {
     expect(copy.brokenLink).toBe(
       "This shared link didn't open. Ask for a new link, or add your own place.",
     );
+    // A shared or example link has nothing saved, so it doesn't say so.
+    expect(copy.riverDataDownLinked).toBe(
+      "The river data didn't answer. Try again in a minute.",
+    );
   });
 
   it("keeps the CATEGORY chip labels from the PM table", () => {
@@ -220,8 +225,14 @@ describe("watch copy keys", () => {
   it("follows the copy deck voice rules", () => {
     const strings = [
       copy.riverDataDown,
+      copy.riverDataDownLinked,
       copy.brokenLink,
       copy.refreshFailed("2:15 PM CT"),
+      copy.alertServiceDown,
+      copy.sharedLinkNote,
+      copy.shareFooter("Oct 23, 2:09 PM CT"),
+      copy.glossGap(4, heightGloss(4) as string),
+      copy.glossWater(4, heightGloss(4) as string),
       copy.alertsCheckedChip("2:15 PM CT"),
       copy.saveLinkedPins,
       copy.storageBlocked,
@@ -251,6 +262,16 @@ describe("failure states", () => {
     expect(html).toContain(esc(copy.riverDataDown));
     expect(html).toMatch(/<button[^>]*>Check again<\/button>/);
     expect(html).not.toContain("Try again in a minute.</div>");
+  });
+
+  it("#26: on a shared or example link it never claims places are saved", () => {
+    const link = encodeWatchLink([HOME]);
+    for (const q of [`wl=${link}`, `wl=${link}&ex=1`]) {
+      const html = render({ watches: [], updatedAt: null, error: true }, q);
+      expect(html).toContain(esc(copy.riverDataDownLinked));
+      expect(html).not.toContain("still saved");
+      expect(html).toMatch(/<button[^>]*>Check again<\/button>/);
+    }
   });
 
   it("#26/#35: while the retry runs, the button stays focusable (aria-disabled, not disabled)", () => {
@@ -330,6 +351,7 @@ describe("failure states", () => {
   it("a valid ?wl= still renders the sender's place", () => {
     const html = render({}, `wl=${encodeWatchLink([HOME])}`);
     expect(html).toContain("viewing a shared watch link");
+    expect(html).toContain(esc(copy.sharedLinkNote));
     expect(hook.calls.at(-1)?.[0]?.name).toBe("Home");
   });
 });
@@ -420,6 +442,11 @@ describe("#74 freshness chip", () => {
 
   it("ALERT-ONLY with the alert service down claims no check at all", () => {
     expect(freshnessChip(alertOnlyWatch(false), UPDATED_AT)).toBeNull();
+    const html = render({ watches: [alertOnlyWatch(false)] });
+    expect(html).toContain(esc(copy.alertServiceDown));
+    expect(render({ watches: [alertOnlyWatch()] })).not.toContain(
+      esc(copy.alertServiceDown),
+    );
   });
 
   it("stale data shows the delayed chip", () => {
@@ -462,7 +489,7 @@ describe("#7/#69 stale data reads as stale", () => {
 });
 
 describe("#4 approximate pins on the share card", () => {
-  it("carries the town-center line on the card", () => {
+  it("carries the rough-spot line on the card", () => {
     const pin = { ...HOME, approximate: true };
     const html = render({ pins: [pin] });
     expect(shareCard(html)).toContain(
@@ -484,6 +511,34 @@ describe("#18 times name their zone", () => {
   it("the share card footer ends in CT", () => {
     expect(shareStamp(new Date("2026-10-23T19:09:00Z"))).toBe("Oct 23, 2:09 PM CT");
     expect(shareCard(render())).toMatch(/public federal data · [A-Z][a-z]{2} \d+, \d+:\d{2} [AP]M CT/);
+    expect(copy.shareFooter("Oct 23, 2:09 PM CT")).toBe(
+      "crestwatch · public federal data · Oct 23, 2:09 PM CT",
+    );
+  });
+
+  it("the verdict sentence names CT next to its clock time", () => {
+    const v = fullWatch({ band: "LIKELY", marginFt: -2 }).verdict;
+    const s = verdictSentence({
+      pinName: "Home",
+      verdict: {
+        ...(v as Extract<typeof v, { tier: "FULL" }>),
+        crossing: { t: "2026-10-25T20:00:00Z", hoursFromNow: 25 },
+      },
+      gauge: { name: "Pearl River at Jackson", forecastIssued: null },
+      now: NOW,
+    });
+    expect(s).toMatch(/around \d+(am|pm) CT\./);
+  });
+
+  it("the Share button keeps its name while busy", () => {
+    const btn = render().match(/<button[^>]*>Share<\/button>/)?.[0] ?? "";
+    expect(btn).not.toBe("");
+    expect(btn).not.toMatch(/\sdisabled(=|\s|>)/);
+    const src = readFileSync(
+      join(__dirname, "..", "components", "watch", "ShareButton.tsx"),
+      "utf8",
+    );
+    expect(src).not.toContain('"…"');
   });
 });
 
@@ -667,6 +722,15 @@ describe("#12 shared and example links", () => {
     }
   });
 
+  it("has a status line next to Save, mounted before it has words", () => {
+    const html = render({}, `wl=${encodeWatchLink([HOME])}`);
+    expect(html).toMatch(
+      new RegExp(
+        `>${copy.saveLinkedPins}</button><p role="status"[^>]*data-testid="save-note"></p>`,
+      ),
+    );
+  });
+
   it("own places keep the 'Your places →' link and no Save button", () => {
     const html = render();
     expect(html).toContain(`${esc(copy.placesTitle)} →`);
@@ -717,7 +781,11 @@ describe("#12 saveLinkedPins", () => {
     }));
 
   it("adds linked places with fresh ids", () => {
-    expect(saveLinkedPins(linked(2))).toBe(2);
+    expect(saveLinkedPins(linked(2))).toEqual({
+      added: 2,
+      full: false,
+      storageFailed: false,
+    });
     const pins = saved();
     expect(pins.map((p) => p.name)).toEqual(["Spot 0", "Spot 1"]);
     for (const p of pins) expect(p.id).not.toMatch(/^wl\d$/);
@@ -733,7 +801,7 @@ describe("#12 saveLinkedPins", () => {
       lat: Math.round(HOME.lat * 1e5) / 1e5,
       lon: Math.round(HOME.lon * 1e5) / 1e5,
     };
-    expect(saveLinkedPins([fromLink, ...linked(1)])).toBe(1);
+    expect(saveLinkedPins([fromLink, ...linked(1)]).added).toBe(1);
     expect(saved().map((p) => p.name)).toEqual(["Home", "Spot 0"]);
   });
 
@@ -754,22 +822,72 @@ describe("#12 saveLinkedPins", () => {
         })),
       ),
     );
-    expect(saveLinkedPins(linked(3))).toBe(1);
+    expect(saveLinkedPins(linked(3))).toEqual({
+      added: 1,
+      full: true,
+      storageFailed: false,
+    });
     expect(saved()).toHaveLength(MAX_PINS);
   });
 
-  it("counts nothing when this browser won't store anything", () => {
-    const setItem = vi.fn(() => {
-      throw new DOMException("The quota has been exceeded.", "QuotaExceededError");
-    });
+  const fillStore = () =>
+    store.set(
+      STORAGE_KEYS.pins,
+      JSON.stringify(
+        linked(MAX_PINS).map((p, i) => ({
+          ...p,
+          id: `own${i}`,
+          matchedAddress: `OWN ${i}`,
+        })),
+      ),
+    );
+
+  it("a full store adds nothing and says so instead of going to Your places", () => {
+    fillStore();
+    const before = store.get(STORAGE_KEYS.pins);
+    const r = saveLinkedPins(linked(1));
+    expect(r).toEqual({ added: 0, full: true, storageFailed: false });
+    expect(store.get(STORAGE_KEYS.pins)).toBe(before);
+    expect(saveLinkedNote(r)).toBe(copy.placesFull(MAX_PINS));
+  });
+
+  it("a full store that already has the linked place just goes to Your places", () => {
+    fillStore();
+    const own = saved()[0];
+    const r = saveLinkedPins([{ ...own, id: "wl0" }]);
+    expect(r).toEqual({ added: 0, full: false, storageFailed: false });
+    expect(saveLinkedNote(r)).toBeNull();
+  });
+
+  it("blocked storage counts nothing, stores nothing, and says so", () => {
     vi.stubGlobal("localStorage", {
       getItem: (k: string) => store.get(k) ?? null,
-      setItem,
+      setItem: () => {
+        throw new DOMException("The quota has been exceeded.", "QuotaExceededError");
+      },
       removeItem: (k: string) => void store.delete(k),
     });
-    expect(saveLinkedPins(linked(2))).toBe(0);
-    expect(saved()).toEqual([]);
-    // Gives up after the first refused write.
-    expect(setItem).toHaveBeenCalledTimes(1);
+    const r = saveLinkedPins(linked(2));
+    expect(r).toEqual({ added: 0, full: false, storageFailed: true });
+    expect(store.has(STORAGE_KEYS.pins)).toBe(false);
+    expect(saveLinkedNote(r)).toBe(copy.storageBlocked);
+  });
+
+  it("a browser that accepts the write but keeps nothing is blocked too", () => {
+    vi.stubGlobal("localStorage", {
+      getItem: () => null,
+      setItem: () => {},
+      removeItem: () => {},
+    });
+    expect(saveLinkedPins(linked(1))).toEqual({
+      added: 0,
+      full: false,
+      storageFailed: true,
+    });
+  });
+
+  it("goes to Your places when something was saved", () => {
+    expect(saveLinkedNote({ added: 1, full: true, storageFailed: false })).toBeNull();
+    expect(saveLinkedNote({ added: 2, full: false, storageFailed: false })).toBeNull();
   });
 });

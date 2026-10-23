@@ -76,7 +76,6 @@ export const copy = {
   chipLikely: "water likely",
   chipBorderline: "too close to call",
   chipUnlikely: "stays dry",
-  chipCategory: "category mode",
   chipAlertOnly: "no gauge here",
   trendRising: "river rising",
   trendFalling: "river falling",
@@ -94,6 +93,8 @@ export const copy = {
   // Shared failure states (Watch, Places, Why use the same words)
   riverDataDown:
     "The river data didn't answer. Your places are still saved. Try again in a minute.",
+  // Same, for a shared or example link: nothing is saved on this device.
+  riverDataDownLinked: "The river data didn't answer. Try again in a minute.",
   brokenLink:
     "This shared link didn't open. Ask for a new link, or add your own place.",
 
@@ -241,13 +242,22 @@ export const copy = {
   chipCategoryModerate: "moderate flooding",
   chipCategoryMajor: "major flooding",
   alertsCheckedChip: (time: string) => `alerts checked ${time}`,
+  alertServiceDown:
+    "CrestWatch couldn't reach the alert service just now. That is not an all-clear. Check weather.gov directly.",
   saveLinkedPins: "Save to this device",
+  sharedLinkNote:
+    "You're viewing a shared watch link. Nothing was saved on this device.",
   copyLink: "Copy watch link",
   linkCopied: "Link copied ✓",
   copyLinkPrompt: "Copy this link:",
   approximateShare: "This is the middle of a town or street, not this house.",
+  shareFooter: (stamp: string) => `crestwatch · public federal data · ${stamp}`,
   stalenessUnknown:
     "Heads up: we can't tell how fresh this data is. The river may have moved.",
+  // Kid-scale second line under the sentence. `gloss` comes from lib/kid-scale.
+  glossGap: (ft: number, gloss: string) => `That ${ft} ft gap is ${gloss}.`,
+  glossWater: (ft: number, gloss: string) =>
+    `That could put about ${ft} ft of water here, ${gloss}.`,
   nextStepsTitle: "What to do now",
   nextSteps: [
     "Move cars, medicine, and important papers up high.",
