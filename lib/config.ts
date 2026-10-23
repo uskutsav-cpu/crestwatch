@@ -2,9 +2,17 @@
  * App-wide configuration (Appendix A4). No secrets — CrestWatch has none.
  */
 
-/** Use verbatim everywhere: About page, demo video, submission form. */
+/**
+ * Use verbatim everywhere: About page (text and meta description), demo
+ * video, submission form. README.md and docs/DEMO_SCRIPT.md quote it word
+ * for word, so change all three together. Visitors read it, so it follows
+ * the lib/copy.ts rules: no em dashes, no exclamation marks.
+ * TEAM: "six months" (the 2019 Yazoo backwater flood) is not checked
+ * against a source yet. Check it, and be ready to back up "while the
+ * forecasts sat unread", before you say this sentence on camera.
+ */
 export const PURPOSE_SENTENCE =
-  "CrestWatch turns the government's river forecasts — written for engineers — into one plain sentence about your own house: when the water is coming, how high, and whether it reaches your door, in a district that once stayed flooded for six months while the forecasts sat unread.";
+  "CrestWatch turns the government's river forecasts, written for engineers, into one plain sentence about your own house: when the water is coming, how high, and whether it reaches your door, in a district that once stayed flooded for six months while the forecasts sat unread.";
 
 export const MAX_PINS = 5;
 export const GAUGE_RADIUS_MI = 25;
@@ -102,7 +110,8 @@ export const REPLAY_EVENTS: ReplayEvent[] = [
   },
 ];
 
-/** localStorage keys — pins never leave the visitor's browser. */
+/** localStorage keys. Pins are stored only here. Each check sends them to
+ *  POST /api/watch, which answers and keeps none of them. */
 export const STORAGE_KEYS = {
   theme: "crestwatch.theme",
   pins: "crestwatch.pins",
