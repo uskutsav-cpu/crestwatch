@@ -27,18 +27,32 @@ function ctDate(x: Date): string {
   }).format(x);
 }
 
+/** Central-time calendar date as a phrase: "on Oct 12". */
+function dateWord(iso: string): string {
+  const md = new Intl.DateTimeFormat("en-US", {
+    timeZone: CT,
+    month: "short",
+    day: "numeric",
+  }).format(new Date(iso));
+  return `on ${md}`;
+}
+
 export function dayWord(iso: string, nowIso: string): string {
   const d = new Date(iso);
-  const now = new Date(nowIso);
   const target = ctDate(d);
-  const todayCT = ctDate(now);
-  if (target === todayCT) return "today";
-  // "Tomorrow" in pure calendar space — DST transitions (23h/25h days)
+  const todayCT = ctDate(new Date(nowIso));
+  // Count days in pure calendar space: DST transitions (23h/25h days)
   // must not shift which date counts as tomorrow.
-  const tomorrowCT = new Date(Date.parse(`${todayCT}T12:00:00Z`) + 86_400_000)
-    .toISOString()
-    .slice(0, 10);
-  if (target === tomorrowCT) return "tomorrow";
+  const ahead = Math.round(
+    (Date.parse(`${target}T12:00:00Z`) - Date.parse(`${todayCT}T12:00:00Z`)) /
+      86_400_000,
+  );
+  if (ahead === 0) return "today";
+  if (ahead === 1) return "tomorrow";
+  // A weekday name only points at the coming week. A crest from 60 days
+  // ago (or 10 days out) named "Monday" reads as next Monday, so past
+  // dates and dates a week or more away get the calendar date instead.
+  if (ahead < 0 || ahead >= 7) return dateWord(iso);
   return new Intl.DateTimeFormat("en-US", { timeZone: CT, weekday: "long" }).format(d);
 }
 
@@ -99,7 +113,15 @@ export function verdictSentence({
     return `The forecast crest at ${gaugeName} stays below flood stage. Low areas near the river should stay passable.`;
   }
 
-  const river = gauge ? riverName(gauge.name) : "The river";
+  // Every template reads "the {river}", so the fallback is the bare noun.
+  const river = gauge ? riverName(gauge.name) : "river";
+  // Stale data (the "data delayed" chip is showing) never says "today" or
+  // "now". Those sentences say what the last forecast showed, and name a
+  // calendar date, because "today" in a 3-day-old forecast isn't today.
+  const stale = verdict.stale.staleObserved || verdict.stale.staleForecast;
+  // A trend only counts from a fresh reading. Callers already pass null
+  // otherwise; enforce it here so a stale gauge can never claim "rising".
+  const trend = verdict.stale.staleObserved ? null : observedTrend;
 
   if (verdict.band === "LIKELY") {
     // Already flooded and still rising outranks every other phrasing —
@@ -117,22 +139,36 @@ export function verdictSentence({
       // The forecast says the crest is behind us. When the live gauge is
       // measurably rising at the same time, the two sources disagree, and
       // saying "coming down" would pick the staler one. Say both.
-      if (observedTrend === "rising") {
-        return copy.verdictLikelyPastPeakButRising(river, pinName);
+      // (A rising trend implies a fresh reading, so only the forecast can
+      // be the stale half here.)
+      if (trend === "rising") {
+        return verdict.stale.staleForecast
+          ? copy.verdictLikelyPastPeakButRisingStale(river, pinName)
+          : copy.verdictLikelyPastPeakButRising(river, pinName);
       }
-      return copy.verdictLikelyPastPeak(river, pinName);
+      return stale
+        ? copy.verdictLikelyPastPeakStale(river, pinName)
+        : copy.verdictLikelyPastPeak(river, pinName);
     }
     if (verdict.crossing) {
       const peakMs = Date.parse(verdict.peak.t);
       const crossMs = Date.parse(verdict.crossing.t);
       const hoursBefore = Math.max(1, Math.round((peakMs - crossMs) / 3_600_000));
-      return copy.verdictLikely(
-        river,
-        dayWord(verdict.peak.t, now),
-        timeWord(verdict.peak.t),
-        pinName,
-        hoursBefore,
-      );
+      return stale
+        ? copy.verdictLikelyStale(
+            river,
+            dateWord(verdict.peak.t),
+            timeWord(verdict.peak.t),
+            pinName,
+            hoursBefore,
+          )
+        : copy.verdictLikely(
+            river,
+            dayWord(verdict.peak.t, now),
+            timeWord(verdict.peak.t),
+            pinName,
+            hoursBefore,
+          );
     }
     // Within the LIKELY margin but no forecast crossing. Only claim
     // "within a foot" when the peak really stays just below the pin.
@@ -143,18 +179,52 @@ export function verdictSentence({
   }
 
   if (verdict.band === "BORDERLINE") {
-    const next = gauge?.forecastIssued
-      ? timeWord(new Date(Date.parse(gauge.forecastIssued) + 8 * 3_600_000).toISOString())
-      : "the next update";
-    return copy.verdictBorderline(pinName, wholeFt(verdict.marginFt), next);
+    // Forecasts are reissued about every 8 hours. Name that clock time
+    // only while it's still ahead of us; an evening visit (or an old
+    // forecast) would otherwise be told to check back at 4pm, already gone.
+    const nextMs = gauge?.forecastIssued
+      ? Date.parse(gauge.forecastIssued) + 8 * 3_600_000
+      : NaN;
+    const nextTime =
+      Number.isFinite(nextMs) && nextMs > Date.parse(now)
+        ? timeWord(new Date(nextMs).toISOString())
+        : null;
+    return copy.verdictBorderline(pinName, wholeFt(verdict.marginFt), nextTime);
   }
 
+  const stage = verdict.peak.stageFt.toFixed(1);
+  const margin = wholeFt(verdict.marginFt);
+  if (stale) {
+    // Say where the number came from. When the last reading is the
+    // highest water (the forecast showed nothing higher), the margin was
+    // measured against that reading, not a forecast crest.
+    const fromReading =
+      verdict.currentWaterElevFt !== null &&
+      verdict.currentWaterElevFt >= verdict.peak.waterElevFt;
+    return fromReading
+      ? copy.verdictUnlikelyStaleReading(river, stage, pinName, margin)
+      : copy.verdictUnlikelyStale(
+          river,
+          dateWord(verdict.peak.t),
+          stage,
+          pinName,
+          margin,
+        );
+  }
+  // Crest behind us: with fresh data, peak.stageFt is the latest water
+  // level (the last reading or the next forecast point, whichever is
+  // higher), so "is at … and coming down" is true, and "peaks today" next
+  // to a "river falling" chip is not. A live gauge still rising keeps the
+  // "peaks" wording, as in the LIKELY branch.
+  if (verdict.pastPeak && trend !== "rising") {
+    return copy.verdictUnlikelyFalling(river, stage, pinName, margin);
+  }
   return copy.verdictUnlikely(
     river,
     dayWord(verdict.peak.t, now),
-    verdict.peak.stageFt.toFixed(1),
+    stage,
     pinName,
-    wholeFt(verdict.marginFt),
+    margin,
   );
 }
 

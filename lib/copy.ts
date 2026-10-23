@@ -7,6 +7,12 @@
  * honest ("about", "~"). The app never says "automated". It says "public data".
  */
 
+/** "1 hour", "5 hours". */
+const hours = (h: number) => (h === 1 ? "1 hour" : `${h} hours`);
+
+/** Past 48 hours, an age reads better in days ("3 days", not "72 hours"). */
+const age = (h: number) => (h > 48 ? `${Math.round(h / 24)} days` : hours(h));
+
 export const copy = {
   appName: "CrestWatch",
   tagline: "Will the water reach your house? One sentence, days early.",
@@ -64,10 +70,10 @@ export const copy = {
   share: "Share",
   countdown: (pin: string, h: number) => `water reaches ${pin} in ~${h}h`,
   liveChip: (time: string) => `live · updated ${time}`,
-  delayedChip: (n: number) => `data delayed ${n}h`,
+  delayedChip: (n: number) =>
+    n > 48 ? `data delayed ${age(n)}` : `data delayed ${n}h`,
   crestCompare: (n: string, year: number) =>
     `${n}-highest forecast here since ${year}`,
-  fallingNote: "the river is coming down",
 
   // S3 · Places
   placesTitle: "Your places",
@@ -93,15 +99,29 @@ export const copy = {
   replayResult: (pin: string, days: number) =>
     `Water above ${pin}: ${days} days`,
 
-  // Verdict sentences (Appendix C, hand-tuned by the team)
+  // Verdict sentences (Appendix C). TEAM: hand-tune these.
   verdictLikely: (river: string, day: string, time: string, pin: string, h: number) =>
-    `The ${river} peaks ${day} around ${time}. Water likely reaches ${pin} about ${h} hours before that.`,
+    `The ${river} peaks ${day} around ${time}. Water likely reaches ${pin} about ${hours(h)} before that.`,
+  verdictLikelyStale: (river: string, day: string, time: string, pin: string, h: number) =>
+    `The last forecast had the ${river} peaking ${day} around ${time}. By that forecast, water likely reaches ${pin} about ${hours(h)} before that.`,
   verdictLikelyPastPeak: (river: string, pin: string) =>
     `The ${river} has peaked and is coming down, but ${pin} is likely still in the water today.`,
-  verdictBorderline: (pin: string, margin: string, next: string) =>
-    `${pin} sits about ${margin} ft above the forecast peak. That's too close to call. Check back after the next forecast, around ${next}.`,
+  verdictLikelyPastPeakStale: (river: string, pin: string) =>
+    `The last forecast had the ${river} coming down from its peak, with ${pin} likely still in the water. Check back after the next forecast.`,
+  verdictBorderline: (pin: string, margin: string, nextTime: string | null) =>
+    `${pin} sits about ${margin} ft above the forecast peak. That's too close to call. ${
+      nextTime === null
+        ? "Check back after the next update."
+        : `Check back after the next forecast, around ${nextTime}.`
+    }`,
   verdictUnlikely: (river: string, day: string, stage: string, pin: string, margin: string) =>
-    `The ${river} peaks ${day} at ${stage} ft. ${pin} stays dry by about ${margin} ft.`,
+    `The ${river} peaks ${day} at ${stage} ft on the river gauge. ${pin} stays dry by about ${margin} ft.`,
+  verdictUnlikelyFalling: (river: string, stage: string, pin: string, margin: string) =>
+    `The ${river} is at ${stage} ft on the river gauge and coming down. ${pin} stays dry by about ${margin} ft.`,
+  verdictUnlikelyStale: (river: string, day: string, stage: string, pin: string, margin: string) =>
+    `The last forecast had the ${river} peaking ${day} at ${stage} ft on the river gauge. By that forecast, ${pin} stays dry by about ${margin} ft.`,
+  verdictUnlikelyStaleReading: (river: string, stage: string, pin: string, margin: string) =>
+    `The last reading had the ${river} at ${stage} ft on the river gauge. By that reading, ${pin} stays dry by about ${margin} ft.`,
   verdictCategory: (x: string, gauge: string, category: string) =>
     `The forecast crest is ${x} ft above flood stage at ${gauge}. The Weather Service calls that ${category} flooding for low areas nearby. This gauge doesn't share its height above sea level, so CrestWatch can't do house-level math here. Treat low roads as wet.`,
   verdictCategoryNoMargin: (gauge: string, category: string) =>
@@ -110,12 +130,14 @@ export const copy = {
     `The forecast crest comes close to flood stage at ${gauge}. Keep an eye on it. This gauge doesn't share its height above sea level, so CrestWatch can't do house-level math here.`,
   verdictLikelyPastPeakButRising: (river: string, pin: string) =>
     `The forecast says the ${river} has peaked, but the gauge still shows it rising right now. ${pin} is likely in the water today. Check back after the next forecast.`,
+  verdictLikelyPastPeakButRisingStale: (river: string, pin: string) =>
+    `The last forecast had the ${river} past its peak, but the gauge shows it still rising. ${pin} is likely in the water. Check back after the next forecast.`,
   verdictLikelyNow: (pin: string, river: string) =>
     `${pin} is in the water now, and the ${river} is still up. Stay off flooded roads and check back after the next forecast.`,
   verdictAlertOnly:
     "No forecast gauge watches this spot. CrestWatch works on rivers with gauges. For flash floods from sudden rain, your county alerts are the right tool.",
   staleness: (n: number) =>
-    `Heads up: this data is ${n} hours old. The river may have moved.`,
+    `Heads up: this data is ${age(n)} old. The river may have moved.`,
 
   // Band labels
   bandLikely: "Water likely reaches this spot.",
