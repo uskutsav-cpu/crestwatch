@@ -224,6 +224,7 @@ describe("watch copy keys", () => {
       copy.refreshFailed("2:15 PM CT"),
       copy.alertsCheckedChip("2:15 PM CT"),
       copy.saveLinkedPins,
+      copy.storageBlocked,
       copy.approximateShare,
       copy.stalenessUnknown,
       copy.nextStepsTitle,
@@ -671,6 +672,23 @@ describe("#12 shared and example links", () => {
     expect(html).toContain(`${esc(copy.placesTitle)} →`);
     expect(html).not.toContain(copy.saveLinkedPins);
   });
+
+  it("a place setup couldn't save says why and offers no Save button", () => {
+    const html = render({}, `wl=${encodeWatchLink([HOME])}&nosave=1`);
+    // The verdict still shows.
+    expect(html).toMatch(/stays dry by about 38 ft/);
+    expect(html).toContain(esc(copy.storageBlocked));
+    expect(html).not.toContain("viewing a shared watch link");
+    expect(html).not.toContain(copy.saveLinkedPins);
+    // Your places would be empty on this browser.
+    expect(html).not.toContain(`${esc(copy.placesTitle)} →`);
+  });
+
+  it("nosave means nothing without a watch link", () => {
+    const html = render({}, "nosave=1");
+    expect(html).not.toContain(esc(copy.storageBlocked));
+    expect(html).toContain(`${esc(copy.placesTitle)} →`);
+  });
 });
 
 describe("#12 saveLinkedPins", () => {
@@ -738,5 +756,20 @@ describe("#12 saveLinkedPins", () => {
     );
     expect(saveLinkedPins(linked(3))).toBe(1);
     expect(saved()).toHaveLength(MAX_PINS);
+  });
+
+  it("counts nothing when this browser won't store anything", () => {
+    const setItem = vi.fn(() => {
+      throw new DOMException("The quota has been exceeded.", "QuotaExceededError");
+    });
+    vi.stubGlobal("localStorage", {
+      getItem: (k: string) => store.get(k) ?? null,
+      setItem,
+      removeItem: (k: string) => void store.delete(k),
+    });
+    expect(saveLinkedPins(linked(2))).toBe(0);
+    expect(saved()).toEqual([]);
+    // Gives up after the first refused write.
+    expect(setItem).toHaveBeenCalledTimes(1);
   });
 });

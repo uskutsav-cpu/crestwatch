@@ -20,6 +20,7 @@ import {
 } from "@/lib/pin-store";
 import { EXAMPLE_HREF } from "@/lib/example";
 import { encodeWatchLink } from "@/lib/watch-link";
+import type { Pin } from "@/lib/pins";
 import type { LookupResult } from "@/lib/watch-service";
 
 type Phase = "enter" | "confirm";
@@ -44,6 +45,23 @@ const PLACES_FULL = copy.placesFull(MAX_PINS);
 
 const linkClasses =
   "inline-flex min-h-11 items-center self-start text-small font-semibold text-(--color-current) hover:underline";
+
+/**
+ * Where leaving setup goes, for Done and Skip alike. One saved place
+ * opens its verdict; with more, /watch would open the oldest one, so
+ * the list opens instead.
+ */
+export function exitHref(saved: number): string {
+  return saved > 1 ? "/places" : "/watch";
+}
+
+/**
+ * A pin this browser wouldn't keep, as a Watch Link. The link needs no
+ * storage, and nosave=1 tells /watch to say why it wasn't saved.
+ */
+export function storageFallbackHref(pin: Pin): string {
+  return `/watch?wl=${encodeWatchLink([pin])}&nosave=1`;
+}
 
 export function SetupFlow() {
   const router = useRouter();
@@ -180,9 +198,9 @@ export function SetupFlow() {
   function onSaveFailed(res: Extract<AddPinResult, { ok: false }>) {
     if (res.reason === "storage") {
       // This browser keeps nothing, but a Watch Link needs no storage,
-      // so the person still sees the verdict they came for.
-      setNote(copy.storageBlocked);
-      router.push(`/watch?wl=${encodeWatchLink([res.pin])}`);
+      // so the person still sees the verdict they came for. /watch says
+      // why it wasn't saved: a note here would vanish with the page.
+      router.push(storageFallbackHref(res.pin));
       return; // leaving the page: keep the save guard up
     }
     setPinCount(res.pins.length);
@@ -202,7 +220,7 @@ export function SetupFlow() {
       onSaveFailed(res);
       return;
     }
-    router.push(res.pins.length > 1 ? "/places" : "/watch");
+    router.push(exitHref(res.pins.length));
   }
 
   function confirmAndAddSecond() {
@@ -340,7 +358,9 @@ export function SetupFlow() {
             disabled={busy}
             placeholder={copy.addressPlaceholder}
             aria-label="Address, town, or ZIP"
-            aria-invalid={note ? true : undefined}
+            // Only "couldn't find that one" is about what was typed. The
+            // other notes (slow service, offline) say the address is fine.
+            aria-invalid={note === copy.addressNotFound ? true : undefined}
             aria-describedby={note ? "lookup-note" : undefined}
             className="h-13 shrink-0 rounded-xl bg-surface px-4 sm:flex-1 sm:shrink ring-1 ring-inset ring-(--color-dim) text-body text-fg placeholder:text-dim disabled:text-dim focus:outline-none focus:ring-(--color-current)"
           />
@@ -359,7 +379,7 @@ export function SetupFlow() {
           <ButtonGhost
             type="button"
             className="sm:self-start"
-            onClick={() => router.push("/watch")}
+            onClick={() => router.push(exitHref(pinCount))}
           >
             {copy.skipSecond}
           </ButtonGhost>
@@ -377,8 +397,12 @@ export function SetupFlow() {
       {body}
       {/* Live regions stay in the DOM the whole time and only their text
           changes: some screen readers skip a region inserted already
-          filled. */}
-      <p role="status" className={busy ? "text-small text-dim" : "sr-only"}>
+          filled. The first two stages are already on the button, so only
+          the slow-service sentence shows; screen readers hear them all. */}
+      <p
+        role="status"
+        className={busy && stage === 2 ? "text-small text-dim" : "sr-only"}
+      >
         {busy ? STAGE_TEXT[stage] : ""}
       </p>
       <p

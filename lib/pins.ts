@@ -12,8 +12,9 @@ export interface Pin {
   lon: number;
   elevationFt: number;
   /**
-   * True when this pin came from a town/ZIP match rather than a street
-   * address — the elevation is the middle of town, not this visitor's
+   * True when this pin is not a house-level match: a town/ZIP centroid,
+   * or a point on a street whose house wasn't found. Either way the
+   * elevation is the middle of a town or a street, not this visitor's
    * ground. Every screen that shows a verdict must say so.
    */
   approximate?: boolean;
