@@ -167,4 +167,34 @@ export const copy = {
     "Your saved places are safe. Try again, or come back in a minute.",
   tryAgain: "Try again",
   goHome: "Go home",
+
+  // S2 · Watch: failure states, honesty and next steps
+  riverDataDown:
+    "The river data didn't answer. Your places are still saved. Try again in a minute.",
+  brokenLink:
+    "This shared link didn't open. Ask for a new link, or add your own place.",
+  refreshFailed: (time: string) =>
+    `Couldn't check the river just now. This is the answer from ${time}.`,
+  chipCategoryNone: "below flood stage",
+  chipCategoryAction: "near flood stage",
+  chipCategoryMinor: "minor flooding",
+  chipCategoryModerate: "moderate flooding",
+  chipCategoryMajor: "major flooding",
+  alertsCheckedChip: (time: string) => `alerts checked ${time}`,
+  saveLinkedPins: "Save to this device",
+  copyLink: "Copy watch link",
+  linkCopied: "Link copied ✓",
+  copyLinkPrompt: "Copy this link:",
+  approximateShare: "This is the middle of town, not this house.",
+  stalenessUnknown:
+    "Heads up: we can't tell how fresh this data is. The river may have moved.",
+  nextStepsTitle: "What to do now",
+  nextSteps: [
+    "Move cars, medicine, and important papers up high.",
+    "Never drive or walk into water on a road. Turn around, don't drown.",
+    "Follow the official alert and what local officials tell you.",
+  ],
+  nextStepsLinkNws: "National Weather Service, Jackson office",
+  nextStepsLinkMsema: "Mississippi Emergency Management Agency",
+  nextStepsLinkMdot: "Road conditions from MDOT, the state road department",
 } as const;
