@@ -69,7 +69,7 @@ test("setup: second pin lands on places board", async ({ page }) => {
   expect(pins[1].name).toBe("The road");
 });
 
-test("setup: a town name works and is labelled a town center", async ({
+test("setup: a town name works and is labelled an approximate spot", async ({
   page,
 }) => {
   await page.goto("/");
@@ -81,13 +81,17 @@ test("setup: a town name works and is labelled a town center", async ({
     timeout: 15_000,
   });
   // ...and is honest that it is not the visitor's own ground.
-  await expect(page.getByText("town center").first()).toBeVisible();
-  await expect(page.getByText(/middle of town, not your house/)).toBeVisible();
+  await expect(page.getByText("approximate spot").first()).toBeVisible();
+  await expect(
+    page.getByText(/middle of your town or street, not your house/),
+  ).toBeVisible();
 
   await page.getByRole("button", { name: "Done" }).click();
   await expect(page).toHaveURL(/\/watch/);
   // The caveat follows the pin onto the verdict screen.
-  await expect(page.getByText(/middle of town, not your house/)).toBeVisible({
+  await expect(
+    page.getByText(/middle of your town or street, not your house/),
+  ).toBeVisible({
     timeout: 15_000,
   });
   const pins = await page.evaluate(() =>

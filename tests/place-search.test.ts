@@ -1,8 +1,13 @@
+import { readFileSync } from "node:fs";
+import { join } from "node:path";
 import { describe, expect, it } from "vitest";
 import {
   extractLocality,
   geocodePlace,
+  geocodeStreetFallback,
+  isHouseLevelHit,
   looksLikeStreetAddress,
+  nominatimUrl,
   placeSearchUrl,
   splitStateHint,
 } from "@/lib/geo";
@@ -282,12 +287,14 @@ describe("three-tier lookup chain", () => {
     expect(r.matchedAddress).toContain("Vicksburg");
   });
 
-  it("a street the Census file lacks is still found at street level", async () => {
+  it("a street the Census file lacks is found, but as a street point, not a house", async () => {
     clearCache();
     const r = await lookupAddress("1234 Main Street, Yazoo City, MS", testFetchers);
     expect(r.ok).toBe(true);
     if (!r.ok) return;
-    expect(r.precision).toBe("address");
+    // Nominatim found the road (class highway), not house 1234: the
+    // approximate warning must show (#5/#49).
+    expect(r.precision).toBe("place");
     expect(r.matchedAddress).toContain("Main Street");
   });
 
@@ -297,5 +304,80 @@ describe("three-tier lookup chain", () => {
     expect(r.ok).toBe(true);
     if (!r.ok) return;
     expect(r.precision).toBe("place");
+  });
+});
+
+describe("street fallback: house-level only for a real house (#5/#49)", () => {
+  const FIX = join(__dirname, "fixtures");
+  const fixture = (f: string) => JSON.parse(readFileSync(join(FIX, f), "utf8")) as unknown;
+  const serve = (body: unknown) => async () => body;
+
+  it("asks Nominatim for address details", () => {
+    expect(new URL(nominatimUrl("1 Main St")).searchParams.get("addressdetails")).toBe("1");
+  });
+
+  it("a road centroid (no house_number) is a 'place', not an 'address'", async () => {
+    const r = await geocodeStreetFallback(
+      "1234 Main Street, Yazoo City, MS",
+      serve(fixture("nominatim_yazoo_main.json")),
+    );
+    expect(r.ok).toBe(true);
+    if (!r.ok) return;
+    expect(r.point.precision).toBe("place");
+    expect(r.point.matchedAddress).toBe("North Main Street, Yazoo City, Yazoo County");
+  });
+
+  it("a building carrying the asked house number is house-level", async () => {
+    // Live hit, 2026-10-23: a shop's building outline at 1400 Washington St.
+    const r = await geocodeStreetFallback(
+      "1400 Washington St, Vicksburg, MS",
+      serve(fixture("nominatim_house_vicksburg.json")),
+    );
+    expect(r.ok).toBe(true);
+    if (!r.ok) return;
+    expect(r.point.precision).toBe("address");
+    expect(r.point.matchedAddress).toBe("1400 Washington Street, Vicksburg");
+    expect(r.point.lat).toBeCloseTo(32.349, 3);
+  });
+
+  it("a different house number on the same street is not this house", async () => {
+    const r = await geocodeStreetFallback(
+      "9999 Washington St, Vicksburg, MS",
+      serve(fixture("nominatim_house_vicksburg.json")),
+    );
+    expect(r.ok).toBe(true);
+    if (!r.ok) return;
+    expect(r.point.precision).toBe("place");
+  });
+
+  it("house points and buildings count; streets and areas don't", () => {
+    const q = "12 Elm St, Belzoni, MS";
+    const withNumber = { address: { house_number: "12" } };
+    expect(isHouseLevelHit({ ...withNumber, class: "place", type: "house" }, q)).toBe(true);
+    expect(isHouseLevelHit({ ...withNumber, class: "building", type: "yes" }, q)).toBe(true);
+    expect(isHouseLevelHit({ ...withNumber, class: "amenity", type: "post_office", place_rank: 30 }, q)).toBe(true);
+    expect(isHouseLevelHit({ ...withNumber, class: "highway", type: "residential", place_rank: 30 }, q)).toBe(false);
+    expect(isHouseLevelHit({ ...withNumber, class: "leisure", type: "park", place_rank: 24 }, q)).toBe(false);
+    expect(isHouseLevelHit({ class: "place", type: "house" }, q)).toBe(false);
+    expect(isHouseLevelHit({ class: "building", address: { house_number: " " } }, q)).toBe(false);
+    // Multi-number buildings and letter suffixes.
+    expect(isHouseLevelHit({ class: "building", address: { house_number: "10;12" } }, q)).toBe(true);
+    expect(isHouseLevelHit({ class: "building", address: { house_number: "12A" } }, "12a Elm St")).toBe(true);
+  });
+
+  it("the lookup chain keeps a real Nominatim house at house level", async () => {
+    clearCache();
+    const fetchers = {
+      json: async (url: string, opts?: { timeoutMs?: number }) =>
+        new URL(url).hostname === "nominatim.openstreetmap.org"
+          ? fixture("nominatim_house_vicksburg.json")
+          : testFetchers.json(url, opts),
+      text: testFetchers.text,
+    };
+    // Census has no match for this spelling, so the street tier answers.
+    const r = await lookupAddress("1400 Washington Street, Vicksburg, Mississippi", fetchers);
+    expect(r.ok).toBe(true);
+    if (!r.ok) return;
+    expect(r.precision).toBe("address");
   });
 });

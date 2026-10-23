@@ -1,0 +1,36 @@
+[
+  {
+    "place_id": 424408831,
+    "licence": "Data © OpenStreetMap contributors, ODbL 1.0. http://osm.org/copyright",
+    "osm_type": "way",
+    "osm_id": 1335819496,
+    "lat": "32.3490041",
+    "lon": "-90.8825480",
+    "class": "shop",
+    "type": "gift",
+    "place_rank": 30,
+    "importance": 3.500190737769158e-05,
+    "addresstype": "shop",
+    "name": "Lauren’s on Washington",
+    "display_name": "Lauren’s on Washington, 1400, Washington Street, Speeds Addition, Vicksburg, Warren County, Mississippi, 39183, United States",
+    "address": {
+      "shop": "Lauren’s on Washington",
+      "house_number": "1400",
+      "road": "Washington Street",
+      "hamlet": "Speeds Addition",
+      "town": "Vicksburg",
+      "county": "Warren County",
+      "state": "Mississippi",
+      "ISO3166-2-lvl4": "US-MS",
+      "postcode": "39183",
+      "country": "United States",
+      "country_code": "us"
+    },
+    "boundingbox": [
+      "32.3489249",
+      "32.3490832",
+      "-90.8826949",
+      "-90.8824012"
+    ]
+  }
+]

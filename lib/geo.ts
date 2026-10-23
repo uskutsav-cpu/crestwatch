@@ -12,8 +12,9 @@ export interface GeoPoint {
   matchedAddress: string;
   /**
    * "address" = an exact street address (house-level, what the verdict
-   * math wants). "place" = a town/ZIP centroid, which is NOT the
-   * visitor's ground. Callers must say so out loud.
+   * math wants). "place" = a town/ZIP centroid or a point on a street
+   * whose house wasn't found, which is NOT the visitor's ground. Callers
+   * must say so out loud.
    */
   precision: "address" | "place";
 }
@@ -204,8 +205,49 @@ export function nominatimUrl(query: string): string {
   u.searchParams.set("format", "json");
   u.searchParams.set("limit", "1");
   u.searchParams.set("countrycodes", "us");
-  u.searchParams.set("addressdetails", "0");
+  // Needed to tell a real house (address.house_number) from a road.
+  u.searchParams.set("addressdetails", "1");
   return u.toString();
+}
+
+export interface NominatimHit {
+  lat?: string;
+  lon?: string;
+  display_name?: string;
+  class?: string;
+  type?: string;
+  addresstype?: string;
+  /** Nominatim's own scale: 26-27 streets, 30 houses, buildings, shops. */
+  place_rank?: number;
+  address?: { house_number?: string; road?: string };
+}
+
+const norm = (s: string) => s.toLowerCase().replace(/\s+/g, "");
+
+/**
+ * House-level only when the hit really is a house or building that
+ * carries a house number, and (when the query starts with one) the SAME
+ * number. A road centroid ("North Main Street, Yazoo City") or another
+ * house on the street is a point on the street, not the visitor's ground.
+ *
+ * "Building" includes a shop or office in its own building: the live hit
+ * for 1400 Washington St, Vicksburg is a gift shop's outline (class
+ * "shop", place_rank 30) carrying house_number 1400.
+ */
+export function isHouseLevelHit(hit: NominatimHit, query: string): boolean {
+  const number = hit.address?.house_number?.trim();
+  if (!number || hit.class === "highway") return false;
+  const houseOrBuilding =
+    hit.class === "building" ||
+    hit.type === "house" ||
+    hit.addresstype === "house" ||
+    hit.addresstype === "building" ||
+    (typeof hit.place_rank === "number" && hit.place_rank >= 30);
+  if (!houseOrBuilding) return false;
+  const asked = /^\s*(\d+[a-z]?)\b/i.exec(query)?.[1];
+  if (!asked) return true;
+  // OSM can list several numbers on one building: "1400;1402", "1400-1402".
+  return number.split(/[;,-]/).some((n) => norm(n) === norm(asked));
 }
 
 /**
@@ -215,6 +257,9 @@ export function nominatimUrl(query: string): string {
  * Census misses, the result is cached for a day, and any failure just
  * falls through to the town lookup. If it ever blocks us the app quietly
  * degrades to town-level answers instead of breaking.
+ *
+ * Often it finds only the street. That comes back as precision "place"
+ * so the approximate warning shows, same as a town center.
  */
 export async function geocodeStreetFallback(
   query: string,
@@ -226,23 +271,30 @@ export async function geocodeStreetFallback(
   } catch {
     return { ok: false, error: "UPSTREAM" };
   }
-  const hit = (
-    data as Array<{ lat?: string; lon?: string; display_name?: string }>
-  )?.[0];
+  const hit = Array.isArray(data) ? (data[0] as NominatimHit | undefined) : undefined;
   const lat = parseFloat(hit?.lat ?? "");
   const lon = parseFloat(hit?.lon ?? "");
   if (!hit || !Number.isFinite(lat) || !Number.isFinite(lon)) {
     return { ok: false, error: "NOT_FOUND" };
   }
-  // Trim the long OSM display name to something a person recognises.
-  const label = (hit.display_name ?? query)
-    .split(",")
-    .slice(0, 3)
-    .join(",")
-    .trim();
+  const houseLevel = isHouseLevelHit(hit, query);
+  const a = hit.address as Record<string, string | undefined> | undefined;
+  const town = a?.city ?? a?.town ?? a?.village ?? a?.hamlet;
+  // A house hit reads as its address ("1400 Washington Street, Vicksburg"),
+  // not as whatever shop sits there. Otherwise trim the long OSM display
+  // name to something a person recognises.
+  const label =
+    houseLevel && a?.house_number && a.road
+      ? [`${a.house_number} ${a.road}`, town].filter(Boolean).join(", ")
+      : (hit.display_name ?? query).split(",").slice(0, 3).join(",").trim();
   return {
     ok: true,
-    point: { lat, lon, matchedAddress: label, precision: "address" },
+    point: {
+      lat,
+      lon,
+      matchedAddress: label,
+      precision: houseLevel ? "address" : "place",
+    },
   };
 }
 

@@ -32,8 +32,8 @@ export const copy = {
   addressNotFound:
     "We couldn't find that one. Try a street address, or just your town and state, like Vicksburg, MS.",
   approximateNote:
-    "This is the middle of town, not your house. Your own street can sit a few feet higher or lower. Type your street address to get an answer for your house.",
-  approximateTag: "town center",
+    "This is the middle of your town or street, not your house. Your own ground can sit many feet higher or lower. In hilly towns like Vicksburg it can be tens of feet. Type your full street address for an answer about your house.",
+  approximateTag: "approximate spot",
   elevationUnavailable:
     "We found your spot, but the map service that tells us how high the ground sits didn't answer. Wait a moment and try again.",
   lookupUpstream:

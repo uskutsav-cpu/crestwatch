@@ -1,0 +1,51 @@
+{
+  "type": "FeatureCollection",
+  "features": [
+    {
+      "type": "Feature",
+      "properties": {
+        "time": "2026-10-23T16:00:00+00:00",
+        "value": "4.03"
+      },
+      "id": "4c070cd8-d038-453d-b5ca-2d0c81d3a23c",
+      "geometry": null
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "time": "2026-10-23T17:00:00+00:00",
+        "value": "4.03"
+      },
+      "id": "d21316e0-f146-4d10-96af-c5673890fa4b",
+      "geometry": null
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "time": "2026-10-23T18:00:00+00:00",
+        "value": "4.03"
+      },
+      "id": "e7cb0505-80a9-4dcb-8bbc-ae874d2bc26b",
+      "geometry": null
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "time": "2026-10-23T19:00:00+00:00",
+        "value": "4.03"
+      },
+      "id": "9772faa3-a1bf-468a-aded-beb421d96c0a",
+      "geometry": null
+    }
+  ],
+  "numberReturned": 4,
+  "links": [
+    {
+      "type": "application/geo+json",
+      "rel": "self",
+      "title": "This document as GeoJSON",
+      "href": "https://api.waterdata.usgs.gov/ogcapi/v1/collections/continuous/items?f=json&monitoring_location_id=USGS-07289730&parameter_code=00065&time=PT48H&properties=time,value&skipGeometry=true&limit=1000"
+    }
+  ],
+  "timeStamp": "2026-10-23T19:37:40.385272Z"
+}

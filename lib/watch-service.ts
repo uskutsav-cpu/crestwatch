@@ -13,10 +13,12 @@ import {
   groundElevationFt,
   looksLikeStreetAddress,
   splitStateHint,
+  type GeocodeResult,
 } from "@/lib/geo";
 import {
   pickForecastGauge,
   defaultFetchers,
+  haversineMi,
   type Fetchers,
   type GaugeBundle,
 } from "@/lib/gauges";
@@ -51,9 +53,9 @@ export type LookupResult =
       lon: number;
       elevationFt: number;
       /**
-       * "address" = an exact street match. "place" = a town or ZIP
-       * centroid — the elevation is the middle of town, NOT the
-       * visitor's own ground, and the UI must say so.
+       * "address" = a house-level match. "place" = a town or ZIP
+       * centroid, or a point on a street whose house wasn't found. The
+       * elevation is NOT the visitor's own ground, and the UI must say so.
        */
       precision: "address" | "place";
       gauge: { lid: string; name: string; distanceMi: number } | null;
@@ -68,20 +70,28 @@ export async function lookupAddress(
   const geo = await cached(
     `geo:${key}`,
     GEO_TTL_MS,
-    async () => {
+    async (): Promise<GeocodeResult> => {
       // Three tiers, best precision first. House-level is what the verdict
       // math deserves, but never dead-end a real person over a house
-      // number some federal file happens to be missing.
+      // number some federal file happens to be missing, or over one
+      // service being down: an outage falls through like a miss does.
+      let sawUpstream = false;
+      const settle = (r: GeocodeResult): GeocodeResult | null => {
+        if (r.ok) return r;
+        if (r.error === "UPSTREAM") sawUpstream = true;
+        return null;
+      };
+
       //  1. Census — authoritative US street addresses.
-      const exact = await geocodeAddress(address, fetchers.json);
-      if (exact.ok || exact.error === "UPSTREAM") return exact;
+      const exact = settle(await geocodeAddress(address, fetchers.json));
+      if (exact) return exact;
 
       //  2. A second street-level opinion for addresses Census lacks —
       //     only for things that really are street addresses, so a town
       //     or ZIP can never come back wearing house-level precision.
       if (looksLikeStreetAddress(address)) {
-        const street = await geocodeStreetFallback(address, fetchers.json);
-        if (street.ok) return street;
+        const street = settle(await geocodeStreetFallback(address, fetchers.json));
+        if (street) return street;
       }
 
       //  3. The town inside the address ("1234 Main St, Yazoo City, MS"
@@ -89,13 +99,17 @@ export async function lookupAddress(
       const { state } = splitStateHint(address);
       const locality = extractLocality(address);
       if (locality) {
-        const asTown = await geocodePlace(
-          state ? `${locality}, ${state}` : locality,
-          fetchers.json,
+        const asTown = settle(
+          await geocodePlace(state ? `${locality}, ${state}` : locality, fetchers.json),
         );
-        if (asTown.ok) return asTown;
+        if (asTown) return asTown;
       }
-      return geocodePlace(address, fetchers.json);
+      const last = settle(await geocodePlace(address, fetchers.json));
+      if (last) return last;
+      // Every tier missed. If any of them was down, the honest answer is
+      // UPSTREAM: a NOT_FOUND would be cached and blank this address for
+      // a day after the service comes back.
+      return { ok: false, error: sawUpstream ? "UPSTREAM" : "NOT_FOUND" };
     },
     // A NOT_FOUND is a stable answer worth caching; an UPSTREAM blip is
     // not — caching it would blank this address for a day.
@@ -123,7 +137,7 @@ export async function lookupAddress(
     elevationFt,
     precision: geo.point.precision,
     gauge: gauge
-      ? { lid: gauge.lid, name: gauge.name, distanceMi: gauge.distanceMi }
+      ? { lid: gauge.lid, name: gauge.name, distanceMi: distanceTo(gauge, lat, lon) }
       : null,
   };
 }
@@ -133,11 +147,18 @@ async function gaugeFor(
   lon: number,
   fetchers: Fetchers,
 ): Promise<GaugeBundle | null> {
-  // Key by coarse location: pins a street apart share a gauge.
+  // Key by coarse location: pins a street apart share a gauge. The
+  // bundle's own distanceMi belongs to whichever pin filled the cell, so
+  // callers measure their own with distanceTo().
   const key = `gauge:${lat.toFixed(2)},${lon.toFixed(2)}`;
   return cached(key, GAUGE_TTL_MS, () =>
     pickForecastGauge(lat, lon, GAUGE_RADIUS_MI, fetchers),
   );
+}
+
+/** Miles from this pin to the gauge, never the cached first pin's figure. */
+function distanceTo(gauge: GaugeBundle, lat: number, lon: number): number {
+  return haversineMi(lat, lon, gauge.lat, gauge.lon);
 }
 
 export interface PinWatch {
@@ -181,7 +202,7 @@ export async function watchPins(
               lid: gauge.lid,
               name: gauge.name,
               usgsId: gauge.usgsId,
-              distanceMi: gauge.distanceMi,
+              distanceMi: distanceTo(gauge, pin.lat, pin.lon),
               gaugeZeroFt: gauge.gaugeZeroFt,
               gaugeDatum: gauge.gaugeDatum,
               categories: gauge.categories,
