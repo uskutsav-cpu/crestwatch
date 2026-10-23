@@ -53,12 +53,15 @@ export function ShareButton({ card }: { card: React.ReactNode }) {
 
   return (
     <>
+      {/* Same name while the picture is made (aria-busy, no ellipsis), and
+          focusable throughout (aria-disabled, not disabled). */}
       <ButtonGhost
         onClick={() => void share()}
-        disabled={busy}
-        className="!h-10 !px-4 !text-small"
+        aria-busy={busy || undefined}
+        aria-disabled={busy || undefined}
+        className="!h-10 !px-4 !text-small aria-disabled:cursor-wait aria-disabled:opacity-50"
       >
-        {busy ? "…" : copy.share}
+        {copy.share}
       </ButtonGhost>
       {/* Offscreen render target for the rasterizer */}
       <div
@@ -85,7 +88,7 @@ export function ShareButton({ card }: { card: React.ReactNode }) {
               letterSpacing: "0.02em",
             }}
           >
-            crestwatch · public federal data · {shareStamp(new Date())}
+            {copy.shareFooter(shareStamp(new Date()))}
           </p>
         </div>
       </div>

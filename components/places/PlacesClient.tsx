@@ -12,6 +12,7 @@
 import Link from "next/link";
 import { useEffect, useRef } from "react";
 import { copy } from "@/lib/copy";
+import { fmtTime } from "@/lib/time";
 import { useWatches } from "@/lib/use-watch";
 import { statusLine } from "@/lib/sentences";
 import { sortWorstFirst } from "@/lib/severity";
@@ -48,14 +49,6 @@ const TREND_TEXT: Record<Trend, string> = {
   falling: copy.trendFalling,
   steady: copy.trendSteady,
 };
-
-function fmtTime(ms: number): string {
-  return new Intl.DateTimeFormat("en-US", {
-    timeZone: "America/Chicago",
-    hour: "numeric",
-    minute: "2-digit",
-  }).format(new Date(ms));
-}
 
 export function PlacesClient() {
   const { pins, watches, loading, error, updatedAt, refresh } = useWatches();
@@ -195,7 +188,9 @@ export function PlacesClient() {
         </div>
       </div>
 
-      <AlertStrip alerts={watches.flatMap((w) => w.alerts).slice(0, 3)} />
+      {/* AlertStrip drops repeats, then keeps 3: cutting here first
+          could push out a distinct alert behind a repeated one. */}
+      <AlertStrip alerts={watches.flatMap((w) => w.alerts)} />
 
       <ul className="flex flex-col gap-3">
         {rows.map(({ pin, watch: w }) => {

@@ -211,7 +211,7 @@ describe("Places: a refresh fails after a good load (#29)", () => {
     const updatedAt = Date.parse("2026-10-23T19:15:00Z"); // 2:15 PM Central
     setState({ pins: [HOME], watches: [watchFor(HOME)], error: true, updatedAt });
     const t = text(renderToStaticMarkup(<PlacesClient />));
-    expect(t).toContain(copy.refreshFailedPlaces("2:15 PM"));
+    expect(t).toContain(copy.refreshFailedPlaces("2:15 PM CT"));
     expect(t).toContain("This spot stays dry by about 38 ft.");
     expect(t).not.toContain(copy.riverDataDown);
   });
@@ -278,6 +278,25 @@ describe("Places: card details", () => {
     expect(html.split(`>${copy.approximateTag}</span>`).length - 1).toBe(1);
   });
 
+  it("an alert two places share shows once, and a third distinct one still shows (#11)", () => {
+    const base = { headline: null, severity: "Moderate", expires: null };
+    const A = { ...base, event: "Flood Warning", areaDesc: "Yazoo, MS" };
+    const B = { ...base, event: "Flood Watch", areaDesc: "Hinds, MS" };
+    const C = { ...base, event: "Flash Flood Warning", areaDesc: "Warren, MS" };
+    setState({
+      pins: [HOME, GRANDMA],
+      watches: [
+        { ...watchFor(HOME), alerts: [A, B] },
+        { ...watchFor(GRANDMA), alerts: [{ ...A }, C] },
+      ],
+    });
+    const html = renderToStaticMarkup(<PlacesClient />);
+    const shown = [...html.matchAll(/<span class="font-semibold text-risewatch">([^<]+)<\/span>/g)].map(
+      (m) => m[1],
+    );
+    expect(shown).toEqual(["Flood Warning", "Flood Watch", "Flash Flood Warning"]);
+  });
+
   it("CATEGORY edge colour matches the Watch chip table (#68)", () => {
     expect(edgeBand(watchFor(HOME, categoryVerdict("none")))).toBe("UNLIKELY");
     expect(edgeBand(watchFor(HOME, categoryVerdict(null)))).toBe("UNLIKELY");
@@ -319,6 +338,14 @@ describe("Why: the river data failed but places exist (#22, #3, #67)", () => {
     const html = renderToStaticMarkup(<WhyClient />);
     expect(text(html)).toContain(copy.riverDataDown);
     expect(html).toMatch(/<button[^>]*aria-disabled="true"/);
+  });
+
+  it("on a shared link it never claims places are saved", () => {
+    hook.search = `pin=wl0&wl=${encodeWatchLink([HOME])}`;
+    setState({ pins: [{ ...HOME, id: "wl0" }], watches: [], error: true });
+    const t = text(renderToStaticMarkup(<WhyClient />));
+    expect(t).toContain(copy.riverDataDownLinked);
+    expect(t).not.toContain("still saved");
   });
 
   it("still shows the empty prompt when there really are no places", () => {

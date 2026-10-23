@@ -76,7 +76,6 @@ export const copy = {
   chipLikely: "water likely",
   chipBorderline: "too close to call",
   chipUnlikely: "stays dry",
-  chipCategory: "category mode",
   chipAlertOnly: "no gauge here",
   trendRising: "river rising",
   trendFalling: "river falling",
@@ -94,6 +93,8 @@ export const copy = {
   // Shared failure states (Watch, Places, Why use the same words)
   riverDataDown:
     "The river data didn't answer. Your places are still saved. Try again in a minute.",
+  // Same, for a shared or example link: nothing is saved on this device.
+  riverDataDownLinked: "The river data didn't answer. Try again in a minute.",
   brokenLink:
     "This shared link didn't open. Ask for a new link, or add your own place.",
 
@@ -155,9 +156,9 @@ export const copy = {
 
   // Verdict sentences (Appendix C). TEAM: hand-tune these.
   verdictLikely: (river: string, day: string, time: string, pin: string, h: number) =>
-    `The ${river} peaks ${day} around ${time}. Water likely reaches ${pin} about ${hours(h)} before that.`,
+    `The ${river} peaks ${day} around ${time} CT. Water likely reaches ${pin} about ${hours(h)} before that.`,
   verdictLikelyStale: (river: string, day: string, time: string, pin: string, h: number) =>
-    `The last forecast had the ${river} peaking ${day} around ${time}. By that forecast, water likely reaches ${pin} about ${hours(h)} before that.`,
+    `The last forecast had the ${river} peaking ${day} around ${time} CT. By that forecast, water likely reaches ${pin} about ${hours(h)} before that.`,
   verdictLikelyPastPeak: (river: string, pin: string) =>
     `The ${river} has peaked and is coming down, but ${pin} is likely still in the water today.`,
   verdictLikelyPastPeakStale: (river: string, pin: string) =>
@@ -166,7 +167,7 @@ export const copy = {
     `${pin} sits about ${margin} ft above the forecast peak. That's too close to call. ${
       nextTime === null
         ? "Check back after the next update."
-        : `Check back after the next forecast, around ${nextTime}.`
+        : `Check back after the next forecast, around ${nextTime} CT.`
     }`,
   verdictUnlikely: (river: string, day: string, stage: string, pin: string, margin: string) =>
     `The ${river} peaks ${day} at ${stage} ft on the river gauge. ${pin} stays dry by about ${margin} ft.`,
@@ -224,13 +225,22 @@ export const copy = {
   chipCategoryModerate: "moderate flooding",
   chipCategoryMajor: "major flooding",
   alertsCheckedChip: (time: string) => `alerts checked ${time}`,
+  alertServiceDown:
+    "CrestWatch couldn't reach the alert service just now. That is not an all-clear. Check weather.gov directly.",
   saveLinkedPins: "Save to this device",
+  sharedLinkNote:
+    "You're viewing a shared watch link. Nothing was saved on this device.",
   copyLink: "Copy watch link",
   linkCopied: "Link copied ✓",
   copyLinkPrompt: "Copy this link:",
-  approximateShare: "This is the middle of town, not this house.",
+  approximateShare: "This is a rough spot, not this house.",
+  shareFooter: (stamp: string) => `crestwatch · public federal data · ${stamp}`,
   stalenessUnknown:
     "Heads up: we can't tell how fresh this data is. The river may have moved.",
+  // Kid-scale second line under the sentence. `gloss` comes from lib/kid-scale.
+  glossGap: (ft: number, gloss: string) => `That ${ft} ft gap is ${gloss}.`,
+  glossWater: (ft: number, gloss: string) =>
+    `That could put about ${ft} ft of water here, ${gloss}.`,
   nextStepsTitle: "What to do now",
   nextSteps: [
     "Move cars, medicine, and important papers up high.",

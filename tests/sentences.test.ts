@@ -105,7 +105,7 @@ describe("verdict sentences (Appendix C)", () => {
       gauge,
       now: NOW,
     });
-    expect(s).toContain("The Yazoo River peaks Wednesday around 12pm.");
+    expect(s).toContain("The Yazoo River peaks Wednesday around 12pm CT.");
     expect(s).toContain("Water likely reaches The road about 10 hours before that.");
   });
 
@@ -130,7 +130,7 @@ describe("verdict sentences (Appendix C)", () => {
     expect(s).toContain("Grandma sits about 2 ft above the forecast peak");
     expect(s).toContain("too close to call");
     // Issued 12:00Z + 8h = 20:00Z = 2pm Central, still ahead of 9am.
-    expect(s).toContain("Check back after the next forecast, around 2pm.");
+    expect(s).toContain("Check back after the next forecast, around 2pm CT.");
   });
 
   it("CATEGORY above flood stage names the NWS category", () => {
@@ -470,7 +470,7 @@ describe("stale data never says today or now (#7/#69)", () => {
     });
     const s = verdictSentence({ pinName: "The road", verdict: v, gauge, now: NOW });
     expect(s).toBe(
-      "The last forecast had the Yazoo River peaking on Mar 2 around 4pm. By that forecast, water likely reaches The road about 1 hour before that.",
+      "The last forecast had the Yazoo River peaking on Mar 2 around 4pm CT. By that forecast, water likely reaches The road about 1 hour before that.",
     );
     expect(s).not.toMatch(TODAY_WORD);
   });
@@ -532,7 +532,7 @@ describe("BORDERLINE next-forecast time (#13)", () => {
   it("names the clock time while it's still ahead", () => {
     const s = verdictSentence({ pinName: "Grandma", verdict: borderline, gauge, now: NOW });
     expect(s).toBe(
-      "Grandma sits about 2 ft above the forecast peak. That's too close to call. Check back after the next forecast, around 2pm.",
+      "Grandma sits about 2 ft above the forecast peak. That's too close to call. Check back after the next forecast, around 2pm CT.",
     );
   });
 

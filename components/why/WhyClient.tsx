@@ -111,7 +111,7 @@ export function WhyClient() {
     return (
       <div className="py-14">
         <p className="text-body text-dim" role="status">
-          {copy.riverDataDown}
+          {linkedPins ? copy.riverDataDownLinked : copy.riverDataDown}
         </p>
         <div className="mt-3 flex flex-wrap items-center gap-4">
           <button
