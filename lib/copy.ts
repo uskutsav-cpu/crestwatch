@@ -330,5 +330,9 @@ export const copy = {
   riversChipNearing: "nearing flood stage",
   riversChipForecast: (category: string) => `${category} flooding forecast`,
   riversReadingUnknown: "reading time unknown",
-  riversSource: (time: string) => `River data from NOAA, checked ${time}.`,
+  // The forecast is over a day old: no green chip and no "expected high".
+  riversForecastOld: "forecast not updated lately",
+  // When the oldest reading shown was taken (null when none has a time).
+  riversSource: (time: string | null) =>
+    time === null ? "River readings from NOAA." : `River readings from NOAA, as of ${time}.`,
 } as const;

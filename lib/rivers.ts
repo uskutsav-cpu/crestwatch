@@ -48,6 +48,13 @@ export interface RiverNow {
   floodStageFt: number | null;
   /** Flood category of the LATEST observed stage (lib/surveyor categoryFor). */
   category: CategoryLevel | null;
+  /**
+   * When NOAA issued the forecast (ISO, UTC); null when missing or
+   * unreadable. An old forecast keeps "future" points for weeks (the
+   * Mississippi's run 3 weeks ahead), so this, not forecastHigh.t, says
+   * whether the forecast is current.
+   */
+  forecastIssued: string | null;
   /** Highest forecast point still ahead of the check time; null when none. */
   forecastHigh: { stageFt: number; t: string } | null;
   /** Flood category of forecastHigh; null when there's no forecastHigh or no flood stage to judge it by. */
@@ -100,8 +107,13 @@ export function shapeRiver(
 
   const categories = parseCategories(asObject(detailRaw) as DetailArg);
 
+  const forecast = asObject(stageflow.forecast);
+  const issued = forecast.issuedTime;
+  const forecastIssued =
+    typeof issued === "string" && Number.isFinite(Date.parse(issued)) ? isoOf(issued) : null;
+
   let high: SeriesPoint | null = null;
-  for (const p of parseStageflowSeries(asObject(stageflow.forecast) as SeriesArg)) {
+  for (const p of parseStageflowSeries(forecast as SeriesArg)) {
     if (Date.parse(p.t) <= nowMs) continue;
     if (high === null || p.stageFt > high.stageFt) high = p;
   }
@@ -114,6 +126,7 @@ export function shapeRiver(
     trend: trendOf(observed),
     floodStageFt: categories.minor ?? null,
     category: categoryFor(latest.stageFt, categories),
+    forecastIssued,
     forecastHigh: high ? { stageFt: high.stageFt, t: isoOf(high.t) } : null,
     forecastCategory: high ? categoryFor(high.stageFt, categories) : null,
   };

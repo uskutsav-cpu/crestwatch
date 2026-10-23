@@ -140,9 +140,36 @@ describe("shapeRiver", () => {
       trend: "steady",
       floodStageFt: 29,
       category: "none",
+      forecastIssued: "2026-08-24T14:43:00.000Z",
       forecastHigh: { stageFt: 9.3, t: "2026-08-26T06:00:00.000Z" },
       forecastCategory: "none",
     });
+  });
+
+  it("keeps when the forecast was issued, and null when it can't tell", () => {
+    const issued = (issuedTime: unknown) => {
+      const f = flow([["2026-08-25T04:00:00Z", 30]], [["2026-08-26T06:00:00Z", 31]]);
+      return shapeRiver(
+        VICKSBURG,
+        detail(CATS),
+        { ...f, forecast: { ...f.forecast, issuedTime } },
+        NOW,
+      )?.forecastIssued;
+    };
+    // Normalised to UTC ISO, like observedAt.
+    expect(issued("2026-08-24T22:00:00-05:00")).toBe("2026-08-25T03:00:00.000Z");
+    expect(issued(undefined)).toBeNull();
+    expect(issued(null)).toBeNull();
+    expect(issued("garbage")).toBeNull();
+    expect(issued(1_756_000_000_000)).toBeNull();
+    // No forecast block at all.
+    const bare = shapeRiver(VICKSBURG, detail(CATS), { observed: flow([["2026-08-25T04:00:00Z", 30]]).observed }, NOW);
+    expect(bare?.forecastIssued).toBeNull();
+    // An old forecast is still passed on as data; the page judges its age.
+    const old = flow([["2026-08-25T04:00:00Z", 30]], [["2026-09-10T06:00:00Z", 31]]);
+    const r = shapeRiver(VICKSBURG, detail(CATS), { ...old, forecast: { ...old.forecast, issuedTime: "2026-08-21T03:00:00Z" } }, NOW);
+    expect(r?.forecastIssued).toBe("2026-08-21T03:00:00.000Z");
+    expect(r?.forecastHigh).toEqual({ stageFt: 31, t: "2026-09-10T06:00:00.000Z" });
   });
 
   it("takes the latest reading by time, not by array order", () => {
@@ -268,6 +295,7 @@ describe("fetchRivers", () => {
     expect(jackson?.stageFt).toBe(3.21);
     expect(jackson?.floodStageFt).toBe(28);
     expect(jackson?.forecastHigh).toEqual({ stageFt: 3.5, t: "2026-08-25T06:00:00.000Z" });
+    expect(jackson?.forecastIssued).toBe("2026-08-24T13:15:00.000Z");
   });
 
   it("leaves out a river whose data fails, and fakes nothing in its place", async () => {
@@ -372,13 +400,14 @@ describe("GET /api/rivers", () => {
     const json = (await res.json()) as {
       ok: boolean;
       checkedAt: string;
-      rivers: Array<{ lid: string; name: string; stageFt: number }>;
+      rivers: Array<{ lid: string; name: string; stageFt: number; forecastIssued: string | null }>;
     };
     expect(json.ok).toBe(true);
     expect(Number.isFinite(Date.parse(json.checkedAt))).toBe(true);
     expect(json.rivers.map((r) => r.lid)).toEqual(RIVER_GAUGES.map((g) => g.lid));
     expect(json.rivers.map((r) => r.name)).toEqual(RIVER_GAUGES.map((g) => g.name));
     expect(json.rivers.find((r) => r.lid === "JACM6")?.stageFt).toBe(3.21);
+    expect(json.rivers.find((r) => r.lid === "JACM6")?.forecastIssued).toBe("2026-08-24T13:15:00.000Z");
     expect(fetchSpy).not.toHaveBeenCalled();
   });
 

@@ -15,6 +15,7 @@ import {
   RiverCheck,
   RiverCheckView,
   loadRivers,
+  readingsAsOf,
   riverView,
   type RiverPhase,
 } from "@/components/home/RiverCheck";
@@ -32,6 +33,8 @@ const river = (over: Partial<RiverNow> = {}): RiverNow => ({
   trend: "falling",
   floodStageFt: 43,
   category: "none",
+  // This morning's forecast, 9 AM CT.
+  forecastIssued: new Date(NOW - 5 * H).toISOString(),
   // Sat Oct 24, 1 PM CT.
   forecastHigh: { stageFt: 15.4, t: "2026-10-24T18:00:00.000Z" },
   forecastCategory: "none",
@@ -65,14 +68,25 @@ describe("riverView", () => {
   });
 
   it("an old reading never wears green, and shows no trend", () => {
-    const v = riverView(river({ observedAt: new Date(NOW - 7 * H).toISOString() }), NOW);
-    expect(v.chip).toEqual({ band: "BORDERLINE", label: copy.delayedChip(7) });
+    const v = riverView(river({ observedAt: new Date(NOW - 4 * H).toISOString() }), NOW);
+    expect(v.chip).toEqual({ band: "BORDERLINE", label: copy.delayedChip(4) });
     expect(v.trend).toBeNull();
     // The chip already says it; the second line doesn't repeat it.
     expect(v.detail).toBe("flood stage 43 ft · expected high 15.4 ft tomorrow");
-    // Just inside the window it's still live.
-    const ok = riverView(river({ observedAt: new Date(NOW - RIVER_STALE_H * H + 60_000).toISOString() }), NOW);
-    expect(ok.chip.band).toBe("UNLIKELY");
+  });
+
+  it("goes stale an hour after the rest of the app does: at 3 hours", () => {
+    expect(RIVER_STALE_H).toBe(3);
+    const inside = riverView(river({ observedAt: new Date(NOW - 3 * H + 60_000).toISOString() }), NOW);
+    expect(inside.chip).toEqual({ band: "UNLIKELY", label: copy.chipCategoryNone });
+    expect(inside.trend).toBe("falling");
+    const past = riverView(river({ observedAt: new Date(NOW - 3 * H - 60_000).toISOString() }), NOW);
+    expect(past.chip).toEqual({ band: "BORDERLINE", label: copy.delayedChip(3) });
+    expect(past.trend).toBeNull();
+    // A 5.9-hour-old morning reading is no longer "right now".
+    const morning = riverView(river({ trend: "rising", observedAt: new Date(NOW - 5.9 * H).toISOString() }), NOW);
+    expect(morning.chip).toEqual({ band: "BORDERLINE", label: copy.delayedChip(6) });
+    expect(morning.trend).toBeNull();
   });
 
   it("an old reading of flooding keeps its flooding chip and says how old it is", () => {
@@ -95,6 +109,109 @@ describe("riverView", () => {
     const v = riverView(river({ observedAt: "garbage" }), NOW);
     expect(v.chip).toEqual({ band: "BORDERLINE", label: copy.riversReadingUnknown });
     expect(v.trend).toBeNull();
+  });
+
+  it("a chip raised by the forecast always names the high, even a small step over flood stage", () => {
+    // 42.9 ft now (action), forecast 43.1 ft (minor): 0.2 ft is under the
+    // small-bump cutoff, but it's the step that crosses flood stage.
+    const v = riverView(
+      river({
+        stageFt: 42.9,
+        category: "action",
+        forecastHigh: { stageFt: 43.1, t: "2026-10-24T18:00:00.000Z" },
+        forecastCategory: "minor",
+      }),
+      NOW,
+    );
+    expect(v.chip).toEqual({ band: "BORDERLINE", label: "minor flooding forecast" });
+    expect(v.detail).toBe("flood stage 43 ft · expected high 43.1 ft tomorrow");
+    expect(v.detail).not.toContain(copy.riversNoBigRise);
+    // Without a crossing, the same small bump is still "no big rise".
+    const flat = riverView(
+      river({
+        stageFt: 43.5,
+        category: "minor",
+        forecastHigh: { stageFt: 43.6, t: "2026-10-24T18:00:00.000Z" },
+        forecastCategory: "minor",
+      }),
+      NOW,
+    );
+    expect(flat.chip).toEqual({ band: "BORDERLINE", label: copy.chipCategoryMinor });
+    expect(flat.detail).toBe(`flood stage 43 ft · ${copy.riversNoBigRise}`);
+  });
+
+  it("an old forecast is never a green light, and its high isn't shown", () => {
+    // Issued 4 days ago, still 'ahead' because Mississippi forecasts run weeks out.
+    const old = riverView(
+      river({
+        forecastIssued: new Date(NOW - 96 * H).toISOString(),
+        forecastHigh: { stageFt: 15.1, t: "2026-10-24T18:00:00.000Z" },
+      }),
+      NOW,
+    );
+    expect(old.chip).toEqual({ band: "BORDERLINE", label: copy.riversForecastOld });
+    expect(old.trend).toBe("falling");
+    // The chip says it; the second line doesn't repeat it, and says nothing reassuring.
+    expect(old.detail).toBe("flood stage 43 ft");
+    // Just inside a day it's current; just past it, it's old.
+    const day = (h: number) =>
+      riverView(river({ forecastIssued: new Date(NOW - h * H).toISOString() }), NOW).chip.band;
+    expect(day(24 - 1 / 60)).toBe("UNLIKELY");
+    expect(day(24 + 1 / 60)).toBe("BORDERLINE");
+    // A missing or unreadable issue time counts as old.
+    for (const forecastIssued of [null, "garbage"]) {
+      expect(riverView(river({ forecastIssued }), NOW).chip).toEqual({
+        band: "BORDERLINE",
+        label: copy.riversForecastOld,
+      });
+    }
+  });
+
+  it("an old forecast that shows flooding still raises the chip", () => {
+    const v = riverView(
+      river({
+        forecastIssued: new Date(NOW - 96 * H).toISOString(),
+        forecastHigh: { stageFt: 47, t: "2026-10-26T17:00:00.000Z" },
+        forecastCategory: "moderate",
+      }),
+      NOW,
+    );
+    expect(v.chip).toEqual({ band: "LIKELY", label: "moderate flooding forecast" });
+    expect(v.detail).toBe(`flood stage 43 ft · ${copy.riversForecastOld}`);
+    // Flooding now, old forecast: the chip keeps the reading's flooding.
+    const now = riverView(
+      river({
+        stageFt: 44,
+        category: "minor",
+        forecastIssued: null,
+        forecastHigh: { stageFt: 42, t: "2026-10-24T18:00:00.000Z" },
+        forecastCategory: "action",
+      }),
+      NOW,
+    );
+    expect(now.chip).toEqual({ band: "BORDERLINE", label: copy.chipCategoryMinor });
+    expect(now.detail).toBe(`flood stage 43 ft · ${copy.riversForecastOld}`);
+  });
+
+  it("an old reading and an old forecast each say so once", () => {
+    const v = riverView(
+      river({
+        observedAt: new Date(NOW - 5 * H).toISOString(),
+        forecastIssued: new Date(NOW - 50 * H).toISOString(),
+      }),
+      NOW,
+    );
+    expect(v.chip).toEqual({ band: "BORDERLINE", label: copy.delayedChip(5) });
+    expect(v.detail).toBe(`flood stage 43 ft · ${copy.riversForecastOld}`);
+  });
+
+  it("an old forecast with nothing left ahead changes nothing", () => {
+    const v = riverView(
+      river({ forecastIssued: new Date(NOW - 96 * H).toISOString(), forecastHigh: null, forecastCategory: null }),
+      NOW,
+    );
+    expect(v.chip).toEqual({ band: "UNLIKELY", label: copy.chipCategoryNone });
+    expect(v.detail).toBe("flood stage 43 ft");
   });
 
   it("a forecast that reaches flood stage outranks a calm reading", () => {
@@ -154,24 +271,56 @@ describe("riverView", () => {
     );
   });
 
-  it("is never green unless the reading is fresh and nothing reaches action stage", () => {
+  it("is never green unless reading and forecast are fresh and nothing reaches action stage", () => {
     const levels = [null, "none", "action", "minor", "moderate", "major"] as const;
     for (const category of levels) {
       for (const forecastCategory of levels) {
-        for (const ageH of [1, 8]) {
-          const v = riverView(
-            river({
-              category,
-              forecastCategory,
-              observedAt: new Date(NOW - ageH * H).toISOString(),
-            }),
-            NOW,
-          );
-          const calm = category === "none" && forecastCategory === "none" && ageH === 1;
-          expect(v.chip.band === "UNLIKELY", `${category}/${forecastCategory}/${ageH}h`).toBe(calm);
+        for (const ageH of [1, 4]) {
+          for (const issuedH of [5, 30, null]) {
+            const v = riverView(
+              river({
+                category,
+                forecastCategory,
+                observedAt: new Date(NOW - ageH * H).toISOString(),
+                forecastIssued: issuedH === null ? null : new Date(NOW - issuedH * H).toISOString(),
+              }),
+              NOW,
+            );
+            const calm =
+              category === "none" && forecastCategory === "none" && ageH === 1 && issuedH === 5;
+            const label = `${category}/${forecastCategory}/${ageH}h/${issuedH}h`;
+            expect(v.chip.band === "UNLIKELY", label).toBe(calm);
+            // An old forecast never lowers the chip below what it shows.
+            const fresh = riverView(river({ category, forecastCategory }), NOW);
+            const order = ["UNLIKELY", "BORDERLINE", "LIKELY"];
+            expect(order.indexOf(v.chip.band), label).toBeGreaterThanOrEqual(
+              order.indexOf(fresh.chip.band),
+            );
+          }
         }
       }
     }
+  });
+});
+
+describe("readingsAsOf", () => {
+  it("is the time of the oldest reading shown, in Central time", () => {
+    const rivers = [
+      river({ observedAt: new Date(NOW - 1 * H).toISOString() }),
+      river({ lid: "JACM6", observedAt: new Date(NOW - 2 * H).toISOString() }),
+    ];
+    expect(readingsAsOf(rivers, NOW)).toBe("12:00 PM CT");
+  });
+
+  it("names the day when the oldest reading wasn't today", () => {
+    const rivers = [river(), river({ lid: "JACM6", observedAt: new Date(NOW - 30 * H).toISOString() })];
+    expect(readingsAsOf(rivers, NOW)).toBe("8:00 AM CT on Oct 22");
+  });
+
+  it("skips unreadable times, and is null when none can be read", () => {
+    expect(readingsAsOf([river({ observedAt: "garbage" }), river()], NOW)).toBe("1:00 PM CT");
+    expect(readingsAsOf([river({ observedAt: "garbage" })], NOW)).toBeNull();
+    expect(copy.riversSource(null)).toBe("River readings from NOAA.");
   });
 });
 
@@ -231,10 +380,22 @@ describe("RiverCheckView", () => {
     expect(html).toContain(`>${copy.chipCategoryNone}</span>`);
     expect(html).toContain("flood stage 43 ft · expected high 15.4 ft tomorrow");
     expect(html).toContain("3.2 ft");
-    expect(html).toContain(copy.riversSource(fmtTime("2026-10-23T18:45:00.000Z")));
-    expect(copy.riversSource(fmtTime("2026-10-23T18:45:00.000Z"))).toBe(
-      "River data from NOAA, checked 1:45 PM CT.",
+    // The footer gives when the readings were taken, not when the server checked.
+    expect(html).toContain(`>${copy.riversSource(fmtTime(NOW - 1 * H))}</p>`);
+    expect(copy.riversSource(fmtTime(NOW - 1 * H))).toBe(
+      "River readings from NOAA, as of 1:00 PM CT.",
     );
+    expect(html).not.toContain(fmtTime("2026-10-23T18:45:00.000Z"));
+  });
+
+  it("an older row pulls the footer time back to it", () => {
+    const html = render({
+      kind: "ok",
+      checkedAt: "2026-10-23T18:45:00.000Z",
+      nowMs: NOW,
+      rivers: [river(), river({ lid: "YZOM6", observedAt: new Date(NOW - 4 * H).toISOString() })],
+    });
+    expect(html).toContain(">River readings from NOAA, as of 10:00 AM CT.</p>");
   });
 
   it("the live component starts as the skeleton (it fetches only after mount)", () => {

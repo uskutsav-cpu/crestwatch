@@ -7,12 +7,15 @@
  * keeps working: a failure is one line and a Check again button.
  *
  * Honesty rules here: a green chip only for a fresh reading below flood
- * stage whose forecast stays below it too. An old reading, an unknown
- * flood stage, or a forecast that reaches flood stage is never green.
+ * stage whose forecast, if there is one ahead, is recent and stays below
+ * it too. An old reading, an old forecast, an unknown flood stage, or a
+ * forecast that reaches flood stage is never green. An old forecast that
+ * shows flooding still raises the chip: staleness never calms a row.
  */
 
 import { useCallback, useEffect, useId, useRef, useState } from "react";
 import { copy } from "@/lib/copy";
+import { FCST_STALE_H, OBS_STALE_H } from "@/lib/config";
 import { fmtTime } from "@/lib/time";
 import { dayWord } from "@/lib/sentences";
 import { VerdictChip, type VerdictBand } from "@/components/ui";
@@ -21,13 +24,16 @@ import type { RiverNow, RiversAnswer } from "@/lib/rivers";
 import type { CategoryLevel } from "@/lib/surveyor";
 import type { Trend } from "@/lib/trend";
 
+const HOUR_MS = 3_600_000;
+
 /**
  * Older than this, a reading isn't "right now": no trend arrow, never a
- * green chip, and the row says how old it is. NWPS posts these gauges
- * about hourly and about 40 minutes late, so a normal reading is up to
- * about 2 hours old.
+ * green chip, and the row says how old it is. The rest of the app calls a
+ * reading stale after OBS_STALE_H (2 h). NWPS posts these gauges hourly
+ * and up to about 1.5 h late, so one hour more still covers a normal
+ * reading without letting a morning reading pass for this afternoon's.
  */
-export const RIVER_STALE_H = 6;
+export const RIVER_STALE_H = OBS_STALE_H + 1;
 
 /** Matches the server cache, so an open page stays current. */
 const REFRESH_MS = 15 * 60 * 1000;
@@ -88,35 +94,48 @@ export interface RiverView {
 export function riverView(r: RiverNow, nowMs: number): RiverView {
   const ageMs = nowMs - Date.parse(r.observedAt);
   const ageKnown = Number.isFinite(ageMs);
-  const stale = !ageKnown || ageMs > RIVER_STALE_H * 3_600_000;
+  const stale = !ageKnown || ageMs > RIVER_STALE_H * HOUR_MS;
   const delayed = ageKnown
-    ? copy.delayedChip(Math.max(1, Math.round(ageMs / 3_600_000)))
+    ? copy.delayedChip(Math.max(1, Math.round(ageMs / HOUR_MS)))
     : copy.riversReadingUnknown;
 
   // A forecast high that has already gone by says nothing about what's next.
   const high =
     r.forecastHigh && Date.parse(r.forecastHigh.t) > nowMs ? r.forecastHigh : null;
-  // The worse of now and the forecast high: a river below flood stage
-  // today but forecast over it must not wear the green chip.
-  let chip =
-    high && rank(r.forecastCategory) > rank(r.category)
-      ? forecastChip(r.forecastCategory)
-      : nowChip(r.category);
-  let staleNote: string | null = null;
-  if (stale) {
-    if (chip.band === "UNLIKELY") chip = { band: "BORDERLINE", label: delayed };
-    else staleNote = delayed;
-  }
+  // Points still ahead aren't enough: an old Mississippi forecast keeps
+  // them for weeks. A missing or unreadable issue time counts as old.
+  const issuedAgeMs = r.forecastIssued ? nowMs - Date.parse(r.forecastIssued) : NaN;
+  const forecastOld = !(issuedAgeMs <= FCST_STALE_H * HOUR_MS);
 
-  const forecastPart =
-    high === null
-      ? null
-      : high.stageFt - r.stageFt >= MIN_RISE_FT - 1e-6
+  // The worse of now and the forecast high: a river below flood stage
+  // today but forecast over it must not wear the green chip. An old
+  // forecast still counts here, so it can raise the chip, never lower it.
+  const fromForecast = high !== null && rank(r.forecastCategory) > rank(r.category);
+  let chip = fromForecast ? forecastChip(r.forecastCategory) : nowChip(r.category);
+  // Green needs a fresh reading and, when a forecast is ahead, a recent
+  // one. Otherwise the chip says what's missing.
+  if (chip.band === "UNLIKELY") {
+    if (stale) chip = { band: "BORDERLINE", label: delayed };
+    else if (high && forecastOld) chip = { band: "BORDERLINE", label: copy.riversForecastOld };
+  }
+  // Each of these is said once: on the chip, or else on the second line.
+  const staleNote = stale && chip.label !== delayed ? delayed : null;
+
+  let forecastPart: string | null = null;
+  if (high && forecastOld) {
+    // No "expected high" and no "no big rise" from a forecast that may have changed.
+    forecastPart = chip.label === copy.riversForecastOld ? null : copy.riversForecastOld;
+  } else if (high) {
+    // A chip raised by the forecast always names the high and its day.
+    // The small-bump cutoff only applies when the chip comes from the reading.
+    forecastPart =
+      fromForecast || high.stageFt - r.stageFt >= MIN_RISE_FT - 1e-6
         ? copy.riversExpectedHigh(
             high.stageFt.toFixed(1),
             dayWord(high.t, new Date(nowMs).toISOString()),
           )
         : copy.riversNoBigRise;
+  }
   const parts = [
     staleNote,
     r.floodStageFt === null ? null : copy.riversFloodStage(fmtFt(r.floodStageFt)),
@@ -129,6 +148,24 @@ export function riverView(r: RiverNow, nowMs: number): RiverView {
     chip,
     detail: parts.length > 0 ? parts.join(" · ") : null,
   };
+}
+
+/**
+ * When the oldest reading shown was taken: "3:00 PM CT", or with its date
+ * ("8:00 AM CT on Oct 22") when that wasn't today, so a reading from
+ * another day can't pass for this afternoon's. Null when no row has a
+ * readable time. Pure.
+ */
+export function readingsAsOf(rivers: readonly RiverNow[], nowMs: number): string | null {
+  const times = rivers.map((r) => Date.parse(r.observedAt)).filter(Number.isFinite);
+  if (times.length === 0) return null;
+  const oldest = new Date(Math.min(...times)).toISOString();
+  const day = dayWord(oldest, new Date(nowMs).toISOString());
+  // Only a past day gets its date ("on Oct 22"); a reading stamped a
+  // little ahead of the viewer's clock is just its time.
+  return Date.parse(oldest) < nowMs && day !== "today"
+    ? `${fmtTime(oldest)} ${day}`
+    : fmtTime(oldest);
 }
 
 export type RiverPhase =
@@ -239,7 +276,9 @@ export function RiverCheckView({
               <RiverRow key={r.lid} river={r} nowMs={phase.nowMs} />
             ))}
           </ul>
-          <p className="mt-1 text-small text-dim">{copy.riversSource(fmtTime(phase.checkedAt))}</p>
+          <p className="mt-1 text-small text-dim">
+            {copy.riversSource(readingsAsOf(phase.rivers, phase.nowMs))}
+          </p>
         </>
       )}
     </section>
