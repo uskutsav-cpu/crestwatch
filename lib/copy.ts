@@ -154,6 +154,9 @@ export const copy = {
     "These are example places in Vicksburg, MS. Nothing was saved on this device.",
 
   // Verdict sentences (Appendix C). TEAM: hand-tune these.
+  // Stand-ins when the gauge has no name. Templates already say "the".
+  verdictGaugeFallback: "the nearest gauge",
+  verdictRiverFallback: "river",
   verdictLikely: (river: string, day: string, time: string, pin: string, h: number) =>
     `The ${river} peaks ${day} around ${time}. Water likely reaches ${pin} about ${hours(h)} before that.`,
   verdictLikelyStale: (river: string, day: string, time: string, pin: string, h: number) =>
@@ -182,12 +185,21 @@ export const copy = {
     `The forecast crest reaches ${category} flooding at ${gauge}. This gauge doesn't share its height above sea level, so CrestWatch can't do house-level math here. Treat low roads as wet.`,
   verdictCategoryAction: (gauge: string) =>
     `The forecast crest comes close to flood stage at ${gauge}. Keep an eye on it. This gauge doesn't share its height above sea level, so CrestWatch can't do house-level math here.`,
+  verdictCategoryNone: (gauge: string) =>
+    `The forecast crest at ${gauge} stays below flood stage. Low areas near the river should stay passable.`,
   verdictLikelyPastPeakButRising: (river: string, pin: string) =>
     `The forecast says the ${river} has peaked, but the gauge still shows it rising right now. ${pin} is likely in the water today. Check back after the next forecast.`,
   verdictLikelyPastPeakButRisingStale: (river: string, pin: string) =>
     `The last forecast had the ${river} past its peak, but the gauge shows it still rising. ${pin} is likely in the water. Check back after the next forecast.`,
   verdictLikelyNow: (pin: string, river: string) =>
     `${pin} is in the water now, and the ${river} is still up. Stay off flooded roads and check back after the next forecast.`,
+  verdictLikelyNowStale: (pin: string, river: string) =>
+    `The gauge shows ${pin} in the water, and the ${river} is still up. Stay off flooded roads and check back after the next forecast.`,
+  // LIKELY with no forecast crossing. These start with bandLikely's words.
+  verdictLikelyWithinFoot: (pin: string) =>
+    `Water likely reaches this spot. The forecast peak comes within a foot of ${pin}.`,
+  verdictLikelyCheckBack:
+    "Water likely reaches this spot. Check back after the next forecast.",
   verdictAlertOnly:
     "No forecast gauge watches this spot. CrestWatch works on rivers with gauges. For flash floods from sudden rain, your county alerts are the right tool.",
   staleness: (n: number) =>
@@ -197,6 +209,11 @@ export const copy = {
   bandLikely: "Water likely reaches this spot.",
   bandBorderline: "Too close to call. The forecast can be off by this much.",
   bandUnlikely: (margin: string) => `This spot stays dry by about ${margin} ft.`,
+  // CATEGORY place-card lines (no house-level math, so no band).
+  statusCategoryAction: "close to flood stage at the nearest gauge",
+  statusCategoryFlooding: (category: string) =>
+    `${category} flooding forecast near the gauge`,
+  statusCategoryNone: "below flood stage at the nearest gauge",
 
   // About
   aboutPrivacy:

@@ -56,14 +56,16 @@ export function dayWord(iso: string, nowIso: string): string {
   return new Intl.DateTimeFormat("en-US", { timeZone: CT, weekday: "long" }).format(d);
 }
 
+/** "12pm CT". The live chip and share card say CT too (#18). */
 export function timeWord(iso: string): string {
-  return new Intl.DateTimeFormat("en-US", {
+  const hour = new Intl.DateTimeFormat("en-US", {
     timeZone: CT,
     hour: "numeric",
   })
     .format(new Date(iso))
     .toLowerCase()
     .replace(" ", "");
+  return `${hour} CT`;
 }
 
 const wholeFt = (n: number) => String(Math.max(1, Math.round(Math.abs(n))));
@@ -94,7 +96,7 @@ export function verdictSentence({
     // exist — a gauge that omits its minor stage can still forecast major
     // flooding, and "at exactly flood stage" is flooding, not below it.
     const cat = verdict.category;
-    const gaugeName = gauge?.name ?? "the nearest gauge";
+    const gaugeName = gauge?.name ?? copy.verdictGaugeFallback;
     if (cat === "minor" || cat === "moderate" || cat === "major") {
       const catWord = `${cat[0].toUpperCase()}${cat.slice(1)}`;
       if (verdict.aboveFloodFt !== null && verdict.aboveFloodFt > 0) {
@@ -110,11 +112,11 @@ export function verdictSentence({
       return copy.verdictCategoryAction(gaugeName);
     }
     // Genuinely below every published threshold (or none published).
-    return `The forecast crest at ${gaugeName} stays below flood stage. Low areas near the river should stay passable.`;
+    return copy.verdictCategoryNone(gaugeName);
   }
 
   // Every template reads "the {river}", so the fallback is the bare noun.
-  const river = gauge ? riverName(gauge.name) : "river";
+  const river = gauge ? riverName(gauge.name) : copy.verdictRiverFallback;
   // Stale data (the "data delayed" chip is showing) never says "today" or
   // "now". Those sentences say what the last forecast showed, and name a
   // calendar date, because "today" in a 3-day-old forecast isn't today.
@@ -127,13 +129,16 @@ export function verdictSentence({
     // Already flooded and still rising outranks every other phrasing —
     // never tell a family under water about a peak "within a foot".
     // Only assert "in the water NOW" from a fresh reading; with a stale
-    // gauge we fall through to the forecast-based wording instead.
+    // gauge we fall through to the forecast-based wording instead. A
+    // fresh reading next to a stale forecast still drops the word "now".
     if (
       verdict.currentlyAbove &&
       !verdict.pastPeak &&
       !verdict.stale.staleObserved
     ) {
-      return copy.verdictLikelyNow(pinName, river);
+      return verdict.stale.staleForecast
+        ? copy.verdictLikelyNowStale(pinName, river)
+        : copy.verdictLikelyNow(pinName, river);
     }
     if (verdict.pastPeak) {
       // The forecast says the crest is behind us. When the live gauge is
@@ -173,9 +178,9 @@ export function verdictSentence({
     // Within the LIKELY margin but no forecast crossing. Only claim
     // "within a foot" when the peak really stays just below the pin.
     if (verdict.marginFt >= 0) {
-      return `${copy.bandLikely} The forecast peak comes within a foot of ${pinName}.`;
+      return copy.verdictLikelyWithinFoot(pinName);
     }
-    return `${copy.bandLikely} Check back after the next forecast.`;
+    return copy.verdictLikelyCheckBack;
   }
 
   if (verdict.band === "BORDERLINE") {
@@ -194,13 +199,13 @@ export function verdictSentence({
 
   const stage = verdict.peak.stageFt.toFixed(1);
   const margin = wholeFt(verdict.marginFt);
+  // The last reading is the highest water: the forecast shows nothing
+  // higher, so the margin was measured against that reading, not a crest.
+  const fromReading =
+    verdict.currentWaterElevFt !== null &&
+    verdict.currentWaterElevFt >= verdict.peak.waterElevFt;
   if (stale) {
-    // Say where the number came from. When the last reading is the
-    // highest water (the forecast showed nothing higher), the margin was
-    // measured against that reading, not a forecast crest.
-    const fromReading =
-      verdict.currentWaterElevFt !== null &&
-      verdict.currentWaterElevFt >= verdict.peak.waterElevFt;
+    // Say where the number came from.
     return fromReading
       ? copy.verdictUnlikelyStaleReading(river, stage, pinName, margin)
       : copy.verdictUnlikelyStale(
@@ -211,12 +216,13 @@ export function verdictSentence({
           margin,
         );
   }
-  // Crest behind us: with fresh data, peak.stageFt is the latest water
-  // level (the last reading or the next forecast point, whichever is
-  // higher), so "is at … and coming down" is true, and "peaks today" next
-  // to a "river falling" chip is not. A live gauge still rising keeps the
+  // Falling river: only when the fresh reading IS the highest water is
+  // peak.stageFt the river's level right now, so "is at … and coming
+  // down" is true, and "peaks today" next to a "river falling" chip is
+  // not. pastPeak alone isn't enough: the peak can be the next forecast
+  // point, still above the reading. A live gauge still rising keeps the
   // "peaks" wording, as in the LIKELY branch.
-  if (verdict.pastPeak && trend !== "rising") {
+  if (fromReading && trend !== "rising") {
     return copy.verdictUnlikelyFalling(river, stage, pinName, margin);
   }
   return copy.verdictUnlikely(
@@ -233,12 +239,12 @@ export function statusLine(verdict: Verdict): string {
   if (verdict.tier === "ALERT_ONLY") return copy.noGaugeHeadline;
   if (verdict.tier === "CATEGORY") {
     if (verdict.category === "action") {
-      return "close to flood stage at the nearest gauge";
+      return copy.statusCategoryAction;
     }
     if (verdict.category && verdict.category !== "none") {
-      return `${verdict.category} flooding forecast near the gauge`;
+      return copy.statusCategoryFlooding(verdict.category);
     }
-    return "below flood stage at the nearest gauge";
+    return copy.statusCategoryNone;
   }
   if (verdict.band === "LIKELY") return copy.bandLikely;
   if (verdict.band === "BORDERLINE") return copy.bandBorderline;
