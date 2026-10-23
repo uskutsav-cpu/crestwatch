@@ -318,4 +318,63 @@ export const copy = {
       text: "A full answer (FULL) compares the water to how high your spot sits, and it's about your house only when CrestWatch found your full street address. If CrestWatch doesn't know a gauge's height above sea level closely enough, you get flood-stage only (CATEGORY), and if no forecast gauge is close, you get alerts only (ALERT-ONLY).",
     },
   ],
+
+  // Package floodnumber: "Your flood number" and the what-if slider
+  // (lib/flood-number.ts, components/watch/FloodNumber.tsx). The number is
+  // the gauge reading at which water reaches a place's ground. It's an
+  // estimate, so it says "about" and rounds to the nearest half foot
+  // (whole feet when rough). Gauge readings keep one decimal.
+  floodNumberTitle: "Your flood number",
+  floodNumberTitleRough: "Your rough flood number",
+  floodNumberValue: (ft: string) => `about ${ft} ft`,
+  floodNumberFeet: (ft: string) => `${ft} ft`,
+  floodNumberGauge: (river: string, place: string) => `the ${river} gauge ${place}`,
+  floodNumberGaugeBare: (name: string) => `the ${name} gauge`,
+  floodNumberOnGauge: (gauge: string) => `on ${gauge}.`,
+  floodNumberHeadline: (title: string, value: string, gauge: string) =>
+    `${title}: ${value} on ${gauge}.`,
+  floodNumberExplain: (ft: string, pin: string) =>
+    `When the river reads about ${ft} ft on that gauge, water reaches the ground at ${pin}.`,
+  floodNumberExplainRough: (ft: string, pin: string) =>
+    `When the river reads about ${ft} ft on that gauge, water reaches the ground at the approximate spot for ${pin}. A house nearby could sit higher or lower.`,
+  floodNumberAboutFeet: (n: number) => `about ${n} ft`,
+  floodNumberUnderFoot: "less than a foot",
+  floodNumberNow: (stage: string, gap: string) =>
+    `The river reads ${stage} ft now, ${gap} below your number.`,
+  floodNumberLastReading: (stage: string, gap: string) =>
+    `The last reading was ${stage} ft, ${gap} below your number.`,
+  floodNumberAlreadyAbove: "The river is already above your flood number.",
+  floodNumberLastReadingAbove:
+    "The last reading was already above your flood number.",
+  floodNumberAboveFloodStage: (diff: string, fs: string) =>
+    `Your number is about ${diff} ft above flood stage, ${fs} ft.`,
+  floodNumberAtFloodStage: (fs: string) =>
+    `Your number is about the same as flood stage, ${fs} ft.`,
+  floodNumberBelowFloodStage: (fs: string) =>
+    `Your number is below flood stage, ${fs} ft. Water can reach here before the Weather Service calls it a flood.`,
+  // partial: some old crests were read from an older zero mark, so this
+  // is the highest on today's scale, not the all-time record.
+  floodNumberRecord: (stage: string, when: string | null, partial: boolean) =>
+    `The highest crest on record here${partial ? ", measured from today's zero mark," : ""} was ${stage} ft${when ? `, in ${when}` : ""}.`,
+  floodNumberLevees: "CrestWatch doesn't count levees or floodwalls.",
+  floodNumberSliderLabel: "Try a river level",
+  floodNumberApproxPlace: (pin: string) => `the approximate spot for ${pin}`,
+  floodNumberIfWet: (stage: string, depth: string, place: string) =>
+    `If the river reaches ${stage} ft on the gauge, water would be ${depth} deep at ${place}.`,
+  floodNumberIfAtGround: (stage: string, place: string) =>
+    `If the river reaches ${stage} ft on the gauge, water would likely reach the ground at ${place}.`,
+  floodNumberIfClose: (stage: string, gap: string, place: string) =>
+    `If the river reaches ${stage} ft on the gauge, water would come within ${gap} of the ground at ${place}. That's too close to call.`,
+  floodNumberCloseUnderFoot: "a foot",
+  floodNumberIfDry: (stage: string, place: string, n: number) =>
+    `If the river reaches ${stage} ft on the gauge, ${place} stays dry by about ${n} ft.`,
+  floodNumberBack: "Back to the forecast",
+  floodNumberMarkYours: "your number",
+  floodNumberMarkFloodStage: "flood stage",
+  floodNumberMarkRecord: "highest crest",
+  floodNumberMarkForecast: "forecast crest",
+  // WaterScene crestLabel while the slider is off the forecast.
+  floodNumberSceneLabel: "what if",
+  floodNumberShort: (ft: string) => `floods at about ${ft} ft`,
+  floodNumberShortRough: (ft: string) => `floods at roughly ${ft} ft`,
 } as const;
