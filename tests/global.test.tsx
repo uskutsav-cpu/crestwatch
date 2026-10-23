@@ -1,5 +1,5 @@
-import { readFileSync } from "node:fs";
-import { join } from "node:path";
+import { readFileSync, readdirSync } from "node:fs";
+import { join, relative } from "node:path";
 import { renderToStaticMarkup } from "react-dom/server";
 import { describe, expect, it } from "vitest";
 import { copy } from "@/lib/copy";
@@ -12,23 +12,43 @@ const src = (rel: string) => readFileSync(join(root, rel), "utf8");
 const titleOf = (rel: string) =>
   src(rel).match(/export const metadata[^=]*=\s*\{[^}]*?title:\s*"([^"]+)"/)?.[1];
 
-describe("page titles (#36, #17)", () => {
-  const TITLES: Record<string, string> = {
-    "app/watch/page.tsx": "Watch · CrestWatch",
-    "app/places/page.tsx": "Your places · CrestWatch",
-    "app/why/page.tsx": "Why this verdict · CrestWatch",
-    "app/replay/page.tsx": "Replay a flood · CrestWatch",
-  };
+/** Every .tsx file under a repo folder, as repo-relative paths. */
+const tsxUnder = (dir: string): string[] =>
+  readdirSync(join(root, dir), { recursive: true, encoding: "utf8" })
+    .filter((f) => f.endsWith(".tsx"))
+    .map((f) => relative(root, join(root, dir, f)));
 
-  it("gives each screen its own title", () => {
-    for (const [file, title] of Object.entries(TITLES)) {
-      expect(titleOf(file), file).toBe(title);
+type TitleKey =
+  | "pageTitleWatch"
+  | "pageTitlePlaces"
+  | "pageTitleWhy"
+  | "pageTitleReplay";
+
+describe("page titles (#36, #17)", () => {
+  const TITLES: Array<[string, TitleKey, string]> = [
+    ["app/watch/page.tsx", "pageTitleWatch", "Watch · CrestWatch"],
+    ["app/places/page.tsx", "pageTitlePlaces", "Your places · CrestWatch"],
+    ["app/why/page.tsx", "pageTitleWhy", "Why this verdict · CrestWatch"],
+    ["app/replay/page.tsx", "pageTitleReplay", "Replay a real flood · CrestWatch"],
+  ];
+
+  it("gives each screen its own title, from the copy deck", () => {
+    for (const [file, key, title] of TITLES) {
+      expect(src(file), file).toMatch(
+        new RegExp(`export const metadata[^=]*=\\s*\\{[^}]*?title:\\s*copy\\.${key}\\b`),
+      );
+      expect(copy[key], key).toBe(title);
     }
+  });
+
+  it("matches the tab title to the heading on Places and Replay", () => {
+    expect(copy.pageTitlePlaces).toBe(`${copy.placesTitle} · ${copy.appName}`);
+    expect(copy.pageTitleReplay).toBe(`${copy.replayTitle} · ${copy.appName}`);
   });
 
   it("keeps every title unique, About included", () => {
     const all = [
-      ...Object.keys(TITLES).map(titleOf),
+      ...TITLES.map(([, key]) => copy[key]),
       titleOf("app/about/page.tsx"),
       titleOf("app/layout.tsx"),
     ];
@@ -40,6 +60,14 @@ describe("page titles (#36, #17)", () => {
     expect(src("app/page.tsx")).not.toMatch(/metadata/);
     expect(titleOf("app/layout.tsx")).toBe("CrestWatch");
     expect(src("app/layout.tsx")).not.toMatch(/template/);
+  });
+});
+
+describe("privacy line", () => {
+  it("shows once per page, from the site footer only", () => {
+    expect(src("app/layout.tsx")).toContain("<Footer />");
+    expect(src("components/Footer.tsx")).toContain("copy.privacyFooter");
+    expect(src("app/page.tsx")).not.toContain("privacyFooter");
   });
 });
 
@@ -71,6 +99,7 @@ describe("focus outline (#37)", () => {
     "components/Header.tsx",
     "components/ThemeToggle.tsx",
     "components/Glossary.tsx",
+    "components/replay/ReplayClient.tsx",
   ];
 
   it("uses a solid fg outline and never outline-none", () => {
@@ -81,6 +110,16 @@ describe("focus outline (#37)", () => {
       expect(s, file).toContain(
         "focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-fg",
       );
+    }
+  });
+
+  it("never swaps the outline for a faint ring anywhere in the app", () => {
+    const files = [...tsxUnder("components"), ...tsxUnder("app")];
+    expect(files).toContain("components/replay/ReplayClient.tsx");
+    for (const file of files) {
+      const s = src(file);
+      expect(s, file).not.toMatch(/focus-visible:outline-none/);
+      expect(s, file).not.toMatch(/focus-visible:ring-/);
     }
   });
 
@@ -132,12 +171,15 @@ describe("glossary (#78)", () => {
       "flood stage",
       "crest",
       "forecast",
-      "house-level answer",
+      "full answer",
+      "street address",
       "flood-stage only",
       "alerts only",
     ]) {
       expect(all, word).toContain(word);
     }
+    // FULL shows for approximate pins too, so it must never read as house-level.
+    expect(all).not.toContain("house-level");
     expect(copy.glossary[1].text).toMatch(/^How deep the river is at the gauge/);
   });
 
@@ -163,6 +205,10 @@ describe("glossary (#78)", () => {
       const s = src(file);
       expect(s.indexOf("<Glossary />"), file).toBeGreaterThan(s.indexOf(client));
       expect(s.indexOf(client), file).toBeGreaterThan(-1);
+      // Inside the Suspense boundary, so the prerender never paints it alone.
+      expect(s.indexOf("<Suspense>"), file).toBeGreaterThan(-1);
+      expect(s.indexOf("<Suspense>"), file).toBeLessThan(s.indexOf(client));
+      expect(s.indexOf("<Glossary />"), file).toBeLessThan(s.indexOf("</Suspense>"));
     }
   });
 });

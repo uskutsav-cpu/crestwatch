@@ -33,7 +33,7 @@ const selectClasses =
   "mt-1 block w-full max-w-full truncate rounded-xl bg-surface px-3 py-2 ring-1 ring-inset ring-(--color-dim) text-body text-fg";
 
 const smallButtonClasses =
-  "inline-flex min-h-11 shrink-0 items-center gap-2 rounded-xl px-4 py-2 text-left text-body font-semibold text-fg ring-1 ring-inset ring-(--color-dim) transition-colors hover:text-(--color-current) hover:ring-(--color-current) focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-(--color-current)/25";
+  "inline-flex min-h-11 shrink-0 items-center gap-2 rounded-xl px-4 py-2 text-left text-body font-semibold text-fg ring-1 ring-inset ring-(--color-dim) transition-colors hover:text-(--color-current) hover:ring-(--color-current) focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-fg";
 
 /** The nearest in-range flood for this place, or the current one if none. */
 function eventIdFor(pin: Pin, currentId: string): string {

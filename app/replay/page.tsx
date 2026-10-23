@@ -1,8 +1,9 @@
 import type { Metadata } from "next";
 import { ReplayClient } from "@/components/replay/ReplayClient";
+import { copy } from "@/lib/copy";
 
 export const metadata: Metadata = {
-  title: "Replay a flood · CrestWatch",
+  title: copy.pageTitleReplay,
 };
 
 /* S5 · Replay. */
