@@ -1,7 +1,9 @@
+import { readFileSync } from "node:fs";
+import { join } from "node:path";
 import { describe, expect, it } from "vitest";
 import { copy } from "@/lib/copy";
 import { dayWord, riverName, statusLine, timeWord, verdictSentence } from "@/lib/sentences";
-import type { Verdict } from "@/lib/surveyor";
+import { survey, type Verdict } from "@/lib/surveyor";
 
 const NOW = "2026-03-02T15:00:00Z"; // a Monday, 9am Central
 
@@ -45,8 +47,8 @@ describe("helpers", () => {
     expect(dayWord("2026-03-04T20:00:00Z", NOW)).toBe("Wednesday");
   });
 
-  it("timeWord formats an hour word", () => {
-    expect(timeWord("2026-03-04T18:00:00Z")).toBe("12pm"); // noon CT
+  it("timeWord formats an hour word, labeled CT like the live chip (#18)", () => {
+    expect(timeWord("2026-03-04T18:00:00Z")).toBe("12pm CT"); // noon CT
   });
 
   it("dayWord survives the CT spring-forward (23-hour day)", () => {
@@ -105,7 +107,7 @@ describe("verdict sentences (Appendix C)", () => {
       gauge,
       now: NOW,
     });
-    expect(s).toContain("The Yazoo River peaks Wednesday around 12pm.");
+    expect(s).toContain("The Yazoo River peaks Wednesday around 12pm CT.");
     expect(s).toContain("Water likely reaches The road about 10 hours before that.");
   });
 
@@ -130,7 +132,7 @@ describe("verdict sentences (Appendix C)", () => {
     expect(s).toContain("Grandma sits about 2 ft above the forecast peak");
     expect(s).toContain("too close to call");
     // Issued 12:00Z + 8h = 20:00Z = 2pm Central, still ahead of 9am.
-    expect(s).toContain("Check back after the next forecast, around 2pm.");
+    expect(s).toContain("Check back after the next forecast, around 2pm CT.");
   });
 
   it("CATEGORY above flood stage names the NWS category", () => {
@@ -158,7 +160,10 @@ describe("verdict sentences (Appendix C)", () => {
       stale: freshStale,
     };
     const s = verdictSentence({ pinName: "Home", verdict: v, gauge, now: NOW });
-    expect(s).toContain("stays below flood stage");
+    expect(s).toBe(
+      "The forecast crest at Yazoo River at Yazoo City stays below flood stage. Low areas near the river should stay passable.",
+    );
+    expect(statusLine(v)).toBe("below flood stage at the nearest gauge");
   });
 
   it("LIKELY currently-above outranks every other phrasing", () => {
@@ -184,14 +189,19 @@ describe("verdict sentences (Appendix C)", () => {
       gauge,
       now: NOW,
     });
-    expect(below).toContain("within a foot");
+    expect(below).toBe(
+      "Water likely reaches this spot. The forecast peak comes within a foot of Home.",
+    );
     const above = verdictSentence({
       pinName: "Home",
       verdict: fullVerdict({ band: "LIKELY", marginFt: -2.0, crossing: null }),
       gauge,
       now: NOW,
     });
-    expect(above).not.toContain("within a foot");
+    expect(above).toBe("Water likely reaches this spot. Check back after the next forecast.");
+    // The copy deck spells these out; they still open with the band label.
+    expect(below.startsWith(copy.bandLikely)).toBe(true);
+    expect(above.startsWith(copy.bandLikely)).toBe(true);
   });
 
   it("CATEGORY major with no published minor stage still says flooding", () => {
@@ -255,6 +265,30 @@ describe("statusLine (place cards)", () => {
     expect(statusLine(fullVerdict({ band: "BORDERLINE" }))).toContain("Too close");
     expect(statusLine({ tier: "ALERT_ONLY" })).toContain("can't watch");
   });
+
+  it("CATEGORY lines come from the copy deck, wording unchanged", () => {
+    const cat = (category: "action" | "moderate" | "none" | null): Verdict => ({
+      tier: "CATEGORY",
+      peakStageFt: 30,
+      peakT: "2026-03-04T18:00:00Z",
+      aboveFloodFt: 1,
+      category,
+      stale: freshStale,
+    });
+    expect(statusLine(cat("action"))).toBe("close to flood stage at the nearest gauge");
+    expect(statusLine(cat("moderate"))).toBe("moderate flooding forecast near the gauge");
+    expect(statusLine(cat("none"))).toBe("below flood stage at the nearest gauge");
+    expect(statusLine(cat(null))).toBe("below flood stage at the nearest gauge");
+  });
+
+  it("lib/sentences.ts builds no visitor sentence inline", () => {
+    const src = readFileSync(join(__dirname, "..", "lib", "sentences.ts"), "utf8");
+    // Strip comments, then look for string literals that read like prose.
+    const code = src.replace(/\/\*[\s\S]*?\*\//g, "").replace(/\/\/.*$/gm, "");
+    const literals = code.match(/(["'`])(?:\\.|(?!\1)[^\\])*\1/g) ?? [];
+    const prose = literals.filter((l) => /[a-z]{2,} [a-z]{2,} [a-z]{2,}/i.test(l));
+    expect(prose).toEqual([]);
+  });
 });
 
 describe("forecast vs live gauge disagreement", () => {
@@ -301,7 +335,84 @@ describe("falling river (UNLIKELY past peak, #6/#70)", () => {
   // Vicksburg-shaped: the crest is the latest reading and the forecast
   // only goes down from here.
   const fallingPeak = { waterElevFt: 100.8, stageFt: 10.8, t: "2026-03-02T14:00:00Z" };
-  const falling = fullVerdict({ pastPeak: true, peak: fallingPeak });
+  const falling = fullVerdict({ pastPeak: true, peak: fallingPeak, currentWaterElevFt: 100.8 });
+
+  it("pastPeak with the crest still ahead of the reading says 'peaks', not 'is at'", () => {
+    // The next forecast point is the crest, above the last reading.
+    const v = fullVerdict({
+      pastPeak: true,
+      peak: { waterElevFt: 100.8, stageFt: 10.8, t: "2026-03-03T00:00:00Z" },
+      currentWaterElevFt: 100.4,
+    });
+    for (const observedTrend of [null, "steady", "falling"] as const) {
+      const s = verdictSentence({ pinName: "Home", verdict: v, gauge, now: NOW, observedTrend });
+      expect(s).toBe(
+        "The Yazoo River peaks today at 10.8 ft on the river gauge. Home stays dry by about 4 ft.",
+      );
+      expect(s).not.toContain("is at");
+    }
+  });
+
+  it("a falling reading that is the highest water says 'coming down' without pastPeak", () => {
+    // A later forecast bump stays below the reading, so pastPeak is false.
+    const v = fullVerdict({ pastPeak: false, peak: fallingPeak, currentWaterElevFt: 100.8 });
+    const s = verdictSentence({
+      pinName: "Home",
+      verdict: v,
+      gauge,
+      now: NOW,
+      observedTrend: "falling",
+    });
+    expect(s).toBe(
+      "The Yazoo River is at 10.8 ft on the river gauge and coming down. Home stays dry by about 4 ft.",
+    );
+    expect(s).not.toContain("peaks");
+  });
+
+  describe("from real survey() output", () => {
+    const at = (h: number) => new Date(Date.parse(NOW) + h * 3.6e6).toISOString();
+    const pts = (p: Array<[number, number]>) => p.map(([h, stageFt]) => ({ t: at(h), stageFt }));
+    const run = (obs: Array<[number, number]>, fcst: Array<[number, number]>, trend: "steady" | "falling") => {
+      const v = survey({
+        pinElevationFt: 100,
+        gauge: {
+          observed: pts(obs),
+          forecast: pts(fcst),
+          forecastIssued: at(-1),
+          categories: { action: 28, minor: 29, moderate: 36, major: 43 },
+          gaugeZeroFt: 70,
+          gaugeDatum: "NAVD88",
+        },
+        now: NOW,
+      });
+      return verdictSentence({
+        pinName: "Home",
+        verdict: v,
+        gauge: { name: "Mississippi River at Vicksburg", forecastIssued: at(-1) },
+        now: NOW,
+        observedTrend: trend,
+      });
+    };
+
+    it("reading 14.5, crest 14.9 still to come: peaks, never 'is at 14.9'", () => {
+      const s = run([[-0.5, 14.5]], [[9, 14.9], [15, 14.6], [21, 14.2]], "steady");
+      expect(s).toContain("Mississippi River peaks today at 14.9 ft on the river gauge.");
+      expect(s).not.toContain("is at");
+    });
+
+    it("forecast entirely behind us, above the reading: never 'is at' that high point", () => {
+      const s = run([[-0.5, 14.2]], [[-10, 15.0], [-6, 15.5], [-2, 15.1]], "steady");
+      expect(s).not.toContain("is at");
+      expect(s).not.toContain("coming down");
+    });
+
+    it("falling reading with a lower bump ahead: 'is at … coming down', never 'peaks today'", () => {
+      const s = run([[-0.5, 15.0]], [[3, 14.0], [9, 14.5], [15, 13.0]], "falling");
+      expect(s).toBe(
+        "The Mississippi River is at 15.0 ft on the river gauge and coming down. Home stays dry by about 15 ft.",
+      );
+    });
+  });
 
   it.each([null, "falling", "steady"] as const)(
     "says 'is at … and coming down', never 'peaks' (trend %s)",
@@ -470,7 +581,7 @@ describe("stale data never says today or now (#7/#69)", () => {
     });
     const s = verdictSentence({ pinName: "The road", verdict: v, gauge, now: NOW });
     expect(s).toBe(
-      "The last forecast had the Yazoo River peaking on Mar 2 around 4pm. By that forecast, water likely reaches The road about 1 hour before that.",
+      "The last forecast had the Yazoo River peaking on Mar 2 around 4pm CT. By that forecast, water likely reaches The road about 1 hour before that.",
     );
     expect(s).not.toMatch(TODAY_WORD);
   });
@@ -486,6 +597,27 @@ describe("stale data never says today or now (#7/#69)", () => {
     expect(s).not.toMatch(NOW_WORD);
   });
 
+  it("a fresh reading under a stale forecast drops 'now' too", () => {
+    const v = fullVerdict({
+      band: "LIKELY",
+      marginFt: -2.6,
+      currentlyAbove: true,
+      stale: staleFcstOnly,
+    });
+    const s = verdictSentence({
+      pinName: "Home",
+      verdict: v,
+      gauge: { name: "Mississippi River at Vicksburg", forecastIssued: null },
+      now: NOW,
+      observedTrend: "rising",
+    });
+    expect(s).toBe(
+      "The gauge shows Home in the water, and the Mississippi River is still up. Stay off flooded roads and check back after the next forecast.",
+    );
+    expect(s).not.toMatch(NOW_WORD);
+    expect(s).not.toMatch(TODAY_WORD);
+  });
+
   it("no stale FULL sentence says today or now, or a weekday", () => {
     const bands = [
       { band: "LIKELY", marginFt: -1 },
@@ -498,13 +630,15 @@ describe("stale data never says today or now (#7/#69)", () => {
       for (const b of bands) {
         for (const pastPeak of [false, true]) {
           for (const crossing of [null, { t: "2026-03-02T20:00:00Z", hoursFromNow: 5 }]) {
-            for (const observedTrend of [null, "rising", "falling"] as const) {
-              const v = fullVerdict({ ...b, peak, pastPeak, crossing, stale });
-              const s = verdictSentence({ pinName: "Home", verdict: v, gauge, now: NOW, observedTrend });
-              const label = JSON.stringify({ stale, b, pastPeak, crossing, observedTrend, s });
-              expect(s, label).not.toMatch(TODAY_WORD);
-              expect(s, label).not.toMatch(NOW_WORD);
-              expect(s, label).not.toMatch(WEEKDAY);
+            for (const currentlyAbove of [false, true]) {
+              for (const observedTrend of [null, "rising", "falling"] as const) {
+                const v = fullVerdict({ ...b, peak, pastPeak, crossing, currentlyAbove, stale });
+                const s = verdictSentence({ pinName: "Home", verdict: v, gauge, now: NOW, observedTrend });
+                const label = JSON.stringify({ stale, b, pastPeak, crossing, currentlyAbove, observedTrend, s });
+                expect(s, label).not.toMatch(TODAY_WORD);
+                expect(s, label).not.toMatch(NOW_WORD);
+                expect(s, label).not.toMatch(WEEKDAY);
+              }
             }
           }
         }
@@ -532,7 +666,7 @@ describe("BORDERLINE next-forecast time (#13)", () => {
   it("names the clock time while it's still ahead", () => {
     const s = verdictSentence({ pinName: "Grandma", verdict: borderline, gauge, now: NOW });
     expect(s).toBe(
-      "Grandma sits about 2 ft above the forecast peak. That's too close to call. Check back after the next forecast, around 2pm.",
+      "Grandma sits about 2 ft above the forecast peak. That's too close to call. Check back after the next forecast, around 2pm CT.",
     );
   });
 
