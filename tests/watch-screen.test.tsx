@@ -385,7 +385,8 @@ describe("#35 announcing a changed verdict", () => {
 describe("#68 CATEGORY chip table", () => {
   it.each([
     ["none", "UNLIKELY", "below flood stage"],
-    [null, "UNLIKELY", "below flood stage"],
+    [null, "BORDERLINE", "flood stage unknown"],
+    ["none", "UNLIKELY", "below flood stage"],
     ["action", "BORDERLINE", "near flood stage"],
     ["minor", "BORDERLINE", "minor flooding"],
     ["moderate", "LIKELY", "moderate flooding"],

@@ -106,7 +106,8 @@ export function verdictSentence({
     const cat = verdict.category;
     const gaugeName = gauge?.name ?? copy.verdictGaugeFallback;
     if (cat === "minor" || cat === "moderate" || cat === "major") {
-      const catWord = `${cat[0].toUpperCase()}${cat.slice(1)}`;
+      // Mid-sentence, so lowercase: "calls that moderate flooding".
+      const catWord = cat;
       if (verdict.aboveFloodFt !== null && verdict.aboveFloodFt > 0) {
         return copy.verdictCategory(
           verdict.aboveFloodFt.toFixed(1),
@@ -119,7 +120,11 @@ export function verdictSentence({
     if (cat === "action") {
       return copy.verdictCategoryAction(gaugeName);
     }
-    // Genuinely below every published threshold (or none published).
+    // No flood stage published: we can't say it stays below one.
+    if (cat === null || cat === undefined) {
+      return copy.verdictCategoryUnknown(gaugeName);
+    }
+    // Below every published threshold, flood stage included.
     return copy.verdictCategoryNone(gaugeName);
   }
 
@@ -259,6 +264,9 @@ export function statusLine(verdict: Verdict): string {
     }
     if (verdict.category && verdict.category !== "none") {
       return copy.statusCategoryFlooding(verdict.category);
+    }
+    if (verdict.category === null || verdict.category === undefined) {
+      return copy.statusCategoryUnknown;
     }
     return copy.statusCategoryNone;
   }

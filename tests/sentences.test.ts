@@ -146,7 +146,7 @@ describe("verdict sentences (Appendix C)", () => {
     };
     const s = verdictSentence({ pinName: "Home", verdict: v, gauge, now: NOW });
     expect(s).toContain("4.2 ft above flood stage at Yazoo River at Yazoo City");
-    expect(s).toContain("Moderate flooding");
+    expect(s).toContain("moderate flooding");
     expect(s).toContain("closely enough to do house-level math here");
   });
 
@@ -214,7 +214,7 @@ describe("verdict sentences (Appendix C)", () => {
       stale: freshStale,
     };
     const s = verdictSentence({ pinName: "Home", verdict: v, gauge, now: NOW });
-    expect(s).toContain("Major flooding");
+    expect(s).toContain("major flooding");
     expect(s).not.toContain("stays below flood stage");
   });
 
@@ -228,7 +228,7 @@ describe("verdict sentences (Appendix C)", () => {
       stale: freshStale,
     };
     const s = verdictSentence({ pinName: "Home", verdict: v, gauge, now: NOW });
-    expect(s).toContain("Minor flooding");
+    expect(s).toContain("minor flooding");
     expect(s).not.toContain("stays below flood stage");
   });
 
@@ -258,6 +258,22 @@ describe("verdict sentences (Appendix C)", () => {
   });
 });
 
+describe("CATEGORY with no published flood stage", () => {
+  it("never says 'below flood stage' or 'passable' when no stage is published", () => {
+    const v: Verdict = {
+      tier: "CATEGORY",
+      peakStageFt: 12,
+      peakT: "2026-03-04T18:00:00Z",
+      aboveFloodFt: null,
+      category: null,
+      stale: freshStale,
+    };
+    const s = verdictSentence({ pinName: "Home", verdict: v, gauge, now: NOW });
+    expect(s).toContain("No flood stage is published for Yazoo River at Yazoo City");
+    expect(s).not.toMatch(/below flood stage|passable/);
+  });
+});
+
 describe("statusLine (place cards)", () => {
   it("covers all bands and tiers", () => {
     expect(statusLine(fullVerdict({}))).toContain("stays dry by about 4 ft");
@@ -278,7 +294,7 @@ describe("statusLine (place cards)", () => {
     expect(statusLine(cat("action"))).toBe("close to flood stage at the nearest gauge");
     expect(statusLine(cat("moderate"))).toBe("moderate flooding forecast near the gauge");
     expect(statusLine(cat("none"))).toBe("below flood stage at the nearest gauge");
-    expect(statusLine(cat(null))).toBe("below flood stage at the nearest gauge");
+    expect(statusLine(cat(null))).toBe("no flood stage published at the nearest gauge");
   });
 
   it("lib/sentences.ts builds no visitor sentence inline", () => {

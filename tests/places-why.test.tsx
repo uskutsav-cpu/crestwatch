@@ -322,7 +322,8 @@ describe("Places: card details", () => {
 
   it("CATEGORY edge colour matches the Watch chip table (#68)", () => {
     expect(edgeBand(watchFor(HOME, categoryVerdict("none")))).toBe("UNLIKELY");
-    expect(edgeBand(watchFor(HOME, categoryVerdict(null)))).toBe("UNLIKELY");
+    // No published flood stage is unknown, never a green all-clear.
+    expect(edgeBand(watchFor(HOME, categoryVerdict(null)))).toBe("BORDERLINE");
     expect(edgeBand(watchFor(HOME, categoryVerdict("action")))).toBe("BORDERLINE");
     expect(edgeBand(watchFor(HOME, categoryVerdict("minor")))).toBe("BORDERLINE");
     expect(edgeBand(watchFor(HOME, categoryVerdict("moderate")))).toBe("LIKELY");

@@ -202,7 +202,7 @@ export function ReplayClient() {
     return (
       <div className="py-14">
         <h1 className="text-h2">{copy.replayTitle}</h1>
-        <p className="mt-4 text-dim">{copy.placesEmpty}</p>
+        <p className="mt-4 text-dim">{copy.replayEmpty}</p>
         <div className="mt-4 flex flex-wrap items-center gap-x-5 gap-y-3">
           <button type="button" onClick={startExample} className={smallButtonClasses}>
             {copy.replayExampleCta}

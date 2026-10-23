@@ -283,10 +283,17 @@ export async function geocodeStreetFallback(
   // A house hit reads as its address ("1400 Washington Street, Vicksburg"),
   // not as whatever shop sits there. Otherwise trim the long OSM display
   // name to something a person recognises.
+  // OSM can list several numbers on one building ("1400;1402"); show the
+  // one the person asked for. A street point reads as "road, town", never
+  // as a business that happens to sit on it.
+  const asked = /^\s*(\d+[a-z]?)\b/i.exec(query)?.[1];
+  const shownNumber = asked ?? a?.house_number?.split(/[;,]/)[0]?.trim();
   const label =
-    houseLevel && a?.house_number && a.road
-      ? [`${a.house_number} ${a.road}`, town].filter(Boolean).join(", ")
-      : (hit.display_name ?? query).split(",").slice(0, 3).join(",").trim();
+    houseLevel && shownNumber && a?.road
+      ? [`${shownNumber} ${a.road}`, town].filter(Boolean).join(", ")
+      : a?.road
+        ? [a.road, town].filter(Boolean).join(", ")
+        : (hit.display_name ?? query).split(",").slice(0, 3).join(",").trim();
   return {
     ok: true,
     point: {

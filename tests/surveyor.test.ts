@@ -234,3 +234,23 @@ describe("peak-selection edge cases", () => {
     expect(v.peak.stageFt).toBe(9.5);
   });
 });
+
+describe("categoryFor: 'below flood stage' only when it's knowable", () => {
+  it("is 'none' under a published flood stage or action stage", async () => {
+    const { categoryFor } = await import("@/lib/surveyor");
+    expect(categoryFor(10, { action: 20, minor: 25, moderate: 30, major: 35 })).toBe("none");
+    expect(categoryFor(10, { action: 20 })).toBe("none");
+  });
+
+  it("is unknown (null) when only moderate/major are published and the crest is under them", async () => {
+    const { categoryFor } = await import("@/lib/surveyor");
+    // Minor flooding could already be happening; we can't say "below".
+    expect(categoryFor(28, { moderate: 30, major: 35 })).toBeNull();
+    expect(categoryFor(31, { moderate: 30, major: 35 })).toBe("moderate");
+  });
+
+  it("is unknown (null) when nothing is published", async () => {
+    const { categoryFor } = await import("@/lib/surveyor");
+    expect(categoryFor(5, {})).toBeNull();
+  });
+});

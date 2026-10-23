@@ -54,7 +54,11 @@ export function chipFor(w: PinWatch): { band: VerdictBand; label: string } {
     return { band: w.verdict.band, label: map[w.verdict.band] };
   }
   if (w.verdict.tier === "CATEGORY") {
-    return CATEGORY_CHIPS[w.verdict.category ?? "none"] ?? CATEGORY_CHIPS.none;
+    // No published flood stage: unknown, never a green all-clear.
+    if (w.verdict.category === null || w.verdict.category === undefined) {
+      return { band: "BORDERLINE", label: copy.chipCategoryUnknown };
+    }
+    return CATEGORY_CHIPS[w.verdict.category] ?? CATEGORY_CHIPS.none;
   }
   return { band: "BORDERLINE", label: copy.chipAlertOnly };
 }
@@ -489,7 +493,7 @@ export function WatchClient() {
         <Link
           href={
             isLinked && wl !== null
-              ? `/why?pin=${pin.id}&wl=${encodeURIComponent(wl)}`
+              ? `/why?pin=${pin.id}&wl=${encodeURIComponent(wl)}${isExample ? "&ex=1" : ""}`
               : `/why?pin=${pin.id}`
           }
           className="font-semibold text-(--color-current)"

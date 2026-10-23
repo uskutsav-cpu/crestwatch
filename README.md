@@ -33,7 +33,10 @@ One environment variable is **optional and never required**:
 `USGS_API_KEY`, a free api.data.gov key that only raises the rate limits of
 the USGS Water Data API. Without it the app calls that API without a key. When
 it is set, the key is sent only to `api.waterdata.usgs.gov`. See
-[.env.example](.env.example).
+[.env.example](.env.example). Setting it on Vercel **before Jan 11, 2027** is
+recommended: from that date the new API goes first, and USGS says anonymous
+use is limited to "a few queries per hour", so busy days could fall back to
+flood-stage answers without a key.
 
 ## How it works
 

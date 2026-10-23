@@ -47,7 +47,7 @@ TEAM: it says "six months". Check that figure before you say it on camera.
 
 - Film after the current fixes are merged and deployed. Open the Why
   screen for the example and check that the Vicksburg gauge zero reads
-  46.22 ft (see Known quirks in `docs/SUBMISSION.md`).
+  46.2 ft, USGS's 46.22 rounded (see Known quirks in `docs/SUBMISSION.md`).
 - The live example doesn't need an address lookup, so it loads even when
   the USGS elevation service is slow. If you also show a typed address,
   look it up once on the live site beforehand so it loads fast.

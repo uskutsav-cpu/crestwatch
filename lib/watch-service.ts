@@ -10,6 +10,7 @@ import {
   geocodeAddress,
   geocodePlace,
   geocodeStreetFallback,
+  EPQS_BUDGET_MS,
   groundElevationFt,
   looksLikeStreetAddress,
   splitStateHint,
@@ -27,6 +28,8 @@ import { survey, type Verdict } from "@/lib/surveyor";
 import { cached } from "@/lib/cache";
 import type { Pin } from "@/lib/pins";
 
+/** Time a lookup may spend before the gauge search (route maxDuration is 60 s). */
+const LOOKUP_BUDGET_MS = 50_000;
 const GAUGE_TTL_MS = 15 * 60 * 1000; // observed data cadence
 const GEO_TTL_MS = 24 * 60 * 60 * 1000; // immutable per location
 const ALERTS_TTL_MS = 10 * 60 * 1000;
@@ -66,6 +69,7 @@ export async function lookupAddress(
   address: string,
   fetchers: Fetchers = defaultFetchers,
 ): Promise<LookupResult> {
+  const startedMs = Date.now();
   const key = address.trim().toLowerCase();
   // Set when any tier was down during this lookup. Each call gets its own
   // flag, and cached() checks it right after the lookup below resolves.
@@ -126,7 +130,16 @@ export async function lookupAddress(
   const elevationFt = await cached(
     `elev:${lat.toFixed(5)},${lon.toFixed(5)}`,
     GEO_TTL_MS,
-    () => groundElevationFt(lat, lon, fetchers.json),
+    // The route allows 60 s. Geocoding during an outage can eat a lot of
+    // it, so the elevation retries get what's left (never under 10 s),
+    // keeping about 10 s for the gauge search after.
+    () =>
+      groundElevationFt(lat, lon, fetchers.json, {
+        budgetMs: Math.max(
+          10_000,
+          Math.min(EPQS_BUDGET_MS, LOOKUP_BUDGET_MS - (Date.now() - startedMs)),
+        ),
+      }),
     // null covers both "no elevation data here" and "EPQS was down";
     // re-asking is cheap and far better than pinning an outage for a day.
     (e) => e !== null,

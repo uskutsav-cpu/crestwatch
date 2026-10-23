@@ -12,6 +12,7 @@
 import Link from "next/link";
 import { useEffect, useRef } from "react";
 import { copy } from "@/lib/copy";
+import { MAX_PINS } from "@/lib/config";
 import { fmtTime } from "@/lib/time";
 import { useWatches } from "@/lib/use-watch";
 import { statusLine } from "@/lib/sentences";
@@ -34,6 +35,8 @@ export function edgeBand(w: PinWatch): VerdictBand {
   if (v.tier === "CATEGORY") {
     if (v.category === "moderate" || v.category === "major") return "LIKELY";
     if (v.category === "action" || v.category === "minor") return "BORDERLINE";
+    // No published flood stage: unknown, never a green all-clear.
+    if (v.category === null || v.category === undefined) return "BORDERLINE";
     return "UNLIKELY";
   }
   return "BORDERLINE";
@@ -242,7 +245,7 @@ export function PlacesClient() {
                       <span className="sr-only">{TREND_TEXT[trend]}</span>
                     </span>
                   )}
-                  {crossing && (
+                  {crossing && crossing.hoursFromNow > 0 && (
                     <span className="tnum ml-auto text-small font-semibold text-risewatch">
                       ~{crossing.hoursFromNow}h
                     </span>
@@ -258,7 +261,7 @@ export function PlacesClient() {
         })}
       </ul>
 
-      {pins.length > 0 && pins.length < 5 && (
+      {pins.length > 0 && pins.length < MAX_PINS && (
         <Link href="/" className="font-semibold text-(--color-current)">
           {copy.addPlace}
         </Link>

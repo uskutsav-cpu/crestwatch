@@ -34,7 +34,7 @@ Check these personally. Judges may ask about them.
   under a foot, which is inside the "too close to call" band, but say so if
   asked. The same USGS page also lists a 73 ft Army Corps row; that is not
   gauge zero. Open the Why screen for a Vicksburg place and confirm the
-  gauge zero it shows is 46.22 ft.
+  gauge zero it shows is 46.2 ft (the screen rounds USGS's 46.22).
 - **The USGS elevation service can be slow.** The service that gives ground
   height (EPQS) sometimes fails at once and sometimes takes 15 to 30 seconds
   to answer. CrestWatch retries, and a new address can take up to about a
@@ -55,7 +55,14 @@ Check these personally. Judges may ask about them.
   fallback, and that API takes over as the main source as the legacy
   service slows down. Replay uses recorded USGS daily values for its three
   floods. The rules embargo results until Jan 15, 2027, so judges may well
-  open the app after the slowdown starts.
+  open the app after the slowdown starts. The new API is first from Jan 11,
+  2027, and USGS limits anonymous use to "a few queries per hour", so get
+  the free key (https://api.waterdata.usgs.gov/signup/) and set
+  `USGS_API_KEY` in the Vercel project settings before then.
+- **A gauge with no published flood stage** gets "flood stage unknown",
+  never a green "below flood stage". A gauge whose gauge zero USGS lists
+  as accurate only to worse than 1 ft (Greenville, Sarah, Lambert today)
+  gives flood-stage answers instead of house-level math.
 - The Redwood gauge (07288800) publishes gage height already referenced to
   NGVD29 elevation, so the replay treats stage as elevation directly.
   Confirm against the official gauge page.

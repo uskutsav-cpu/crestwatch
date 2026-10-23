@@ -324,7 +324,8 @@ describe("street fallback: house-level only for a real house (#5/#49)", () => {
     expect(r.ok).toBe(true);
     if (!r.ok) return;
     expect(r.point.precision).toBe("place");
-    expect(r.point.matchedAddress).toBe("North Main Street, Yazoo City, Yazoo County");
+    // A street point reads "road, town", never a business on it.
+    expect(r.point.matchedAddress).toBe("North Main Street, Yazoo City");
   });
 
   it("a building carrying the asked house number is house-level", async () => {

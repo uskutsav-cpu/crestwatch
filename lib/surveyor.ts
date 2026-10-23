@@ -141,7 +141,14 @@ export function categoryFor(
       if (peakStageFt >= threshold) return level;
     }
   }
-  return anyPublished ? "none" : null;
+  // "Below flood stage" is only knowable when flood stage (minor) or the
+  // lower action stage is published. With only moderate/major published,
+  // a crest under them could still be minor flooding: unknown, not calm.
+  void anyPublished;
+  return typeof categories.minor === "number" ||
+    typeof categories.action === "number"
+    ? "none"
+    : null;
 }
 
 /**

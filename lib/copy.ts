@@ -4,7 +4,9 @@
  * Short sentences. Contractions. No exclamation marks. No em dashes.
  * Jargon gets a plain gloss the first time it appears. Banned words:
  * catastrophic, danger, panic, guaranteed, exact. Uncertainty stays
- * honest ("about", "~"). The app never says "automated". It says "public data".
+ * honest ("about", "~"). The app never says "automated" about its answers: it
+ * says "public data". The one exception is the About page's "How it was
+ * built", which must disclose the automated coding tool (contest rule). Keep it.
  */
 
 /** "1 hour", "5 hours". */
@@ -130,16 +132,15 @@ export const copy = {
     ]
       .filter(Boolean)
       .join(" "),
-  tierFull: "FULL",
-  tierCategory: "CATEGORY",
-  tierAlertOnly: "ALERT-ONLY",
   noGaugeHeadline: "CrestWatch can't watch this spot",
 
   // S5 · Replay
   replayTitle: "Replay a real flood",
   pageTitleReplay: "Replay a real flood · CrestWatch",
   replayResult: (pin: string, days: number) =>
-    `Water above ${pin}: ${days} days`,
+    `Water above ${pin}: ${days} ${days === 1 ? "day" : "days"}`,
+  replayEmpty:
+    "Replay shows how a real past flood would have reached a place you save. Add a place, or try the example places.",
   replayNeverReached: (pin: string, ft: number) =>
     `The water never reached ${pin}. The highest it got was ${ft} ft below your spot.`,
   replayPlaceLabel: "Place",
@@ -192,6 +193,8 @@ export const copy = {
     `The forecast crest reaches ${category} flooding at ${gauge}. CrestWatch doesn't know this gauge's height above sea level closely enough to do house-level math here. Treat low roads as wet.`,
   verdictCategoryAction: (gauge: string) =>
     `The forecast crest comes close to flood stage at ${gauge}. Keep an eye on it. CrestWatch doesn't know this gauge's height above sea level closely enough to do house-level math here.`,
+  verdictCategoryUnknown: (gauge: string) =>
+    `No flood stage is published for ${gauge}, so CrestWatch can't tell if this crest will flood anything. Watch the official flood alerts.`,
   verdictCategoryNone: (gauge: string) =>
     `The forecast crest at ${gauge} stays below flood stage. Low areas near the river should stay passable.`,
   verdictLikelyPastPeakButRising: (river: string, pin: string) =>
@@ -220,11 +223,12 @@ export const copy = {
   statusCategoryAction: "close to flood stage at the nearest gauge",
   statusCategoryFlooding: (category: string) =>
     `${category} flooding forecast near the gauge`,
+  statusCategoryUnknown: "no flood stage published at the nearest gauge",
   statusCategoryNone: "below flood stage at the nearest gauge",
 
   // About
   aboutPrivacy:
-    "Your saved places live only in this browser. To look an address up, CrestWatch's server sends it to public map services: the US Census first, then OpenStreetMap (Nominatim) or Open-Meteo if the Census can't find it. Then it asks USGS and the Weather Service about that spot. Each time it checks, your browser sends your places to CrestWatch's server for that check. The server doesn't save them. It keeps lookups in short-term memory for up to a day so repeat checks are fast. A watch link you share has your places inside it. No accounts, no database, no tracking, no ads.",
+    "Your saved places live only in this browser. To look an address up, CrestWatch's server sends it to public map services: the US Census first, then OpenStreetMap (Nominatim) or Open-Meteo if the Census can't find it. Then it asks USGS and the Weather Service about that spot. Each time it checks, your browser sends your places to CrestWatch's server for that check. The server doesn't save them. It keeps lookups in short-term memory for up to a day so repeat checks are fast, and counts checks from each internet connection for an hour to stop abuse. A watch link you share has your places inside it. No accounts, no database, no tracking, no ads.",
   honesty:
     "CrestWatch predicts river flooding, the slow kind our district gets, with days of warning. It can't predict flash floods from sudden rain. Its numbers are estimates from public elevation data, not a survey of your property. When it's too close to call, it says so. It only checks the river while it's open, and it doesn't send alerts. Keep the emergency alerts on your phone turned on.",
   // 404 + error pages
@@ -242,6 +246,7 @@ export const copy = {
   // (riverDataDown and brokenLink are defined once above, shared.)
   refreshFailed: (time: string) =>
     `Couldn't check the river just now. This is the answer from ${time}.`,
+  chipCategoryUnknown: "flood stage unknown",
   chipCategoryNone: "below flood stage",
   chipCategoryAction: "near flood stage",
   chipCategoryMinor: "minor flooding",
@@ -282,7 +287,7 @@ export const copy = {
     },
     {
       term: "Stage",
-      text: "How deep the river is at the gauge, in feet. It's counted up from the gauge's own zero mark, not from the river bottom.",
+      text: "How high the water reads on the gauge's measuring stick, in feet. It's counted up from the gauge's own zero mark, not from sea level or the river bottom.",
     },
     {
       term: "Gauge zero",

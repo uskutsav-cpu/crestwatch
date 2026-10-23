@@ -180,7 +180,7 @@ describe("glossary (#78)", () => {
     }
     // FULL shows for approximate pins too, so it must never read as house-level.
     expect(all).not.toContain("house-level");
-    expect(copy.glossary[1].text).toMatch(/^How deep the river is at the gauge/);
+    expect(copy.glossary[1].text).toMatch(/^How high the water reads on the gauge/);
   });
 
   it("follows the copy rules", () => {

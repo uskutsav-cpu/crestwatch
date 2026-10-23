@@ -95,7 +95,9 @@ export function WhyClient() {
   const pin = pins.find((p) => p.id === pinParam) ?? pins[0];
   const watch = watches.find((w) => w.pinId === pin?.id);
   const watchHref = (id: string) =>
-    linkedPins ? `/watch?pin=${id}&wl=${wl}` : `/watch?pin=${id}`;
+    linkedPins
+      ? `/watch?pin=${id}&wl=${wl}${params.get("ex") === "1" ? "&ex=1" : ""}`
+      : `/watch?pin=${id}`;
 
   // The place exists but the river data didn't answer. Stays on screen
   // while "Check again" runs, so the button keeps keyboard focus.

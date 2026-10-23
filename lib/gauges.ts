@@ -116,7 +116,7 @@ export const waterdataSiteUrl = (site: string) =>
 
 export const waterdataIvUrl = (site: string, hours = 48) =>
   `${WATERDATA}/continuous/items?monitoring_location_id=USGS-${encodeURIComponent(site)}` +
-  `&parameter_code=00065&time=PT${hours}H&properties=time,value&skipGeometry=true&limit=1000&f=json`;
+  `&parameter_code=00065&time=PT${hours}H&properties=time,value&skipGeometry=true&limit=10000&f=json`;
 
 /* ---------------------------------------------------------------- */
 /* USGS source order                                                 */
