@@ -6,6 +6,23 @@
  */
 
 import { CHART_H, CHART_W, chartLayout, type ChartInput } from "@/lib/chart";
+import { copy } from "@/lib/copy";
+
+/**
+ * The chart's text alternative, built from the same numbers it draws:
+ * the newest reading, the forecast high and the flood-stage line.
+ */
+export function chartAriaLabel({ observed, forecast, floodStageFt }: ChartInput): string {
+  const last = observed.at(-1);
+  const high = forecast.length
+    ? Math.max(...forecast.map((p) => p.stageFt))
+    : null;
+  return copy.chartLabel(
+    last ? last.stageFt.toFixed(1) : null,
+    high !== null ? high.toFixed(1) : null,
+    typeof floodStageFt === "number" ? floodStageFt.toFixed(1) : null,
+  );
+}
 
 export function StatChart(props: ChartInput) {
   const c = chartLayout(props);
@@ -15,7 +32,7 @@ export function StatChart(props: ChartInput) {
     <svg
       viewBox={`0 0 ${CHART_W} ${CHART_H}`}
       role="img"
-      aria-label="River stage: observed and forecast"
+      aria-label={chartAriaLabel(props)}
       className="w-full rounded-2xl bg-surface"
     >
       {c.yTicks.map((t) => (

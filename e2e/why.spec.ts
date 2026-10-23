@@ -79,3 +79,30 @@ test("ALERT-ONLY tier: honest headline + alerts pointer", async ({ page }) => {
   ).toBeVisible();
   await expect(page.getByText(/flash flooding/)).toBeVisible();
 });
+
+test("river data down: Why says so instead of asking for a first place", async ({
+  page,
+}) => {
+  await page.route("**/api/watch", (r) => r.abort());
+  await page.goto("/why?pin=pjackson");
+  await expect(page.getByText(/The river data didn't answer/)).toBeVisible({
+    timeout: 15_000,
+  });
+  await expect(page.getByRole("button", { name: "Check again" })).toBeVisible();
+  await expect(
+    page.getByRole("link", { name: /Back to the watch/ }),
+  ).toHaveAttribute("href", "/watch?pin=pjackson");
+  await expect(page.getByText(/Add your home, grandma's place/)).toHaveCount(0);
+});
+
+test("a broken shared link says so and never shows this device's places", async ({
+  page,
+}) => {
+  // The first characters of a real link, cut short (an SMS split).
+  await page.goto("/why?pin=wl0&wl=W1siR3JhbmRtYSIs");
+  await expect(page.getByText(/This shared link didn't open/)).toBeVisible({
+    timeout: 15_000,
+  });
+  await expect(page.getByText("No magic. Here's the math.")).toHaveCount(0);
+  await expect(page.getByText("275.5 ft")).toHaveCount(0);
+});

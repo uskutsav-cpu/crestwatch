@@ -3,35 +3,78 @@
 /**
  * S3 · Places board (T08): up to 5 pins, worst first, one glance.
  * Each card can be opened, renamed, or removed on its own.
+ *
+ * Saved places are always listed, even when the river data didn't
+ * answer: a board that goes blank next to "Delete all my data" looks
+ * like the places were wiped.
  */
 
 import Link from "next/link";
+import { useEffect, useRef } from "react";
 import { copy } from "@/lib/copy";
 import { useWatches } from "@/lib/use-watch";
 import { statusLine } from "@/lib/sentences";
 import { sortWorstFirst } from "@/lib/severity";
-import { trendOf } from "@/lib/trend";
+import { trendOf, type Trend } from "@/lib/trend";
 import { clearAllPins, removePin, renamePin } from "@/lib/pin-store";
 import { BAND_COLOR, LiveDot, type VerdictBand } from "@/components/ui";
 import { AlertStrip } from "@/components/watch/AlertStrip";
+import type { Pin } from "@/lib/pins";
 import type { PinWatch } from "@/lib/watch-service";
 
-function edgeBand(w: PinWatch): VerdictBand {
-  if (w.verdict.tier === "FULL") return w.verdict.band;
-  if (w.verdict.tier === "CATEGORY") {
-    return w.verdict.category === "major" || w.verdict.category === "moderate"
-      ? "LIKELY"
-      : "BORDERLINE";
+/**
+ * Card edge colour. The CATEGORY tier follows the Watch chip table:
+ * below flood stage (or no category) is calm, action and minor are
+ * too close to call, moderate and major mean water is likely.
+ */
+export function edgeBand(w: PinWatch): VerdictBand {
+  const v = w.verdict;
+  if (v.tier === "FULL") return v.band;
+  if (v.tier === "CATEGORY") {
+    if (v.category === "moderate" || v.category === "major") return "LIKELY";
+    if (v.category === "action" || v.category === "minor") return "BORDERLINE";
+    return "UNLIKELY";
   }
   return "BORDERLINE";
 }
 
+const TREND_ARROW: Record<Trend, string> = {
+  rising: "↑",
+  falling: "↓",
+  steady: "→",
+};
+const TREND_TEXT: Record<Trend, string> = {
+  rising: copy.trendRising,
+  falling: copy.trendFalling,
+  steady: copy.trendSteady,
+};
+
+function fmtTime(ms: number): string {
+  return new Intl.DateTimeFormat("en-US", {
+    timeZone: "America/Chicago",
+    hour: "numeric",
+    minute: "2-digit",
+  }).format(new Date(ms));
+}
+
 export function PlacesClient() {
-  const { pins, watches, loading, refresh } = useWatches();
+  const { pins, watches, loading, error, updatedAt, refresh } = useWatches();
+  const headingRef = useRef<HTMLHeadingElement>(null);
+  const focusHeading = useRef(false);
+
+  // Removing a place takes its button away with it. Once the new list
+  // (or the empty state, which has its own h1) has rendered, put focus
+  // on the page title so keyboard users don't land on <body>.
+  useEffect(() => {
+    if (!focusHeading.current) return;
+    focusHeading.current = false;
+    headingRef.current?.focus();
+  });
 
   function deleteAll() {
     if (window.confirm(copy.deleteAllConfirm)) {
       clearAllPins();
+      focusHeading.current = true;
       refresh();
     }
   }
@@ -39,6 +82,7 @@ export function PlacesClient() {
   function removeOne(id: string, name: string) {
     if (window.confirm(copy.removePlace(name))) {
       removePin(id);
+      focusHeading.current = true;
       refresh();
     }
   }
@@ -51,10 +95,16 @@ export function PlacesClient() {
     }
   }
 
+  const heading = (
+    <h1 ref={headingRef} tabIndex={-1} className="text-h2">
+      {copy.placesTitle}
+    </h1>
+  );
+
   if (!loading && pins.length === 0) {
     return (
       <div className="py-14">
-        <h1 className="text-h2">{copy.placesTitle}</h1>
+        {heading}
         <p className="mt-4 rounded-2xl bg-surface p-6 text-dim">
           {copy.placesEmpty}
         </p>
@@ -68,30 +118,109 @@ export function PlacesClient() {
     );
   }
 
-  const sorted = sortWorstFirst(watches);
+  // Checked places worst first, then any place the river data hasn't
+  // answered for yet, in the order they were saved.
+  const rows: Array<{ pin: Pin; watch: PinWatch | null }> = [];
+  for (const w of sortWorstFirst(watches)) {
+    const pin = pins.find((p) => p.id === w.pinId);
+    if (pin) rows.push({ pin, watch: w });
+  }
+  for (const pin of pins) {
+    if (!watches.some((w) => w.pinId === pin.id)) rows.push({ pin, watch: null });
+  }
+
+  const firstLoadFailed = error && watches.length === 0;
+  const refreshFailed = error && watches.length > 0 && updatedAt !== null;
+
+  const actions = (pin: Pin) => (
+    <div className="absolute right-2 top-2 flex gap-2">
+      <button
+        type="button"
+        onClick={() => renameOne(pin.id, pin.name)}
+        aria-label={`Rename ${pin.name}`}
+        className="flex h-11 w-11 items-center justify-center rounded-full text-dim transition-colors hover:text-(--color-current)"
+      >
+        ✎
+      </button>
+      <button
+        type="button"
+        onClick={() => removeOne(pin.id, pin.name)}
+        aria-label={`Remove ${pin.name}`}
+        className="flex h-11 w-11 items-center justify-center rounded-full text-dim transition-colors hover:text-floodline"
+      >
+        ✕
+      </button>
+    </div>
+  );
+
+  const approxTag = (pin: Pin) =>
+    pin.approximate ? (
+      <span className="shrink-0 rounded-full bg-risewatch/10 px-2 py-0.5 text-small font-semibold text-risewatch">
+        {copy.approximateTag}
+      </span>
+    ) : null;
 
   return (
     <div className="flex min-h-[60dvh] flex-col gap-4 py-10">
-      <div className="flex items-center justify-between">
-        <h1 className="text-h2">{copy.placesTitle}</h1>
-        <div className="flex items-center gap-2">
-          {loading && <LiveDot />}
-          <button
-            onClick={refresh}
-            disabled={loading}
-            className="inline-flex min-h-11 items-center text-small font-semibold text-dim transition-colors hover:text-(--color-current) disabled:opacity-50"
-          >
-            {copy.refresh}
-          </button>
+      <div>
+        <div className="flex items-center justify-between">
+          {heading}
+          <div className="flex items-center gap-2">
+            {loading && <LiveDot />}
+            {/* Stays focusable while checking (aria-disabled, not
+                disabled) so keyboard focus isn't dropped mid-refresh. */}
+            <button
+              type="button"
+              onClick={() => {
+                if (!loading) refresh();
+              }}
+              aria-disabled={loading || undefined}
+              className="inline-flex min-h-11 items-center text-small font-semibold text-dim transition-colors hover:text-(--color-current) aria-disabled:opacity-50"
+            >
+              {copy.refresh}
+            </button>
+          </div>
+        </div>
+        <div role="status">
+          {firstLoadFailed && (
+            <p className="mt-2 rounded-2xl bg-surface p-4 text-body">
+              {copy.riverDataDown}
+            </p>
+          )}
+          {refreshFailed && (
+            <p className="mt-1 text-small text-dim">
+              {copy.refreshFailedPlaces(fmtTime(updatedAt))}
+            </p>
+          )}
         </div>
       </div>
 
       <AlertStrip alerts={watches.flatMap((w) => w.alerts).slice(0, 3)} />
 
       <ul className="flex flex-col gap-3">
-        {sorted.map((w) => {
-          const pin = pins.find((p) => p.id === w.pinId);
-          if (!pin) return null;
+        {rows.map(({ pin, watch: w }) => {
+          if (!w) {
+            // No answer for this place yet: name it, keep its buttons,
+            // and say plainly that it wasn't checked.
+            return (
+              <li key={pin.id} className="relative">
+                <Link
+                  href={`/watch?pin=${pin.id}`}
+                  className="block rounded-2xl bg-surface p-4 pr-28 transition-colors hover:bg-surface/70"
+                  style={{ borderLeft: "4px solid var(--color-line)" }}
+                >
+                  <div className="flex items-center gap-2">
+                    <p className="min-w-0 text-body font-semibold">{pin.name}</p>
+                    {approxTag(pin)}
+                  </div>
+                  <p className="mt-1 text-small text-dim">
+                    {loading && !error ? copy.looking : copy.placeUnchecked}
+                  </p>
+                </Link>
+                {actions(pin)}
+              </li>
+            );
+          }
           const crossing =
             w.verdict.tier === "FULL" ? w.verdict.crossing : null;
           // Only show a direction when the reading is fresh; a week-old
@@ -111,9 +240,11 @@ export function PlacesClient() {
               >
                 <div className="flex items-center gap-2">
                   <p className="min-w-0 text-body font-semibold">{pin.name}</p>
+                  {approxTag(pin)}
                   {trend && (
-                    <span className="text-small text-dim" aria-hidden="true">
-                      {trend === "rising" ? "↑" : trend === "falling" ? "↓" : "→"}
+                    <span className="text-small text-dim">
+                      <span aria-hidden="true">{TREND_ARROW[trend]}</span>
+                      <span className="sr-only">{TREND_TEXT[trend]}</span>
                     </span>
                   )}
                   {crossing && (
@@ -126,41 +257,29 @@ export function PlacesClient() {
                   {statusLine(w.verdict)}
                 </p>
               </Link>
-              <div className="absolute right-2 top-2 flex gap-2">
-                <button
-                  onClick={() => renameOne(pin.id, pin.name)}
-                  aria-label={`Rename ${pin.name}`}
-                  className="flex h-11 w-11 items-center justify-center rounded-full text-dim transition-colors hover:text-(--color-current)"
-                >
-                  ✎
-                </button>
-                <button
-                  onClick={() => removeOne(pin.id, pin.name)}
-                  aria-label={`Remove ${pin.name}`}
-                  className="flex h-11 w-11 items-center justify-center rounded-full text-dim transition-colors hover:text-floodline"
-                >
-                  ✕
-                </button>
-              </div>
+              {actions(pin)}
             </li>
           );
         })}
       </ul>
 
-      {pins.length < 5 && (
+      {pins.length > 0 && pins.length < 5 && (
         <Link href="/" className="font-semibold text-(--color-current)">
           {copy.addPlace}
         </Link>
       )}
 
-      <div className="mt-auto pt-8">
-        <button
-          onClick={deleteAll}
-          className="text-small text-dim underline-offset-2 hover:text-floodline hover:underline"
-        >
-          {copy.deleteAll}
-        </button>
-      </div>
+      {pins.length > 0 && (
+        <div className="mt-auto pt-8">
+          <button
+            type="button"
+            onClick={deleteAll}
+            className="text-small text-dim underline-offset-2 hover:text-floodline hover:underline"
+          >
+            {copy.deleteAll}
+          </button>
+        </div>
+      )}
     </div>
   );
 }
