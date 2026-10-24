@@ -209,16 +209,17 @@ The student team still has to do and commit its own work before
 submission. The full record and the list of that work is in
 [docs/VALIDATION.md](docs/VALIDATION.md).
 
+Teammates: start with [CONTRIBUTING.md](CONTRIBUTING.md). It covers setup,
+pull requests, honest commits for the contest rules, and the work the team
+still owns.
+
 MIT licensed.
 
 ## Measured
 
-- 829 unit tests in 37 files (Vitest), all passing on Oct 24, 2026.
-- 45 end-to-end tests (Playwright). The 36 older ones passed on Oct 23,
-  2026; two of them (in `e2e/why.spec.ts` and `e2e/setup.spec.ts`) were
-  narrowed since then for this week's pages. Those two and the 9 in
-  `e2e/features.spec.ts`, for this week's features, have not had a run
-  yet. `npm test` and `npm run test:e2e` rerun them.
+- 829 unit tests in 37 files (Vitest) and 45 end-to-end tests
+  (Playwright), all passing on Oct 24, 2026. `npm test` and
+  `npm run test:e2e` rerun them.
 
 No map library: the water scene and the stage chart are hand-drawn SVG. The
 end-to-end tests run against recorded copies of the public data, so no
