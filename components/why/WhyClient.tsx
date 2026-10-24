@@ -13,6 +13,8 @@ import { copy } from "@/lib/copy";
 import { decodeWatchLink } from "@/lib/watch-link";
 import { useWatches } from "@/lib/use-watch";
 import { staleLineFor } from "@/lib/staleness";
+import { fmtTime } from "@/lib/time";
+import { floodNumberInputFor, floodNumberView } from "@/lib/flood-number";
 import { StatChart } from "@/components/why/StatChart";
 import { LiveDot, TierBadge } from "@/components/ui";
 import type { Pin } from "@/lib/pins";
@@ -75,7 +77,7 @@ export function WhyClient() {
     [wl],
   );
   const linkBroken = linkedPins === BROKEN_LINK;
-  const { pins, watches, loading, error, refresh } = useWatches(linkedPins);
+  const { pins, watches, updatedAt, loading, error, refresh } = useWatches(linkedPins);
 
   useEffect(() => {
     window.scrollTo(0, 0);
@@ -144,6 +146,13 @@ export function WhyClient() {
   const { verdict, gauge, alerts } = watch;
   const lastObs = gauge?.observed.at(-1) ?? null;
   const staleLine = staleLineFor(verdict);
+  // The latest check failed and an older answer is up (from earlier this
+  // visit, or saved in this browser): say how old, same words as Watch.
+  const refreshFailedLine =
+    error && updatedAt !== null ? copy.refreshFailed(fmtTime(updatedAt)) : null;
+  // The flood number, rounded exactly as the Watch card shows it.
+  const fnInput = floodNumberInputFor(pin, watch);
+  const fnView = fnInput ? floodNumberView(fnInput) : null;
 
   return (
     <div className="flex flex-col gap-6 py-10">
@@ -160,6 +169,11 @@ export function WhyClient() {
           <span className="font-semibold text-risewatch">
             {staleLine}
           </span>
+        </p>
+      )}
+      {refreshFailedLine && (
+        <p className="rounded-xl bg-risewatch/10 p-3 text-small" role="status">
+          {refreshFailedLine}
         </p>
       )}
 
@@ -185,7 +199,9 @@ export function WhyClient() {
                 </li>
               ))}
             </ul>
-          ) : watch.alertsOk ? (
+          ) : watch.alertsOk && !error ? (
+            // "Right now" only after a check that just worked, never from
+            // an older answer.
             <p className="text-small text-dim">
               No flood alerts are active for this spot right now.
             </p>
@@ -288,6 +304,26 @@ export function WhyClient() {
               label={verdict.marginFt >= 0 ? "margin of dry ground" : "depth over this spot at the crest"}
               value={`${Math.abs(verdict.marginFt).toFixed(1)} ft`}
             />
+            {/* Your flood number: the same subtraction turned around. */}
+            {fnView && (
+              <div data-testid="why-flood-number">
+                <div className="my-4 border-t border-line" />
+                <h2 className="mb-3 text-small font-semibold text-dim">
+                  {fnView.title}
+                </h2>
+                <Row
+                  label={`${copy.whyGroundLabel(pin.name)}${pin.approximate ? ` (${copy.approximateTag})` : ""}`}
+                  value={`${pin.elevationFt.toFixed(1)} ft`}
+                />
+                <Row op="−" label={copy.whyZeroLabel} value={`${gauge.gaugeZeroFt!.toFixed(1)} ft`} />
+                <div className="my-2 border-t border-line" />
+                <Row op="=" label={copy.whyFloodNumberLabel} value={fnView.value} />
+                <p className="mt-3 text-small text-dim">
+                  {fnView.explainer} {fnView.levees}
+                </p>
+              </div>
+            )}
+
             {/* An approximate pin (town or street point) must never pass for house-level math. */}
             {pin.approximate && (
               <p className="mt-3 rounded-xl bg-risewatch/10 p-3 text-small">

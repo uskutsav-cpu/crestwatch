@@ -3,9 +3,13 @@
 /**
  * Pin persistence — the visitor's own localStorage, nothing else
  * (Appendix A privacy stance). Capped at MAX_PINS.
+ *
+ * Any change to the places also forgets the last saved answer
+ * (lib/last-answer.ts): it was made for the old set.
  */
 
 import { MAX_PINS, STORAGE_KEYS } from "@/lib/config";
+import { clearLastAnswer } from "@/lib/last-answer";
 import { isPin, sanitizeName, type Pin } from "@/lib/pins";
 
 /** What a pin with no usable name is called. */
@@ -70,6 +74,7 @@ export function addPin(pin: Pin): AddPinResult {
   if (!persist(pins) || !loadPins().some((p) => p.id === clean.id)) {
     return { ok: false, reason: "storage", pin: clean, pins: existing };
   }
+  clearLastAnswer();
   return { ok: true, pin: clean, pins };
 }
 
@@ -78,21 +83,26 @@ export function renamePin(id: string, name: string): Pin[] {
   if (!clean) return loadPins();
   const pins = loadPins().map((p) => (p.id === id ? { ...p, name: clean } : p));
   persist(pins);
+  // The saved answer stays: it's keyed by place and spot, not by name, and
+  // a rename while offline must not wipe the only answer on screen.
   return pins;
 }
 
 export function removePin(id: string): Pin[] {
   const pins = loadPins().filter((p) => p.id !== id);
   persist(pins);
+  clearLastAnswer();
   return pins;
 }
 
+/** "Delete all my data": every saved place and the last saved answer. */
 export function clearAllPins(): void {
   try {
     localStorage.removeItem(STORAGE_KEYS.pins);
   } catch {
     // nothing to clear
   }
+  clearLastAnswer();
 }
 
 export function newPinId(): string {

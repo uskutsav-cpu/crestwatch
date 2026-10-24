@@ -63,6 +63,22 @@ Check these personally. Judges may ask about them.
   never a green "below flood stage". A gauge whose gauge zero USGS lists
   as accurate only to worse than 1 ft (Greenville, Sarah, Lambert today)
   gives flood-stage answers instead of house-level math.
+- **CrestWatch doesn't count levees or floodwalls.** It compares the water
+  level with the ground height and nothing else. A place behind a levee or
+  floodwall can stay dry when the numbers say water would reach it, and a
+  levee can also fail. Parts of Levee Street in the Vicksburg example sit
+  behind the city's floodwall, so its flood number and its "Past floods
+  here" list overstate how wet that street would get. The app says this on
+  the flood number card, under the past floods list, in the example note,
+  in the glossary and on About. Say so if a judge asks.
+- **Add the crest to my calendar saves one forecast.** The calendar file
+  keeps the crest time from the forecast on screen and says "Forecasts
+  change. Check the latest". If a new forecast moves the crest and someone
+  adds it again, their calendar app may show two events.
+- **The home page river check in test mode.** With `CRESTWATCH_TEST=1` the
+  two Mississippi rows reuse the recorded Yazoo data and every row reads as
+  about two months old. Take README or judge screenshots of the home page
+  from the live site, not the fixture server.
 - The Redwood gauge (07288800) publishes gage height already referenced to
   NGVD29 elevation, so the replay treats stage as elevation directly.
   Confirm against the official gauge page.

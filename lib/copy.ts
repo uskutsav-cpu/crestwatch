@@ -57,7 +57,7 @@ export const copy = {
   looking: "Reading the river…",
   exampleLink: "Just looking? See a live example from Vicksburg →",
   exampleNote:
-    "This is an example: two spots in Vicksburg, MS, checked against today's real river data. Nothing was saved on this device.",
+    "This is an example: two spots in Vicksburg, MS, checked against today's real river data. Parts of Levee St sit behind Vicksburg's floodwall, which CrestWatch doesn't count. Nothing was saved on this device.",
   exampleCta: "Check your own place →",
   lookupSlow:
     "Still working. The government map service is slow right now, so this can take up to a minute.",
@@ -232,7 +232,7 @@ export const copy = {
 
   // About
   aboutPrivacy:
-    "Your saved places live only in this browser. To look an address up, CrestWatch's server sends it to public map services: the US Census first, then OpenStreetMap (Nominatim) or Open-Meteo if the Census can't find it. Then it asks USGS and the Weather Service about that spot. Each time it checks, your browser sends your places to CrestWatch's server for that check. The server doesn't save them. It keeps lookups in short-term memory for up to a day so repeat checks are fast, and counts checks from each internet connection for an hour to stop abuse. A watch link you share has your places inside it. No accounts, no database, no tracking, no ads.",
+    "Your saved places live only in this browser. CrestWatch also keeps its last answer here, to show for up to 12 hours if your signal drops. To look an address up, CrestWatch's server sends it to public map services: the US Census first, then OpenStreetMap (Nominatim) or Open-Meteo if the Census can't find it. Then it asks USGS and the Weather Service about that spot. Each time it checks, your browser sends your places to CrestWatch's server for that check. The server doesn't save them. It keeps lookups in short-term memory for up to a day so repeat checks are fast, and counts checks from each internet connection for an hour to stop abuse. A watch link you share has your places inside it. No accounts, no database, no tracking, no ads.",
   honesty:
     "CrestWatch predicts river flooding, the slow kind our district gets, with days of warning. It can't predict flash floods from sudden rain. Its numbers are estimates from public elevation data, not a survey of your property. When it's too close to call, it says so. It only checks the river while it's open, and it doesn't send alerts. Keep the emergency alerts on your phone turned on.",
   // 404 + error pages
@@ -314,8 +314,201 @@ export const copy = {
       text: "The Weather Service's best guess of what the river will do over the next few days. It can be off by a foot or more, so CrestWatch says when it's too close to call.",
     },
     {
+      term: "Levee and floodwall",
+      text: "A levee is a long bank of earth, and a floodwall is a concrete wall, built to hold a river back from land. CrestWatch doesn't count them, so a place behind one can stay dry when the numbers say water would reach it.",
+    },
+    {
       term: "Three kinds of answers",
       text: "A full answer (FULL) compares the water to how high your spot sits, and it's about your house only when CrestWatch found your full street address. If CrestWatch doesn't know a gauge's height above sea level closely enough, you get flood-stage only (CATEGORY), and if no forecast gauge is close, you get alerts only (ALERT-ONLY).",
     },
   ],
+
+  // Package floodnumber: "Your flood number" and the what-if slider
+  // (lib/flood-number.ts, components/watch/FloodNumber.tsx). The number is
+  // the gauge reading at which water reaches a place's ground. It's an
+  // estimate, so it says "about" and rounds to whole feet, like the
+  // verdict's margin. Gauge readings keep one decimal.
+  floodNumberTitle: "Your flood number",
+  floodNumberTitleRough: "Your rough flood number",
+  floodNumberValue: (ft: string) => `about ${ft} ft`,
+  floodNumberFeet: (ft: string) => `${ft} ft`,
+  floodNumberGauge: (river: string, place: string) => `the ${river} gauge ${place}`,
+  floodNumberGaugeBare: (name: string) => `the ${name} gauge`,
+  floodNumberOnGauge: (gauge: string) => `on ${gauge}.`,
+  floodNumberHeadline: (title: string, value: string, gauge: string) =>
+    `${title}: ${value} on ${gauge}.`,
+  floodNumberExplain: (ft: string, pin: string) =>
+    `When the river reads about ${ft} ft on that gauge, water reaches the ground at ${pin}.`,
+  floodNumberExplainRough: (ft: string, pin: string) =>
+    `When the river reads about ${ft} ft on that gauge, water reaches the ground at the approximate spot for ${pin}. A house nearby could sit higher or lower.`,
+  floodNumberAboutFeet: (n: number) => `about ${n} ft`,
+  floodNumberUnderFoot: "less than a foot",
+  floodNumberNow: (stage: string, gap: string) =>
+    `The river reads ${stage} ft now, ${gap} below your number.`,
+  floodNumberLastReading: (stage: string, gap: string) =>
+    `The last reading was ${stage} ft, ${gap} below your number.`,
+  floodNumberAlreadyAbove: "The river is already above your flood number.",
+  floodNumberLastReadingAbove:
+    "The last reading was already above your flood number.",
+  floodNumberAboveFloodStage: (diff: string, fs: string) =>
+    `Your number is about ${diff} ft above flood stage, ${fs} ft.`,
+  floodNumberAtFloodStage: (fs: string) =>
+    `Your number is about the same as flood stage, ${fs} ft.`,
+  floodNumberBelowFloodStage: (fs: string) =>
+    `Your number is below flood stage, ${fs} ft. Water can reach here before the Weather Service calls it a flood.`,
+  // partial: some old crests were read from an older zero mark, so this
+  // is the highest on today's scale, not the all-time record.
+  floodNumberRecord: (stage: string, when: string | null, partial: boolean) =>
+    `The highest crest on record here${partial ? ", measured from today's zero mark," : ""} was ${stage} ft${when ? `, in ${when}` : ""}.`,
+  floodNumberLevees: "CrestWatch doesn't count levees or floodwalls.",
+  floodNumberSliderLabel: "Try a river level",
+  floodNumberApproxPlace: (pin: string) => `the approximate spot for ${pin}`,
+  floodNumberIfWet: (stage: string, depth: string, place: string) =>
+    `If the river reaches ${stage} ft on the gauge, water would be ${depth} deep at ${place}.`,
+  floodNumberIfAtGround: (stage: string, place: string) =>
+    `If the river reaches ${stage} ft on the gauge, water would likely reach the ground at ${place}.`,
+  floodNumberIfClose: (stage: string, gap: string, place: string) =>
+    `If the river reaches ${stage} ft on the gauge, water would come within ${gap} of the ground at ${place}. That's too close to call.`,
+  floodNumberCloseUnderFoot: "a foot",
+  floodNumberIfDry: (stage: string, place: string, n: number) =>
+    `If the river reaches ${stage} ft on the gauge, ${place} stays dry by about ${n} ft.`,
+  floodNumberBack: "Back to the forecast",
+  floodNumberMarkYours: "your number",
+  floodNumberMarkFloodStage: "flood stage",
+  floodNumberMarkRecord: "highest crest",
+  floodNumberMarkForecast: "forecast crest",
+  // WaterScene crestLabel for the what-if picture inside the card. The
+  // picture's name reads "What-if level reaches 10 ft above Home".
+  floodNumberSceneLabel: "what-if level",
+  floodNumberShort: (ft: string) => `floods at about ${ft} ft`,
+  floodNumberShortRough: (ft: string) => `floods at roughly ${ft} ft`,
+
+  // Package history · "Past floods at your place" (lib/flood-history.ts,
+  // components/watch/PastFloods.tsx). Feet are whole numbers; under a foot
+  // gets words, not "about 0 ft".
+  pastFloodsTitle: "Past floods here",
+  // Stands in for the place's name when the pin is a town or street point.
+  pastFloodsSpot: "this spot",
+  pastFloodsIntro:
+    "If one of these crests came back today, here's how high it would reach compared with your ground.",
+  pastFloodsIntroSpot:
+    "If one of these crests came back today, here's how high it would reach compared with the ground at this spot.",
+  pastFloodsCaveat:
+    "Levees, floodwalls and the river itself have changed since many of these floods, and CrestWatch doesn't count levees or floodwalls. Treat this as a rough guide.",
+  // reached and close count only the `top` highest crests (never the extra
+  // recent row). reached: the Surveyor's LIKELY band (water over the
+  // ground, or within BANDS.likely of it). close: the BORDERLINE band, so
+  // it gets the verdict's own "too close to call" and is never called a
+  // miss. someLeftOut: old-datum crests were dropped, so
+  // "the highest crests here" would not be the whole record.
+  pastFloodsLine: (
+    reached: number,
+    top: number,
+    close: number,
+    pin: string,
+    someLeftOut: boolean,
+  ) => {
+    const where = someLeftOut ? "CrestWatch can compare here" : "here";
+    if (top === 1) {
+      const one = `The highest crest ${where}`;
+      if (reached === 1) return `${one} would have reached ${pin}.`;
+      if (close === 1) return `${one} would have been too close to call at ${pin}.`;
+      return `${one} wouldn't have reached ${pin}.`;
+    }
+    const crests = `the ${top} highest crests ${where}`;
+    if (reached === 0) {
+      return close === 0
+        ? `None of ${crests} would have reached ${pin}.`
+        : `None of ${crests} would have clearly reached ${pin}, but ${close === 1 ? "one" : close} would have been too close to call.`;
+    }
+    const head =
+      reached === top
+        ? top === 2
+          ? `Both of the highest crests ${where} would have reached ${pin}.`
+          : `All ${top} of the highest crests ${where} would have reached ${pin}.`
+        : `${reached} of ${crests} would have reached ${pin}.`;
+    if (close === 0) return head;
+    return `${head} ${close === 1 ? "One more" : `${close} more`} would have been too close to call.`;
+  },
+  // Only when none of the highest crests reached: history is not a promise.
+  pastFloodsBigger: "A flood bigger than these could still come.",
+  pastFloodsStage: (stage: string) => `${stage} ft on the gauge`,
+  pastFloodsWater: (ft: number) => `about ${ft} ft of water here`,
+  pastFloodsWaterUnderFoot: "less than a foot of water here",
+  pastFloodsBelow: (ft: number) => `stayed about ${ft} ft below`,
+  pastFloodsRecent: "the most recent big one",
+  pastFloodsLeftOut: (n: number) =>
+    n === 1
+      ? "1 older crest was measured from an old zero mark on the gauge, so it's left out."
+      : `${n} older crests were measured from an old zero mark on the gauge, so they're left out.`,
+  pastFloodsSource: (gauge: string) =>
+    `From the Weather Service's crest records for ${gauge}.`,
+  pastFloodsShow: "See each flood",
+  pastFloodsHide: "Hide the list",
+
+  // Package rivers: the home page "Right now on our rivers" strip.
+  // Chips reuse chipCategory* and delayedChip; failure reuses
+  // riverDataDownLinked and refresh; trend words reuse trend*.
+  riversTitle: "Right now on our rivers",
+  riversFloodStage: (ft: string) => `flood stage ${ft} ft`,
+  riversExpectedHigh: (ft: string, day: string) => `expected high ${ft} ft ${day}`,
+  riversNoBigRise: "no big rise in the forecast",
+  // The forecast high reaches a worse category than the river is in now.
+  riversChipNearing: "nearing flood stage",
+  riversChipForecast: (category: string) => `${category} flooding forecast`,
+  riversReadingUnknown: "reading time unknown",
+  // The forecast is over a day old: no green chip and no "expected high".
+  riversForecastOld: "forecast not updated lately",
+  // When the oldest reading shown was taken (null when none has a time).
+  riversSource: (time: string | null) =>
+    time === null ? "River readings from NOAA." : `River readings from NOAA, as of ${time}.`,
+
+  // Package "actions": Read it to me, Send to family, Add the crest to my calendar.
+  readAloud: "Read it to me",
+  readAloudStop: "Stop",
+  // How short forms in the sentence are said out loud ("12 ft", "12pm CT", "~").
+  speechFeet: "feet",
+  speechFoot: "foot",
+  speechCentral: "Central time",
+  speechAbout: "about",
+  sendToFamily: "Send to family",
+  sendToFamilyTitle: (pin: string) => `${pin} · CrestWatch`,
+  addToCalendar: "Add the crest to my calendar",
+  calendarSaved: "Calendar file ready ✓",
+  calendarTitle: (river: string, pin: string) => `River crest: ${river} near ${pin}`,
+  calendarTitleNoRiver: (pin: string) => `River crest near ${pin}`,
+  // The file keeps one forecast; the river doesn't wait for it.
+  calendarCheckLatest: (url: string) => `Forecasts change. Check the latest: ${url}`,
+  calendarAlarm: "Check CrestWatch for the latest river forecast before the crest.",
+  // Shown in place of the calendar button when a tap finds this crest already gone.
+  calendarPassed: "This crest time has passed",
+  // Leads a saved or sent answer. Its "today" and "tomorrow" count from
+  // this moment, not from whenever someone reads it.
+  answerAsOf: (when: string) => `On ${when}, CrestWatch said:`,
+
+  // Package integration: words that tie the new pieces into the screens.
+  // Watch: the name screen readers hear for the row of share buttons.
+  actionsLabel: "Keep or share this answer",
+  // Places card, second line, after floodNumberShort ("floods at about 46 ft").
+  placesFloodNumber: (line: string) => `${line} on the gauge`,
+  // Why: the flood number written out like the rest of the homework.
+  whyGroundLabel: (pin: string) => `${pin} sits at`,
+  whyZeroLabel: "gauge zero",
+  whyFloodNumberLabel: "your flood number, read on the gauge",
+  // Past floods when only one crest is on record.
+  pastFloodsBiggerOne: "A flood bigger than this one could still come.",
+  // About, after copy.honesty in "What it can't do".
+  aboutLevees:
+    "CrestWatch doesn't count levees or floodwalls. A place behind one can stay dry when the numbers say water would reach it, and a levee can also fail.",
+  // Past floods rows use the Surveyor's bands, like the live verdict. A
+  // crest that stays below the ground by BANDS.likely or less:
+  pastFloodsLikely: "would likely reach the ground here",
+  // ...by more than that, but no more than BANDS.borderline:
+  pastFloodsTooClose: "stayed just below, too close to call",
+  // Read it to me, Send to family, the calendar file and the share picture
+  // carry the flood alerts the screen shows. `events` is never empty.
+  alertsShare: (events: readonly string[]) =>
+    events.length === 1
+      ? `Active Weather Service alert here: ${events[0]}.`
+      : `Active Weather Service alerts here: ${events.join(", ")}.`,
 } as const;

@@ -17,6 +17,36 @@ It opens two public spots in downtown Vicksburg, Levee Street and the river
 museum, checked against today's real river data. Nothing is saved on your
 device and you don't have to type an address.
 
+## What you get
+
+- **One sentence and one picture.** Whether the forecast crest reaches your
+  spot, by about how much, and roughly when, over a side view of your ground
+  and the river.
+- **Your flood number.** The reading on your river gauge at which water
+  reaches your ground, like "about 46 ft on the Mississippi River gauge at
+  Vicksburg", in whole feet because ground height and gauge zero can each be
+  off by about a foot. When the news says "the river will crest at 48 ft",
+  you can compare. A what-if slider tries other river levels and draws each
+  one in a small picture right under it, while the main picture stays on the
+  forecast. Only for house-level (FULL) answers.
+- **Past floods here.** The gauge's highest recorded crests, each measured
+  against your ground: "if one of these crests came back today". Opens from
+  one summary line.
+- **Right now on our rivers.** The home page shows the Mississippi at
+  Vicksburg and Greenville, the Yazoo at Yazoo City and the Pearl at
+  Jackson before you type anything.
+- **Pass it on.** Read it to me (your browser's own voice), Share (a
+  picture), Send to family (your phone's share sheet), Copy watch link, and
+  Add the crest to my calendar (a calendar file made in your browser, only
+  while a fresh forecast crest is still ahead). Anything that leaves the
+  screen carries the same warnings the screen shows: old data, a failed
+  refresh, an approximate spot and any active flood alert.
+- **Works when the signal drops.** The last answer stays in your browser for
+  up to 12 hours and shows as an older answer, never as a live one.
+- **Your places, the Why screen and Replay.** Up to five places on one
+  board, every number traced to its source, and real past floods replayed
+  against your places.
+
 ## Run it
 
 No API keys, no database, no accounts. Clone it and run it.
@@ -52,6 +82,15 @@ flood-stage answers without a key.
 4. **🗣 Say it plainly.** One sentence: does the forecast crest reach your
    spot, by how much, and roughly when. The Why screen shows every number and
    links to the official pages, so you can check the math.
+5. **🔢 Turn it around.** Your ground height minus the gauge zero is your
+   flood number: the river reading at which water reaches your ground. The
+   same subtraction, run on each of the gauge's recorded crests (NOAA's
+   historic crest list), gives Past floods here. Both need a gauge zero
+   CrestWatch trusts, so a flood-stage (CATEGORY) answer shows neither. The
+   flood number is always in whole feet, and a town or street point gets a
+   rough one, labelled approximate. Past floods uses the same bands as the
+   sentence, so a crest that stayed only a little below your ground reads
+   "too close to call", never as a miss.
 
 If a gauge doesn't publish its gauge zero, CrestWatch can only say how the
 forecast compares to flood stage (CATEGORY). The same happens when USGS
@@ -85,7 +124,7 @@ feet apart in height, which is the whole gap between dry and flooded.
 | Address to coordinates (tier 2) | [Nominatim](https://nominatim.openstreetmap.org/) | OpenStreetMap Foundation. Data © [OpenStreetMap contributors](https://www.openstreetmap.org/copyright), ODbL |
 | Town or ZIP to coordinates (tier 3) | [Open-Meteo Geocoding API](https://open-meteo.com/en/docs/geocoding-api) | [Open-Meteo](https://open-meteo.com/), CC BY 4.0, based on GeoNames |
 | Ground height | [Elevation Point Query Service](https://epqs.nationalmap.gov/) (3DEP) | USGS |
-| Crest forecasts, flood stages | [National Water Prediction Service](https://water.noaa.gov/) | NOAA / National Weather Service |
+| Crest forecasts, flood stages, historic crests, the home page river levels | [National Water Prediction Service](https://water.noaa.gov/) | NOAA / National Weather Service |
 | Gauge readings, gauge zero | [USGS Water Services](https://waterservices.usgs.gov/) (legacy) and the [USGS Water Data API](https://api.waterdata.usgs.gov/) | USGS |
 | Flood watches and warnings | [api.weather.gov](https://www.weather.gov/documentation/services-web-api) | National Weather Service |
 | Replay of past floods | USGS daily river levels | USGS |
@@ -98,7 +137,9 @@ main source as the legacy service shuts down.
 
 ## Privacy
 
-- Your saved places live only in your browser (localStorage).
+- Your saved places live only in your browser (localStorage). So does
+  CrestWatch's last answer, kept to show for up to 12 hours if your signal
+  drops. Deleting your places deletes it too.
 - To look an address up, CrestWatch's server sends it to public map services:
   the US Census first, then OpenStreetMap Nominatim or Open-Meteo if the
   Census can't find it. Then it asks USGS and the Weather Service about that
@@ -120,6 +161,10 @@ main source as the legacy service shuts down.
   flash floods from sudden rain.
 - Its numbers are estimates from public elevation data, not a survey of your
   property. When it's too close to call, it says so.
+- It doesn't count levees or floodwalls. A place behind one can stay dry
+  when the numbers say water would reach it, and a levee can also fail.
+  Parts of Levee Street in the Vicksburg example sit behind the city's
+  floodwall.
 - It checks the river again every 15 minutes, but only while CrestWatch is
   open in a browser. Nothing runs in the background. It doesn't send alerts,
   so keep the emergency alerts on your phone turned on.
@@ -168,8 +213,12 @@ MIT licensed.
 
 ## Measured
 
-- 463 unit tests in 26 files (Vitest), 36 end-to-end tests (Playwright),
-  all passing on Oct 23, 2026. `npm test` and `npm run test:e2e` rerun them.
+- 829 unit tests in 37 files (Vitest), all passing on Oct 24, 2026.
+- 45 end-to-end tests (Playwright). The 36 older ones passed on Oct 23,
+  2026; two of them (in `e2e/why.spec.ts` and `e2e/setup.spec.ts`) were
+  narrowed since then for this week's pages. Those two and the 9 in
+  `e2e/features.spec.ts`, for this week's features, have not had a run
+  yet. `npm test` and `npm run test:e2e` rerun them.
 
 No map library: the water scene and the stage chart are hand-drawn SVG. The
 end-to-end tests run against recorded copies of the public data, so no

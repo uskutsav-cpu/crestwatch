@@ -2,11 +2,21 @@
 
 /**
  * S2 — the money screen (T07). One place, one picture, one sentence.
+ *
+ * Below the sentence, top to bottom: the honesty notes and alerts, What
+ * to do now when it applies (right after the alerts, so a family never
+ * scrolls past anything to reach it), "Your flood number" (FULL only; its
+ * what-if slider draws its own small picture inside the card, and the
+ * main picture always stays on the forecast), the actions (Why, Read it
+ * to me, Share, Send to family, Copy watch link, Add the crest to my
+ * calendar), then Past floods here (FULL only). Flood number and past
+ * floods need a gauge zero the Surveyor trusts, so CATEGORY and
+ * ALERT-ONLY never show them.
  */
 
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useState, useSyncExternalStore } from "react";
 import { copy } from "@/lib/copy";
 import { MAX_PINS } from "@/lib/config";
 import { fmtTime } from "@/lib/time";
@@ -17,13 +27,19 @@ import { sanitizeName, type Pin } from "@/lib/pins";
 import { crestCompare } from "@/lib/crest-compare";
 import { heightGloss } from "@/lib/kid-scale";
 import { trendOf } from "@/lib/trend";
-import { verdictSentence } from "@/lib/sentences";
+import { riverName, verdictSentence } from "@/lib/sentences";
 import { staleInfo, staleLineFor } from "@/lib/staleness";
 import { WaterScene } from "@/components/watch/WaterScene";
 import { CountdownChip } from "@/components/watch/CountdownChip";
-import { AlertStrip } from "@/components/watch/AlertStrip";
+import { AlertStrip, shownAlerts } from "@/components/watch/AlertStrip";
 import { ShareButton } from "@/components/watch/ShareButton";
 import { NextSteps, needsNextSteps } from "@/components/watch/NextSteps";
+import { FloodNumber } from "@/components/watch/FloodNumber";
+import { PastFloods } from "@/components/watch/PastFloods";
+import { ReadAloud } from "@/components/watch/ReadAloud";
+import { SendToFamily } from "@/components/watch/SendToFamily";
+import { AddToCalendar, isFutureCrest } from "@/components/watch/AddToCalendar";
+import { floodNumberInputFor } from "@/lib/flood-number";
 import { LiveDot, VerdictChip, type VerdictBand } from "@/components/ui";
 import type { PinWatch } from "@/lib/watch-service";
 import type { CategoryLevel, Verdict } from "@/lib/surveyor";
@@ -102,6 +118,91 @@ export function latestReadingIso(observed: SeriesPoint[]): string | null {
 }
 
 /**
+ * The forecast crest still ahead, for "Add the crest to my calendar", or
+ * null when there isn't an honest one to save: no gauge (ALERT-ONLY), an
+ * old forecast, a crest already behind us, or a river the forecast has
+ * coming down (the "peak" would only be the next forecast point). FULL
+ * uses the Surveyor's own pastPeak; CATEGORY has no such flag, so the
+ * same rule is read off the forecast here.
+ */
+export function crestAheadIso(w: PinWatch, now: string): string | null {
+  const v = w.verdict;
+  if (v.tier === "ALERT_ONLY" || v.stale.staleForecast) return null;
+  if (v.tier === "FULL") {
+    if (v.pastPeak) return null;
+    return isFutureCrest(v.peak.t, now) ? v.peak.t : null;
+  }
+  const nowMs = Date.parse(now);
+  const future = (w.gauge?.forecast ?? [])
+    .filter((p) => Number.isFinite(Date.parse(p.t)) && Date.parse(p.t) > nowMs)
+    .sort((a, b) => Date.parse(a.t) - Date.parse(b.t));
+  const rises = future.some((p, i) => i > 0 && p.stageFt > future[0].stageFt);
+  if (!rises) return null;
+  return isFutureCrest(v.peakT, now) ? v.peakT : null;
+}
+
+/** A what-if stage from the flood number slider, and the place and gauge it was picked for. */
+export interface WhatIfPick {
+  key: string;
+  stageFt: number;
+}
+
+/** What ties a what-if stage to one place on one gauge. */
+export const whatIfKeyFor = (pinId: string, gaugeLid: string | null | undefined) =>
+  `${pinId}|${gaugeLid ?? ""}`;
+
+/**
+ * The what-if stage the picture may draw, or null for the forecast. Only
+ * while the flood number card is up (FULL, trusted gauge zero), and only
+ * for the place and gauge it was picked on, so a stage from one gauge is
+ * never drawn on another gauge's zero, not even for one render.
+ */
+export function whatIfFor(
+  pick: WhatIfPick | null,
+  key: string,
+  gaugeZeroFt: number | null | undefined,
+): number | null {
+  if (pick === null || pick.key !== key) return null;
+  if (typeof gaugeZeroFt !== "number" || !Number.isFinite(gaugeZeroFt)) return null;
+  return Number.isFinite(pick.stageFt) ? pick.stageFt : null;
+}
+
+/**
+ * The dashed line for the what-if picture inside the flood number card:
+ * that river level (gauge zero + stage), labelled "what-if level". Null
+ * on the forecast, or without a usable gauge zero. The main picture never
+ * takes it: it always shows the forecast crest.
+ */
+export function whatIfCrest(
+  gaugeZeroFt: number | null | undefined,
+  whatIf: number | null,
+): { crestElevFt: number; crestLabel: string } | null {
+  if (whatIf === null || !Number.isFinite(whatIf)) return null;
+  if (typeof gaugeZeroFt !== "number" || !Number.isFinite(gaugeZeroFt)) return null;
+  return { crestElevFt: gaugeZeroFt + whatIf, crestLabel: copy.floodNumberSceneLabel };
+}
+
+/**
+ * The alert lines that leave the screen with the answer (Read it to me,
+ * Send to family, the calendar file, the share picture), matching what
+ * the screen shows: the alert strip's warnings by name, and, for
+ * ALERT-ONLY, the note that the alert service couldn't be reached.
+ */
+export function alertNotesFor(w: Pick<PinWatch, "verdict" | "alerts" | "alertsOk">): string[] {
+  const events = [
+    ...new Set(
+      shownAlerts(w.alerts ?? [])
+        .map((a) => (typeof a.event === "string" ? a.event.trim() : ""))
+        .filter(Boolean),
+    ),
+  ];
+  const notes: string[] = [];
+  if (events.length > 0) notes.push(copy.alertsShare(events));
+  if (w.verdict.tier === "ALERT_ONLY" && !w.alertsOk) notes.push(copy.alertServiceDown);
+  return notes;
+}
+
+/**
  * The small "how fresh is this" chip. A gauge tier shows its newest
  * reading's time; ALERT-ONLY has no gauge, so it shows when the alerts
  * were checked; stale data says so.
@@ -121,6 +222,21 @@ export function freshnessChip(
   }
   const last = w.gauge ? latestReadingIso(w.gauge.observed) : null;
   return last ? { live: true, label: copy.liveChip(fmtTime(last)) } : null;
+}
+
+const neverChanges = () => () => {};
+
+/**
+ * This site's origin, for the watch link that Send to family and the
+ * calendar file carry. "" on the server and during hydration, so the
+ * first paint matches the server's HTML.
+ */
+function useOrigin(): string {
+  return useSyncExternalStore(
+    neverChanges,
+    () => window.location.origin,
+    () => "",
+  );
 }
 
 const pinKey = (p: Pin) =>
@@ -265,6 +381,10 @@ export function WatchClient() {
   const noSave = isLinked && params.get("nosave") === "1";
   const [copied, setCopied] = useState(false);
   const [saveNote, setSaveNote] = useState<string | null>(null);
+  // The what-if stage from the flood number slider, tied to the place and
+  // gauge it was chosen for, so it is never drawn on another gauge's zero.
+  const [whatIfPick, setWhatIfPick] = useState<WhatIfPick | null>(null);
+  const origin = useOrigin();
 
   // Coming from a scrolled page, small phones landed mid-verdict with the
   // place name and picture above the fold. Always open at the top.
@@ -345,11 +465,12 @@ export function WatchClient() {
     verdict.tier !== "ALERT_ONLY" && !verdict.stale.staleObserved
       ? trend
       : null;
+  const answerNow = now ?? new Date().toISOString();
   const sentence = verdictSentence({
     pinName: pin.name,
     verdict,
     gauge,
-    now: now ?? new Date().toISOString(),
+    now: answerNow,
     observedTrend: freshTrend,
   });
   const glossLine = glossLineFor(verdict);
@@ -364,10 +485,43 @@ export function WatchClient() {
   );
 
   const staleLine = staleLineFor(verdict);
-  const freshness = freshnessChip(watch, updatedAt);
+  const lastFreshness = freshnessChip(watch, updatedAt);
+  // After a failed check nothing on screen is live, however recent the
+  // reading: drop "live · updated" and let refreshFailedLine give the time.
+  // "data delayed" and "alerts checked {time}" are still true, so they stay.
+  const freshness = error && lastFreshness?.live ? null : lastFreshness;
   // A failed refresh keeps the last good answer up; say how old it is.
   const refreshFailedLine =
     error && updatedAt !== null ? copy.refreshFailed(fmtTime(updatedAt)) : null;
+  // Anything that leaves the screen (speech, a text message, a calendar
+  // file, the share picture) carries the same warnings as the screen, in
+  // screen order: staleness, a failed refresh, the approximate spot, then
+  // the flood alerts (or that the alert service couldn't be reached).
+  const alertNotes = alertNotesFor(watch);
+  const leavingNotes = [
+    staleLine,
+    refreshFailedLine,
+    pin.approximate ? copy.approximateShare : null,
+    ...alertNotes,
+  ];
+
+  // "Your flood number": FULL tier with a trusted gauge zero only.
+  const floodNumber = floodNumberInputFor(pin, watch);
+  const whatIfKey = whatIfKeyFor(pin.id, gauge?.lid);
+  const whatIf = whatIfFor(whatIfPick, whatIfKey, floodNumber?.gaugeZeroFt);
+  const whatIfLine = whatIfCrest(floodNumber?.gaugeZeroFt, whatIf);
+  const onWhatIf = (stageFt: number | null) =>
+    setWhatIfPick(stageFt === null ? null : { key: whatIfKey, stageFt });
+
+  const crestIso = crestAheadIso(watch, answerNow);
+  const watchUrl = origin ? `${origin}/watch?wl=${encodeWatchLink([pin])}` : "";
+  const copyLink = () => {
+    const url = `${window.location.origin}/watch?wl=${encodeWatchLink([pin])}`;
+    void copyWithFallback(url, () => {
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2000);
+    });
+  };
 
   const noteStyle = {
     fontSize: 15,
@@ -384,7 +538,8 @@ export function WatchClient() {
         <VerdictChip band={chip.band}>{chip.label}</VerdictChip>
       </div>
 
-      {/* The picture */}
+      {/* The picture: always the forecast crest, like the sentence under
+          it. The what-if slider draws its own picture inside its card. */}
       {verdict.tier === "FULL" && (
         <WaterScene
           markers={[
@@ -486,60 +641,109 @@ export function WatchClient() {
         </p>
       )}
 
+      {/* What to do now, right after the alerts: on a likely or
+          too-close day it comes before anything else to read. */}
       {needsNextSteps(watch) && <NextSteps />}
 
-      {/* Links + share */}
-      <div className="flex flex-wrap items-center gap-4">
+      {/* Your flood number (FULL only). Keyed by place, so another place
+          starts back at the forecast; it reports null when it goes away.
+          Off the forecast, its own picture shows the what-if level right
+          under the slider. */}
+      {floodNumber && (
+        <FloodNumber key={pin.id} {...floodNumber} onWhatIf={onWhatIf}>
+          {verdict.tier === "FULL" && whatIfLine && (
+            <WaterScene
+              markers={[{ label: pin.name, elevationFt: pin.elevationFt }]}
+              currentWaterElevFt={verdict.currentWaterElevFt}
+              {...whatIfLine}
+            />
+          )}
+        </FloodNumber>
+      )}
+
+      {/* Actions: the reasoning first, then quiet ways to keep or pass on
+          this answer. Read it to me and Send to family render only where
+          the browser can do them. */}
+      <div className="flex flex-col gap-1">
         <Link
           href={
             isLinked && wl !== null
               ? `/why?pin=${pin.id}&wl=${encodeURIComponent(wl)}${isExample ? "&ex=1" : ""}`
               : `/why?pin=${pin.id}`
           }
-          className="font-semibold text-(--color-current)"
+          className="inline-flex min-h-11 items-center self-start font-semibold text-(--color-current)"
         >
           {copy.whyLink}
         </Link>
-        <ShareButton
-          card={
-            <div>
-              <p style={{ fontSize: 20, fontWeight: 700, marginBottom: 10 }}>
-                {pin.name}
-              </p>
-              {verdict.tier === "FULL" && (
-                <WaterScene
-                  markers={[{ label: pin.name, elevationFt: pin.elevationFt }]}
-                  currentWaterElevFt={verdict.currentWaterElevFt}
-                  crestElevFt={verdict.peak.waterElevFt}
-                />
-              )}
-              <p style={{ fontSize: 24, fontWeight: 700, marginTop: 14, lineHeight: 1.3 }}>
-                {sentence}
-              </p>
-              {staleLine && <p style={noteStyle}>{staleLine}</p>}
-              {pin.approximate && (
-                <p style={noteStyle}>
-                  {copy.approximateTag}: {copy.approximateShare}
-                </p>
-              )}
-            </div>
-          }
-        />
-        <button
-          type="button"
-          onClick={() => {
-            const url = `${window.location.origin}/watch?wl=${encodeWatchLink([pin])}`;
-            void copyWithFallback(url, () => {
-              setCopied(true);
-              setTimeout(() => setCopied(false), 2000);
-            });
-          }}
-          className="inline-flex min-h-11 items-center text-small font-semibold text-dim hover:text-(--color-current)"
+        <div
+          role="group"
+          aria-label={copy.actionsLabel}
+          className="flex flex-wrap items-center gap-x-4 gap-y-1"
+          data-testid="watch-actions"
         >
-          <span aria-live="polite">
-            {copied ? copy.linkCopied : copy.copyLink}
-          </span>
-        </button>
+          <ReadAloud sentence={sentence} secondLine={glossLine} notes={leavingNotes} />
+          <ShareButton
+            card={
+              <div>
+                <p style={{ fontSize: 20, fontWeight: 700, marginBottom: 10 }}>
+                  {pin.name}
+                </p>
+                {verdict.tier === "FULL" && (
+                  <WaterScene
+                    markers={[{ label: pin.name, elevationFt: pin.elevationFt }]}
+                    currentWaterElevFt={verdict.currentWaterElevFt}
+                    crestElevFt={verdict.peak.waterElevFt}
+                  />
+                )}
+                <p style={{ fontSize: 24, fontWeight: 700, marginTop: 14, lineHeight: 1.3 }}>
+                  {sentence}
+                </p>
+                {staleLine && <p style={noteStyle}>{staleLine}</p>}
+                {refreshFailedLine && <p style={noteStyle}>{refreshFailedLine}</p>}
+                {pin.approximate && (
+                  <p style={noteStyle}>
+                    {copy.approximateTag}: {copy.approximateShare}
+                  </p>
+                )}
+                {alertNotes.map((note) => (
+                  <p key={note} style={noteStyle}>
+                    {note}
+                  </p>
+                ))}
+              </div>
+            }
+          />
+          {watchUrl && (
+            <SendToFamily
+              pinName={pin.name}
+              sentence={sentence}
+              url={watchUrl}
+              notes={leavingNotes}
+              now={answerNow}
+              onFallback={copyLink}
+            />
+          )}
+          <button
+            type="button"
+            onClick={copyLink}
+            className="inline-flex min-h-11 items-center text-small font-semibold text-dim hover:text-(--color-current)"
+          >
+            <span aria-live="polite">
+              {copied ? copy.linkCopied : copy.copyLink}
+            </span>
+          </button>
+          {crestIso && (
+            <AddToCalendar
+              crestIso={crestIso}
+              riverName={gauge ? riverName(gauge.name) : null}
+              pinName={pin.name}
+              sentence={sentence}
+              url={watchUrl}
+              now={answerNow}
+              notes={leavingNotes}
+            />
+          )}
+        </div>
         {noSave ? null : isLinked && linkedPins ? (
           <div className="flex flex-col">
             <button
@@ -559,11 +763,30 @@ export function WatchClient() {
             </p>
           </div>
         ) : (
-          <Link href="/places" className="text-dim hover:text-(--color-current)">
+          <Link
+            href="/places"
+            className="inline-flex min-h-11 items-center self-start text-dim hover:text-(--color-current)"
+          >
             {copy.placesTitle} →
           </Link>
         )}
       </div>
+
+      {/* Past floods here (FULL only): a one-line summary that opens into
+          the list, the levee caveat and the source. */}
+      {verdict.tier === "FULL" && gauge && (
+        <PastFloods
+          pinName={pin.name}
+          approximate={pin.approximate}
+          pinElevationFt={pin.elevationFt}
+          gaugeZeroFt={gauge.gaugeZeroFt}
+          gaugeName={gauge.name}
+          historicCrests={gauge.historicCrests}
+          floodStageFt={gauge.categories.minor ?? null}
+          now={answerNow}
+          compact
+        />
+      )}
 
       {isExample && (
         <div className="rounded-xl bg-surface p-4 text-small">

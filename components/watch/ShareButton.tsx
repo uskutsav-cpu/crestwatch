@@ -59,7 +59,7 @@ export function ShareButton({ card }: { card: React.ReactNode }) {
         onClick={() => void share()}
         aria-busy={busy || undefined}
         aria-disabled={busy || undefined}
-        className="!h-10 !px-4 !text-small aria-disabled:cursor-wait aria-disabled:opacity-50"
+        className="!h-11 !px-4 !text-small aria-disabled:cursor-wait aria-disabled:opacity-50"
       >
         {copy.share}
       </ButtonGhost>

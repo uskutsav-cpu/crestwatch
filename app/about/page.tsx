@@ -67,7 +67,7 @@ export default function AboutPage() {
       <section className="max-w-prose">
         <h2 className="text-h2">What it can&apos;t do</h2>
         <p className="mt-3 rounded-2xl bg-surface p-5 text-body leading-relaxed">
-          {copy.honesty}
+          {copy.honesty} {copy.aboutLevees}
         </p>
       </section>
 

@@ -150,10 +150,10 @@ describe("glossary (#78)", () => {
     expect(copy.glossarySummary).toBe("What do these words mean?");
   });
 
-  it("has 6 to 8 entries, each rendered as a term and its meaning", () => {
+  it("has 6 to 9 entries, each rendered as a term and its meaning", () => {
     const n = copy.glossary.length;
     expect(n).toBeGreaterThanOrEqual(6);
-    expect(n).toBeLessThanOrEqual(8);
+    expect(n).toBeLessThanOrEqual(9);
     expect(html.match(/<dt/g)).toHaveLength(n);
     expect(html.match(/<dd/g)).toHaveLength(n);
   });
@@ -175,6 +175,8 @@ describe("glossary (#78)", () => {
       "street address",
       "flood-stage only",
       "alerts only",
+      "levee",
+      "floodwall",
     ]) {
       expect(all, word).toContain(word);
     }

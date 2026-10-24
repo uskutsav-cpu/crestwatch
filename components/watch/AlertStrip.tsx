@@ -21,8 +21,13 @@ export function dedupeAlerts(alerts: FloodAlert[]): FloodAlert[] {
   });
 }
 
+/** The alerts the strip shows: deduped, at most three. */
+export function shownAlerts(alerts: FloodAlert[]): FloodAlert[] {
+  return dedupeAlerts(alerts).slice(0, 3);
+}
+
 export function AlertStrip({ alerts }: { alerts: FloodAlert[] }) {
-  const shown = dedupeAlerts(alerts).slice(0, 3);
+  const shown = shownAlerts(alerts);
   if (shown.length === 0) return null;
   return (
     <div className="flex flex-col gap-2">

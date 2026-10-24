@@ -41,10 +41,11 @@ test("FULL tier: the arithmetic is written out with source links", async ({
     timeout: 15_000,
   });
   await expect(page.getByText("FULL", { exact: true })).toBeVisible();
-  // Gauge zero from the recorded RDB fixture.
-  await expect(page.getByText("233.4 ft")).toBeVisible();
+  // Gauge zero from the recorded RDB fixture. The flood number block
+  // repeats it (and the pin's elevation), so take the arithmetic card's.
+  await expect(page.getByText("233.4 ft").first()).toBeVisible();
   // The pin's own elevation.
-  await expect(page.getByText("275.5 ft")).toBeVisible();
+  await expect(page.getByText("275.5 ft").first()).toBeVisible();
   await expect(page.getByText("margin of dry ground")).toBeVisible();
   // Traceable sources.
   await expect(

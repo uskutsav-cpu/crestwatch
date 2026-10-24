@@ -20,7 +20,9 @@ test("setup: address → confirm elevation + gauge → done → watch", async ({
   await expect(page.getByText("Your spot sits 275.5 ft above sea level.")).toBeVisible({
     timeout: 15_000,
   });
-  await expect(page.getByText(/Pearl River at Jackson/)).toBeVisible();
+  // Scoped to the confirm card: the home page's river strip also names
+  // the Pearl River at Jackson.
+  await expect(page.getByText(/Closest river gauge: Pearl River at Jackson/)).toBeVisible();
 
   await page.getByRole("button", { name: "Done" }).click();
   await expect(page).toHaveURL(/\/watch/);
