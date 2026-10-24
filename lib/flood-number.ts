@@ -14,8 +14,10 @@
  * not model levees or floodwalls, and every flood number says so.
  *
  * Rounding, so nothing reads more precise than the data:
- *  - the flood number: nearest half foot with "about" (whole feet for a
- *    rough number from an approximate town or street point);
+ *  - the flood number: whole feet with "about", like the verdict's margin
+ *    (lib/sentences.ts). It is ground height minus a gauge zero, and each
+ *    can be off by about a foot, so a half foot would claim too much. An
+ *    approximate town or street point says "rough" / "roughly" as well;
  *  - gauge readings, flood stage, record crest and what-if stages: one
  *    decimal, as the gauge reports them and as the rest of the app shows;
  *  - gaps and depths: whole feet, "less than a foot" under 1.
@@ -82,7 +84,7 @@ export interface WhatIfMark {
   stageFt: number;
   /** "flood stage" */
   label: string;
-  /** "43.0 ft" ("about 46.5 ft" for your number) */
+  /** "43.0 ft" ("about 46 ft" for your number) */
   value: string;
   /** 0..1 along the slider. */
   frac: number;
@@ -106,13 +108,13 @@ export interface FloodNumberView {
   rough: boolean;
   /** "Your flood number" | "Your rough flood number" */
   title: string;
-  /** "about 46.5 ft" */
+  /** "about 46 ft" */
   value: string;
   /** "on the Mississippi River gauge at Vicksburg." */
   onGauge: string;
-  /** "Your flood number: about 46.5 ft on the Mississippi River gauge at Vicksburg." */
+  /** "Your flood number: about 46 ft on the Mississippi River gauge at Vicksburg." */
   headline: string;
-  /** "When the river reads about 46.5 ft on that gauge, water reaches the ground at Levee St." */
+  /** "When the river reads about 46 ft on that gauge, water reaches the ground at Levee St." */
   explainer: string;
   /** Only the lines that are true and available: reading, flood stage, record. */
   context: string[];
@@ -133,7 +135,7 @@ const finite = (x: unknown): x is number =>
 const clamp = (x: number, lo: number, hi: number) =>
   Math.min(hi, Math.max(lo, x));
 
-/** Nearest multiple of `step` (0.5 = nearest half foot). Never -0. */
+/** Nearest multiple of `step` (1 = whole feet, 0.5 = the slider). Never -0. */
 export function roundTo(ft: number, step: number): number {
   return Math.round(ft / step) * step + 0;
 }
@@ -156,8 +158,12 @@ function aboutFeet(ft: number): string {
     : copy.floodNumberAboutFeet(Math.round(ft));
 }
 
-/** Display step: half feet for a house, whole feet for a rough number. */
-const stepFor = (approximate: boolean | undefined) => (approximate ? 1 : 0.5);
+/**
+ * Display step for the flood number: whole feet, house or rough. The
+ * number carries the same uncertainty as the verdict's margin, which the
+ * sentence always rounds to whole feet.
+ */
+export const FLOOD_NUMBER_STEP_FT = 1;
 
 /**
  * "Mississippi River at Vicksburg" -> "the Mississippi River gauge at
@@ -241,7 +247,7 @@ export function contextLines(input: FloodNumberInput): string[] {
   const fn = floodNumberFt(input.pinElevationFt, input.gaugeZeroFt);
   if (fn === null || !finite(input.gaugeZeroFt)) return [];
   const zero = input.gaugeZeroFt;
-  const step = stepFor(input.approximate);
+  const step = FLOOD_NUMBER_STEP_FT;
   const lines: string[] = [];
 
   const cur = finite(input.currentStageFt) ? input.currentStageFt : null;
@@ -265,9 +271,9 @@ export function contextLines(input: FloodNumberInput): string[] {
 
   const fs = input.categories?.minor;
   if (finite(fs)) {
-    // From the number the reader sees, both ways, so 46.5 vs 43.0 reads
-    // "3.5" and a card showing "about 43 ft" never calls itself below a
-    // 43.0 ft flood stage.
+    // From the number the reader sees, both ways, so "about 46 ft" vs
+    // 43.0 reads "about 3 ft" and a card showing "about 43 ft" never calls
+    // itself below a 43.0 ft flood stage.
     const diff = roundTo(roundTo(fn, step) - fs, step);
     lines.push(
       diff > 0
@@ -363,7 +369,7 @@ export function whatIfMarks(input: FloodNumberInput, range: WhatIfRange): WhatIf
     "yours",
     fn,
     copy.floodNumberMarkYours,
-    copy.floodNumberValue(fmtRounded(roundTo(fn, stepFor(input.approximate)))),
+    copy.floodNumberValue(fmtRounded(roundTo(fn, FLOOD_NUMBER_STEP_FT))),
   );
   const fs = input.categories?.minor;
   if (finite(fs)) add("floodStage", fs, copy.floodNumberMarkFloodStage, copy.floodNumberFeet(fmtStage(fs)));
@@ -386,7 +392,7 @@ export function floodNumberView(input: FloodNumberInput): FloodNumberView | null
   const range = whatIfRange(input);
   if (fn === null || range === null) return null;
   const rough = input.approximate === true;
-  const shownFt = roundTo(fn, stepFor(rough));
+  const shownFt = roundTo(fn, FLOOD_NUMBER_STEP_FT);
   const shown = fmtRounded(shownFt);
   const title = rough ? copy.floodNumberTitleRough : copy.floodNumberTitle;
   const value = copy.floodNumberValue(shown);
@@ -410,8 +416,8 @@ export function floodNumberView(input: FloodNumberInput): FloodNumberView | null
 }
 
 /**
- * One short line for a Places card: "floods at about 46.5 ft" (rough:
- * "floods at roughly 47 ft"). Takes the raw flood number. Null when there
+ * One short line for a Places card: "floods at about 46 ft" (rough:
+ * "floods at roughly 46 ft"). Takes the raw flood number. Null when there
  * is none. It can't check the tier: for a place, use floodNumberShortFor.
  */
 export function floodNumberShort(
@@ -419,7 +425,7 @@ export function floodNumberShort(
   approximate = false,
 ): string | null {
   if (!finite(ft) || ft < 0) return null;
-  const shown = fmtRounded(roundTo(ft, stepFor(approximate)));
+  const shown = fmtRounded(roundTo(ft, FLOOD_NUMBER_STEP_FT));
   return approximate ? copy.floodNumberShortRough(shown) : copy.floodNumberShort(shown);
 }
 

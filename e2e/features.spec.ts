@@ -30,15 +30,15 @@ async function savePins(page: Page) {
   }, [HOME]);
 }
 
-test("flood number: the card shows, and the what-if slider moves the readout and the picture", async ({
+test("flood number: the card shows, and the what-if slider moves the readout and its own picture", async ({
   page,
 }) => {
   await savePins(page);
   await page.goto("/watch");
   const card = page.getByRole("region", { name: "Your flood number" });
   await expect(card).toBeVisible({ timeout: 20_000 });
-  // The big number (the slider legend repeats it, hence first()).
-  await expect(card.getByText(/^about \d+(\.5)? ft$/).first()).toBeVisible();
+  // The big number, whole feet (the slider legend repeats it, hence first()).
+  await expect(card.getByText(/^about \d+ ft$/).first()).toBeVisible();
   await expect(card.getByText("on the Pearl River gauge at Jackson.")).toBeVisible();
   await expect(card.getByText("CrestWatch doesn't count levees or floodwalls.")).toBeVisible();
 
@@ -46,8 +46,10 @@ test("flood number: the card shows, and the what-if slider moves the readout and
   const atForecast = /^If the river reaches \d+\.\d ft on the gauge, Home stays dry by about \d+ ft\.$/;
   await expect(readout).toHaveText(atForecast);
   const before = await readout.textContent();
-  // The picture starts on the forecast crest.
-  await expect(page.getByRole("img", { name: /^Forecast crest / })).toBeVisible();
+  // The main picture shows the forecast crest; the card has no picture yet.
+  const mainPicture = page.getByRole("img", { name: /^Forecast crest / });
+  await expect(mainPicture).toBeVisible();
+  await expect(card.getByRole("img")).toHaveCount(0);
 
   // Slide all the way up, the way a keyboard user would.
   const slider = card.getByRole("slider", { name: "Try a river level" });
@@ -57,12 +59,18 @@ test("flood number: the card shows, and the what-if slider moves the readout and
   await expect(readout).toHaveText(
     /^If the river reaches \d+\.\d ft on the gauge, water would be about \d+ ft deep at Home\.$/,
   );
-  // The main picture now draws that level, labelled "what if".
-  await expect(page.getByRole("img", { name: /^What if reaches \d+ ft above Home$/ })).toBeVisible();
+  // The card draws that level in its own picture, right under the slider...
+  await expect(
+    card.getByRole("img", { name: /^What-if level reaches \d+ ft above Home$/ }),
+  ).toBeVisible();
+  // ...and the main picture stays on the forecast.
+  await expect(mainPicture).toHaveCount(1);
+  await expect(page.getByRole("img", { name: /^What-if level/ })).toHaveCount(1);
 
   await card.getByRole("button", { name: "Back to the forecast" }).click();
   await expect(readout).toHaveText(before ?? "");
-  await expect(page.getByRole("img", { name: /^Forecast crest / })).toBeVisible();
+  await expect(card.getByRole("img")).toHaveCount(0);
+  await expect(mainPicture).toBeVisible();
 });
 
 test("past floods: the one-line summary shows and opens into the list", async ({ page }) => {
@@ -113,13 +121,13 @@ test("why: the flood number is written out as ground minus gauge zero", async ({
   await expect(block.getByText("275.5 ft")).toBeVisible();
   await expect(block.getByText("233.4 ft")).toBeVisible();
   await expect(block.getByText("your flood number, read on the gauge")).toBeVisible();
-  await expect(block.getByText(/^about \d+(\.5)? ft$/)).toBeVisible();
+  await expect(block.getByText(/^about \d+ ft$/)).toBeVisible();
 });
 
 test("places: a FULL card carries its flood number", async ({ page }) => {
   await savePins(page);
   await page.goto("/places");
-  await expect(page.getByText(/^floods at about \d+(\.5)? ft on the gauge$/)).toBeVisible({
+  await expect(page.getByText(/^floods at about \d+ ft on the gauge$/)).toBeVisible({
     timeout: 20_000,
   });
 });

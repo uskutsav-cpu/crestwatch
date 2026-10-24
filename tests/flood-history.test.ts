@@ -221,23 +221,85 @@ describe("pastFloods: the numbers at the pin", () => {
     expect(r.noneNote).toBe(copy.pastFloodsBigger);
   });
 
-  it("wording thresholds: whole feet, words under a foot", () => {
+  it("wording thresholds: whole feet over the ground, the Surveyor's bands below it", () => {
     expect(atPinWords(10.62)).toBe("about 11 ft of water here");
     expect(atPinWords(1.49)).toBe("about 1 ft of water here");
     expect(atPinWords(1)).toBe("about 1 ft of water here");
     expect(atPinWords(0.99)).toBe("less than a foot of water here");
     expect(atPinWords(0)).toBe("less than a foot of water here");
-    expect(atPinWords(-0.01)).toBe(copy.pastFloodsWithinFoot);
-    expect(atPinWords(-0.99)).toBe(copy.pastFloodsWithinFoot);
-    expect(atPinWords(-1)).toBe("stayed about 1 ft below");
-    expect(atPinWords(-1.5)).toBe("stayed about 2 ft below");
+    // Below the ground by BANDS.likely or less: LIKELY, like the verdict.
+    expect(atPinWords(-0.01)).toBe(copy.pastFloodsLikely);
+    expect(atPinWords(-BANDS.likely)).toBe(copy.pastFloodsLikely);
+    // Then BORDERLINE up to BANDS.borderline: too close to call.
+    expect(atPinWords(-0.51)).toBe(copy.pastFloodsTooClose);
+    expect(atPinWords(-1)).toBe(copy.pastFloodsTooClose);
+    expect(atPinWords(-2)).toBe(copy.pastFloodsTooClose);
+    expect(atPinWords(-BANDS.borderline)).toBe(copy.pastFloodsTooClose);
+    // Only beyond that is it a miss, in whole feet.
+    expect(atPinWords(-3.51)).toBe("stayed about 4 ft below");
     expect(atPinWords(-13.68)).toBe("stayed about 14 ft below");
-    expect([2, 0.3, -0.3, -2].map(outcomeFor)).toEqual([
+    expect([2, 0.3, -0.3, -2, -5].map(outcomeFor)).toEqual([
       "water",
       "underFoot",
-      "withinFoot",
+      "likely",
+      "tooClose",
       "below",
     ]);
+  });
+
+  it("every row agrees with the Surveyor's band for the same margin", () => {
+    // Water at 95 ft; margin = ground - water, as bandFor takes it.
+    for (let m = -6; m <= 6; m = Math.round((m + 0.01) * 100) / 100) {
+      const r = pastFloods(
+        input({
+          pinName: "Home",
+          pinElevationFt: 95 + m,
+          gaugeZeroFt: 50,
+          historicCrests: [{ stageFt: 45, time: "2020-01-01T00:00:00Z" }],
+        }),
+      )!;
+      const row = r.rows[0];
+      const band = bandFor(95 + m - 95);
+      const label = `margin ${m}`;
+      if (band === "LIKELY") {
+        expect(row.reached, label).toBe(true);
+        expect(row.atPin, label).toMatch(/of water here|likely reach the ground/);
+      } else if (band === "BORDERLINE") {
+        expect(row.reached, label).toBe(false);
+        expect(row.atPin, label).toBe(copy.pastFloodsTooClose);
+      } else {
+        expect(row.reached, label).toBe(false);
+        expect(row.atPin, label).toMatch(/^stayed about \d+ ft below$/);
+        expect(Math.round(m)).toBeGreaterThanOrEqual(4);
+      }
+    }
+  });
+
+  it("regression: a 2 ft miss is never 'stayed about 2 ft below'", () => {
+    // Ground at gauge zero + 53 ft; the 2019 crest (51.2 ft) stays 1.8 ft
+    // below it, which the live verdict would call too close to call.
+    const r = pastFloods(
+      input({
+        pinName: "Home",
+        pinElevationFt: 103,
+        gaugeZeroFt: 50,
+        historicCrests: [
+          { stageFt: 57, time: "2011-05-19T00:00:00Z" },
+          { stageFt: 54, time: "1927-05-04T00:00:00Z" },
+          { stageFt: 51.2, time: "2019-03-20T00:00:00Z" },
+          { stageFt: 45, time: "1990-01-01T00:00:00Z" },
+        ],
+      }),
+    )!;
+    expect(bandFor(103 - (50 + 51.2))).toBe("BORDERLINE");
+    const y2019 = r.rows.find((x) => x.time.startsWith("2019"))!;
+    expect(y2019.atPin).toBe("stayed just below, too close to call");
+    expect(y2019.reached).toBe(false);
+    for (const row of r.rows) expect(row.atPin).not.toMatch(/stayed about [0-3] ft below/);
+    // The summary and the row say the same thing.
+    expect(r.summary).toBe(
+      "2 of the 4 highest crests here would have reached Home. One more would have been too close to call.",
+    );
   });
 
   it("float noise at a threshold doesn't flip the words", () => {
@@ -271,9 +333,12 @@ describe("pastFloods: the summary line", () => {
     const r = pastFloods(input({ pinName: "Home", pinElevationFt: 100 }))!;
     expect(r.reached).toBe(2);
     expect(r.closeCalls).toBe(3);
-    // The row words stay as they are: whole feet, or "within a foot".
-    expect(r.rows[2].atPin).toBe(copy.pastFloodsWithinFoot);
-    expect(r.rows[3].atPin).toBe("stayed about 2 ft below");
+    // The rows say what the summary says: too close to call, not "2 ft below".
+    expect(r.rows.slice(2, 5).map((x) => x.atPin)).toEqual([
+      copy.pastFloodsTooClose,
+      copy.pastFloodsTooClose,
+      copy.pastFloodsTooClose,
+    ]);
     expect(r.summary).toBe(
       "2 of the 5 highest crests here would have reached Home. 3 more would have been too close to call.",
     );
@@ -290,9 +355,9 @@ describe("pastFloods: the summary line", () => {
     );
   });
 
-  it("matches the Surveyor's bands: a miss inside BANDS.borderline is never 'wouldn't have reached'", () => {
+  it("matches the Surveyor's bands: LIKELY reaches, BORDERLINE is too close to call", () => {
     // Water at 95 ft. bandFor(pin - 95) is what the live verdict would say.
-    for (const m of [0.01, 0.4, BANDS.likely, 1, 2, 3.49, BANDS.borderline, 3.51, 5]) {
+    for (const m of [0.01, 0.4, BANDS.likely, 0.51, 1, 2, 3.49, BANDS.borderline, 3.51, 5]) {
       const pin = 95 + m;
       const r = pastFloods(
         input({
@@ -302,12 +367,15 @@ describe("pastFloods: the summary line", () => {
           historicCrests: [{ stageFt: 45, time: "2020-01-01T00:00:00Z" }],
         }),
       )!;
-      const close = bandFor(pin - 95) !== "UNLIKELY";
-      expect(r.closeCalls, `margin ${m}`).toBe(close ? 1 : 0);
+      const band = bandFor(pin - 95);
+      expect(r.reached, `margin ${m}`).toBe(band === "LIKELY" ? 1 : 0);
+      expect(r.closeCalls, `margin ${m}`).toBe(band === "BORDERLINE" ? 1 : 0);
       expect(r.summary, `margin ${m}`).toBe(
-        close
-          ? "The highest crest here would have been too close to call at Home."
-          : "The highest crest here wouldn't have reached Home.",
+        band === "LIKELY"
+          ? "The highest crest here would have reached Home."
+          : band === "BORDERLINE"
+            ? "The highest crest here would have been too close to call at Home."
+            : "The highest crest here wouldn't have reached Home.",
       );
     }
   });
@@ -336,7 +404,7 @@ describe("pastFloods: the summary line", () => {
     expect(r.noneNote).toBe(copy.pastFloodsBigger);
   });
 
-  it("regression: a 0.4 ft margin (LIKELY live) is too close to call, not a miss", () => {
+  it("regression: a 0.4 ft margin (LIKELY live) likely reaches the ground, never a miss", () => {
     const r = pastFloods(
       input({
         pinName: "Home",
@@ -349,18 +417,31 @@ describe("pastFloods: the summary line", () => {
       }),
     )!;
     expect(bandFor(95.4 - 95)).toBe("LIKELY");
-    expect(r.rows[0].atPin).toBe(copy.pastFloodsWithinFoot);
-    expect(r.summary).toBe(
-      "None of the 2 highest crests here would have clearly reached Home, but one would have been too close to call.",
-    );
+    expect(r.rows[0].atPin).toBe(copy.pastFloodsLikely);
+    expect(r.rows[0].reached).toBe(true);
+    expect(r.summary).toBe("1 of the 2 highest crests here would have reached Home.");
+    expect(r.noneNote).toBeNull();
   });
 
   it("the recent row never counts toward the summary", () => {
-    // Pin at 96.6: only the 2019 extra row (96.52) is a close call; the
-    // 1983 crest (97.02) reaches. The top 5 all reach.
+    // Pin at 96.6: the top 5 all go over the ground (the lowest, 1983,
+    // reaches 97.02). The 2019 extra row reaches 96.52, 0.08 ft below:
+    // LIKELY, so it reads as reaching, but it isn't counted.
     const r = pastFloods(input({ pinElevationFt: 96.6 }))!;
-    expect(r.rows[5]).toMatchObject({ recent: true, outcome: "withinFoot" });
+    expect(r.rows[5]).toMatchObject({ recent: true, outcome: "likely", reached: true });
+    expect(r.reached).toBe(5);
     expect(r.closeCalls).toBe(0);
+    // A 2019 crest of 49.5 (95.72, 0.88 ft below) is too close to call on
+    // its row, and still not counted.
+    const close = pastFloods(
+      input({
+        pinElevationFt: 96.6,
+        historicCrests: CRESTS.map((c) => (c.time.startsWith("2019") ? { ...c, stageFt: 49.5 } : c)),
+      }),
+    )!;
+    expect(close.rows[5]).toMatchObject({ recent: true, outcome: "tooClose" });
+    expect(close.closeCalls).toBe(0);
+    expect(close.summary).toBe("All 5 of the highest crests here would have reached Levee St.");
     expect(r.summary).toBe(
       "All 5 of the highest crests here would have reached Levee St.",
     );
@@ -477,7 +558,8 @@ describe("copy rules for the Past floods strings", () => {
     copy.pastFloodsWater(11),
     copy.pastFloodsWaterUnderFoot,
     copy.pastFloodsBelow(14),
-    copy.pastFloodsWithinFoot,
+    copy.pastFloodsLikely,
+    copy.pastFloodsTooClose,
     copy.pastFloodsRecent,
     copy.pastFloodsLeftOut(1),
     copy.pastFloodsLeftOut(3),

@@ -13,10 +13,13 @@
  * out and counted, and the summary then says "can compare". Levees and
  * floodwalls are not modelled; the copy says so.
  *
- * The summary uses the Surveyor's own bands: a crest that stays below the
- * ground by BANDS.borderline or less is "too close to call", the words the
- * live verdict uses for the same margin. The intro asks "if one came back
- * today", which is the forecast case, so the two must never disagree.
+ * The rows and the summary use the Surveyor's own bands (bandFor), the
+ * same as the live verdict: water over the ground, or below it by
+ * BANDS.likely or less, reaches the place; below it by no more than
+ * BANDS.borderline is "too close to call"; only a crest further below
+ * than that "stayed about N ft below". The intro asks "if one came back
+ * today", which is the forecast case, so the list, the summary and the
+ * verdict must never disagree.
  */
 
 import { BANDS } from "@/lib/config";
@@ -54,9 +57,11 @@ export type PastFloodOutcome =
   | "water"
   /** Water at the pin, under a foot: "less than a foot of water here". */
   | "underFoot"
-  /** Stayed below the pin by under a foot: "stayed below, but within a foot". */
-  | "withinFoot"
-  /** Stayed below the pin by 1 ft or more: "stayed about {n} ft below". */
+  /** Below the pin by BANDS.likely or less (LIKELY): "would likely reach the ground here". */
+  | "likely"
+  /** Below by no more than BANDS.borderline (BORDERLINE): "stayed just below, too close to call". */
+  | "tooClose"
+  /** Below by more than BANDS.borderline (UNLIKELY): "stayed about {n} ft below". */
   | "below";
 
 export interface PastFloodRow {
@@ -69,10 +74,13 @@ export interface PastFloodRow {
   stageLabel: string;
   /** gaugeZeroFt + stageFt. */
   waterElevFt: number;
-  /** waterElevFt - pinElevationFt, snapped. 0 or more = water reaches the pin. */
+  /** waterElevFt - pinElevationFt, snapped. 0 or more = water over the ground. */
   depthFt: number;
   outcome: PastFloodOutcome;
-  /** depthFt >= 0. */
+  /**
+   * The Surveyor's LIKELY band: water over the ground, or below it by
+   * BANDS.likely or less (outcome water, underFoot or likely).
+   */
   reached: boolean;
   /** "about 11 ft of water here", "stayed about 14 ft below", ... */
   atPin: string;
@@ -106,12 +114,12 @@ export interface PastFloods {
   rows: PastFloodRow[];
   /** How many highest crests the summary covers (1 to PAST_FLOODS_TOP). */
   top: number;
-  /** Of those, how many reach the pin. */
+  /** Of those, how many reach the pin (the LIKELY band, as `reached` on a row). */
   reached: number;
   /**
-   * Of those, how many stay below but by BANDS.borderline or less: the
-   * margin the Surveyor calls too close to call (or likely, under
-   * BANDS.likely). The summary never calls these a miss.
+   * Of those, how many stay below by more than BANDS.likely but no more
+   * than BANDS.borderline: the margin the Surveyor calls too close to
+   * call. The summary never calls these a miss.
    */
   closeCalls: number;
   /** Old-datum crests dropped. */
@@ -137,12 +145,19 @@ export function crestMonthYear(iso: string): string {
   return MONTH_YEAR.format(new Date(iso));
 }
 
-/** Words for one crest at the pin, from its depth (water - ground, ft). */
+/**
+ * Words for one crest at the pin, from its depth (water - ground, ft).
+ * Over the ground: how deep, in whole feet. Below it: the Surveyor's
+ * bands on the margin (ground - water), the tests bandFor uses, so a row
+ * never sounds surer than the verdict would for the same margin.
+ */
 export function outcomeFor(depthFt: number): PastFloodOutcome {
   const d = snap(depthFt);
   if (d >= 1) return "water";
   if (d >= 0) return "underFoot";
-  if (d > -1) return "withinFoot";
+  const margin = -d;
+  if (margin <= BANDS.likely) return "likely";
+  if (margin <= BANDS.borderline) return "tooClose";
   return "below";
 }
 
@@ -153,12 +168,17 @@ export function atPinWords(depthFt: number): string {
       return copy.pastFloodsWater(Math.round(d));
     case "underFoot":
       return copy.pastFloodsWaterUnderFoot;
-    case "withinFoot":
-      return copy.pastFloodsWithinFoot;
+    case "likely":
+      return copy.pastFloodsLikely;
+    case "tooClose":
+      return copy.pastFloodsTooClose;
     case "below":
       return copy.pastFloodsBelow(Math.round(-d));
   }
 }
+
+/** Water over the ground, or the LIKELY band below it. */
+const reaches = (o: PastFloodOutcome) => o === "water" || o === "underFoot" || o === "likely";
 
 interface Usable {
   stageFt: number;
@@ -248,19 +268,17 @@ export function pastFloods(input: PastFloodsInput): PastFloods | null {
       waterElevFt,
       depthFt,
       outcome,
-      reached: depthFt >= 0,
+      reached: reaches(outcome),
       atPin: atPinWords(depthFt),
       recent,
     };
   });
 
   const counted = rows.filter((r) => !r.recent);
+  // Same bands as the rows, so the summary counts what the list says:
+  // LIKELY reaches, BORDERLINE is too close to call, only UNLIKELY misses.
   const reached = counted.filter((r) => r.reached).length;
-  // Margin = ground - water = -depth. Same test as the Surveyor's bandFor:
-  // margin <= BANDS.borderline is not a miss.
-  const closeCalls = counted.filter(
-    (r) => !r.reached && -r.depthFt <= BANDS.borderline,
-  ).length;
+  const closeCalls = counted.filter((r) => r.outcome === "tooClose").length;
   const pinLabel = input.approximate ? copy.pastFloodsSpot : input.pinName;
 
   return {

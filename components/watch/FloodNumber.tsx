@@ -16,10 +16,10 @@
  *   const fn = floodNumberInputFor(pin, watch); // null unless FULL tier
  *   {fn && <FloodNumber key={pin.id} {...fn} onWhatIf={setWhatIfStage} />}
  *
- * Props (FloodNumberProps = FloodNumberInput & { onWhatIf? }):
+ * Props (FloodNumberProps = FloodNumberInput & { onWhatIf?, children? }):
  *   pinName              string   shown in the explainer and readout
  *   approximate?         boolean  Pin.approximate: "rough flood number",
- *                                 copy.approximateTag, whole feet, and the
+ *                                 copy.approximateTag, "roughly", and the
  *                                 readout says "the approximate spot for"
  *   pinElevationFt       number
  *   gaugeZeroFt          number | null   null (or a number below the
@@ -48,6 +48,8 @@
  *                                 exactly the stage it shows, and null
  *                                 after. Optional: the card works on its
  *                                 own.
+ *   children?            ReactNode drawn between the slider's ticks and
+ *                                 its readout: the what-if picture.
  *
  * Only render it for a FULL verdict; floodNumberInputFor does that check.
  * Key it by pin id so a different place starts back at the forecast.
@@ -55,12 +57,16 @@
  * or verdict.tier changes, so a stage from one gauge is never drawn on
  * another gauge's zero, even for one frame.
  *
- * Redrawing the picture (optional): keep the stage from onWhatIf in state
- * and give WaterScene
- *   crestElevFt={whatIf === null ? verdict.peak.waterElevFt : gaugeZeroFt + whatIf}
- *   crestLabel={whatIf === null ? undefined : copy.floodNumberSceneLabel}
+ * The what-if picture (optional): keep the stage from onWhatIf in state
+ * and, while it isn't null, pass a WaterScene as children with
+ *   crestElevFt={gaugeZeroFt + whatIf}
+ *   crestLabel={copy.floodNumberSceneLabel}
+ * so it sits right under the slider that moves it. The page's main
+ * picture stays on the forecast: it sits a screen or more above the
+ * slider, next to the forecast sentence, and must never show a made-up
+ * river level as if it were the forecast.
  *
- * Places card: floodNumberShortFor(pin, watch) -> "floods at about 46.5 ft",
+ * Places card: floodNumberShortFor(pin, watch) -> "floods at about 46 ft",
  * or null unless the verdict is FULL. Use it rather than floodNumberShort on
  * a raw zero: a CATEGORY verdict can still carry a gauge zero the Surveyor
  * didn't trust.
@@ -70,7 +76,7 @@
  * Works at 320 px; the slider and button are 44 px tall.
  */
 
-import { useEffect, useId, useRef, useState } from "react";
+import { useEffect, useId, useRef, useState, type ReactNode } from "react";
 import { copy } from "@/lib/copy";
 import {
   floodNumberView,
@@ -84,6 +90,8 @@ import {
 
 export interface FloodNumberProps extends FloodNumberInput {
   onWhatIf?: (stageFt: number | null) => void;
+  /** Drawn under the slider, above the readout: the what-if picture. */
+  children?: ReactNode;
 }
 
 /** Tick under the slider; the legend swatch uses the same shape. */
@@ -112,6 +120,8 @@ export interface FloodNumberPanelProps {
   idBase: string;
   onSlide: (raw: string) => void;
   onBack: () => void;
+  /** Drawn between the ticks and the readout (the what-if picture). */
+  children?: ReactNode;
 }
 
 /**
@@ -126,6 +136,7 @@ export function FloodNumberPanel({
   idBase,
   onSlide,
   onBack,
+  children,
 }: FloodNumberPanelProps) {
   const titleId = `${idBase}-title`;
   const sliderId = `${idBase}-slider`;
@@ -189,6 +200,11 @@ export function FloodNumberPanel({
             />
           ))}
         </div>
+        {children && (
+          <div className="mt-3" data-testid="flood-number-picture">
+            {children}
+          </div>
+        )}
         <p className="tnum mt-2 text-body" data-testid="flood-number-readout">
           {readout}
         </p>
@@ -221,7 +237,7 @@ export function FloodNumberPanel({
  * nothing when there's no flood number (no gauge zero, or the ground sits
  * below the gauge's 0 ft).
  */
-export function FloodNumber({ onWhatIf, ...input }: FloodNumberProps) {
+export function FloodNumber({ onWhatIf, children, ...input }: FloodNumberProps) {
   const idBase = useId();
   const [chosen, setChosen] = useState<number | null>(null);
   // The latest callback, so an effect or a handler never calls an old one.
@@ -278,6 +294,8 @@ export function FloodNumber({ onWhatIf, ...input }: FloodNumberProps) {
       idBase={idBase}
       onSlide={slide}
       onBack={back}
-    />
+    >
+      {children}
+    </FloodNumberPanel>
   );
 }

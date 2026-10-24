@@ -3,12 +3,15 @@
 /**
  * S2 — the money screen (T07). One place, one picture, one sentence.
  *
- * Below the sentence, top to bottom: the honesty notes, "Your flood
- * number" (FULL only; its what-if slider redraws the picture above), What
- * to do now when it applies, the actions (Why, Read it to me, Share, Send
- * to family, Copy watch link, Add the crest to my calendar), then Past
- * floods here (FULL only). Flood number and past floods need a gauge zero
- * the Surveyor trusts, so CATEGORY and ALERT-ONLY never show them.
+ * Below the sentence, top to bottom: the honesty notes and alerts, What
+ * to do now when it applies (right after the alerts, so a family never
+ * scrolls past anything to reach it), "Your flood number" (FULL only; its
+ * what-if slider draws its own small picture inside the card, and the
+ * main picture always stays on the forecast), the actions (Why, Read it
+ * to me, Share, Send to family, Copy watch link, Add the crest to my
+ * calendar), then Past floods here (FULL only). Flood number and past
+ * floods need a gauge zero the Surveyor trusts, so CATEGORY and
+ * ALERT-ONLY never show them.
  */
 
 import Link from "next/link";
@@ -28,7 +31,7 @@ import { riverName, verdictSentence } from "@/lib/sentences";
 import { staleInfo, staleLineFor } from "@/lib/staleness";
 import { WaterScene } from "@/components/watch/WaterScene";
 import { CountdownChip } from "@/components/watch/CountdownChip";
-import { AlertStrip } from "@/components/watch/AlertStrip";
+import { AlertStrip, shownAlerts } from "@/components/watch/AlertStrip";
 import { ShareButton } from "@/components/watch/ShareButton";
 import { NextSteps, needsNextSteps } from "@/components/watch/NextSteps";
 import { FloodNumber } from "@/components/watch/FloodNumber";
@@ -165,19 +168,38 @@ export function whatIfFor(
 }
 
 /**
- * The dashed line in the main picture: the forecast crest, or while a
- * what-if stage is picked, that river level (gauge zero + stage) with the
- * "what if" label.
+ * The dashed line for the what-if picture inside the flood number card:
+ * that river level (gauge zero + stage), labelled "what-if level". Null
+ * on the forecast, or without a usable gauge zero. The main picture never
+ * takes it: it always shows the forecast crest.
  */
-export function sceneCrest(
-  forecastCrestElevFt: number,
+export function whatIfCrest(
   gaugeZeroFt: number | null | undefined,
   whatIf: number | null,
-): { crestElevFt: number; crestLabel: string | undefined } {
-  if (whatIf === null || typeof gaugeZeroFt !== "number" || !Number.isFinite(gaugeZeroFt)) {
-    return { crestElevFt: forecastCrestElevFt, crestLabel: undefined };
-  }
+): { crestElevFt: number; crestLabel: string } | null {
+  if (whatIf === null || !Number.isFinite(whatIf)) return null;
+  if (typeof gaugeZeroFt !== "number" || !Number.isFinite(gaugeZeroFt)) return null;
   return { crestElevFt: gaugeZeroFt + whatIf, crestLabel: copy.floodNumberSceneLabel };
+}
+
+/**
+ * The alert lines that leave the screen with the answer (Read it to me,
+ * Send to family, the calendar file, the share picture), matching what
+ * the screen shows: the alert strip's warnings by name, and, for
+ * ALERT-ONLY, the note that the alert service couldn't be reached.
+ */
+export function alertNotesFor(w: Pick<PinWatch, "verdict" | "alerts" | "alertsOk">): string[] {
+  const events = [
+    ...new Set(
+      shownAlerts(w.alerts ?? [])
+        .map((a) => (typeof a.event === "string" ? a.event.trim() : ""))
+        .filter(Boolean),
+    ),
+  ];
+  const notes: string[] = [];
+  if (events.length > 0) notes.push(copy.alertsShare(events));
+  if (w.verdict.tier === "ALERT_ONLY" && !w.alertsOk) notes.push(copy.alertServiceDown);
+  return notes;
 }
 
 /**
@@ -472,17 +494,22 @@ export function WatchClient() {
   const refreshFailedLine =
     error && updatedAt !== null ? copy.refreshFailed(fmtTime(updatedAt)) : null;
   // Anything that leaves the screen (speech, a text message, a calendar
-  // file, the share picture) carries the same warnings as the screen.
+  // file, the share picture) carries the same warnings as the screen, in
+  // screen order: staleness, a failed refresh, the approximate spot, then
+  // the flood alerts (or that the alert service couldn't be reached).
+  const alertNotes = alertNotesFor(watch);
   const leavingNotes = [
     staleLine,
     refreshFailedLine,
     pin.approximate ? copy.approximateShare : null,
+    ...alertNotes,
   ];
 
   // "Your flood number": FULL tier with a trusted gauge zero only.
   const floodNumber = floodNumberInputFor(pin, watch);
   const whatIfKey = whatIfKeyFor(pin.id, gauge?.lid);
   const whatIf = whatIfFor(whatIfPick, whatIfKey, floodNumber?.gaugeZeroFt);
+  const whatIfLine = whatIfCrest(floodNumber?.gaugeZeroFt, whatIf);
   const onWhatIf = (stageFt: number | null) =>
     setWhatIfPick(stageFt === null ? null : { key: whatIfKey, stageFt });
 
@@ -511,8 +538,8 @@ export function WatchClient() {
         <VerdictChip band={chip.band}>{chip.label}</VerdictChip>
       </div>
 
-      {/* The picture. While the flood number slider is off the forecast,
-          its dashed line shows that river level, labelled "what if". */}
+      {/* The picture: always the forecast crest, like the sentence under
+          it. The what-if slider draws its own picture inside its card. */}
       {verdict.tier === "FULL" && (
         <WaterScene
           markers={[
@@ -520,7 +547,7 @@ export function WatchClient() {
             ...(other ? [{ label: other.name, elevationFt: other.elevationFt }] : []),
           ]}
           currentWaterElevFt={verdict.currentWaterElevFt}
-          {...sceneCrest(verdict.peak.waterElevFt, floodNumber?.gaugeZeroFt, whatIf)}
+          crestElevFt={verdict.peak.waterElevFt}
         />
       )}
 
@@ -614,13 +641,25 @@ export function WatchClient() {
         </p>
       )}
 
-      {/* Your flood number (FULL only). Keyed by place, so another place
-          starts back at the forecast; it reports null when it goes away. */}
-      {floodNumber && (
-        <FloodNumber key={pin.id} {...floodNumber} onWhatIf={onWhatIf} />
-      )}
-
+      {/* What to do now, right after the alerts: on a likely or
+          too-close day it comes before anything else to read. */}
       {needsNextSteps(watch) && <NextSteps />}
+
+      {/* Your flood number (FULL only). Keyed by place, so another place
+          starts back at the forecast; it reports null when it goes away.
+          Off the forecast, its own picture shows the what-if level right
+          under the slider. */}
+      {floodNumber && (
+        <FloodNumber key={pin.id} {...floodNumber} onWhatIf={onWhatIf}>
+          {verdict.tier === "FULL" && whatIfLine && (
+            <WaterScene
+              markers={[{ label: pin.name, elevationFt: pin.elevationFt }]}
+              currentWaterElevFt={verdict.currentWaterElevFt}
+              {...whatIfLine}
+            />
+          )}
+        </FloodNumber>
+      )}
 
       {/* Actions: the reasoning first, then quiet ways to keep or pass on
           this answer. Read it to me and Send to family render only where
@@ -666,6 +705,11 @@ export function WatchClient() {
                     {copy.approximateTag}: {copy.approximateShare}
                   </p>
                 )}
+                {alertNotes.map((note) => (
+                  <p key={note} style={noteStyle}>
+                    {note}
+                  </p>
+                ))}
               </div>
             }
           />

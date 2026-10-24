@@ -51,7 +51,12 @@ function Row({ row }: { row: PastFloodRow }) {
           <span className="font-semibold">{row.monthYear}</span>
           <span className="tnum text-small text-dim">{row.stageLabel}</span>
         </p>
-        <p className={`text-small ${row.reached ? "font-semibold" : "text-dim"}`}>
+        {/* Only a clear miss is quiet: a close call keeps full contrast. */}
+        <p
+          className={`text-small ${
+            row.reached ? "font-semibold" : row.outcome === "tooClose" ? "" : "text-dim"
+          }`}
+        >
           {row.atPin}
         </p>
         {row.recent && <p className="text-small text-dim">{copy.pastFloodsRecent}</p>}

@@ -23,10 +23,12 @@ device and you don't have to type an address.
   spot, by about how much, and roughly when, over a side view of your ground
   and the river.
 - **Your flood number.** The reading on your river gauge at which water
-  reaches your ground, like "about 46.5 ft on the Mississippi River gauge at
-  Vicksburg". When the news says "the river will crest at 48 ft", you can
-  compare. A what-if slider tries other river levels and redraws the
-  picture. Only for house-level (FULL) answers.
+  reaches your ground, like "about 46 ft on the Mississippi River gauge at
+  Vicksburg", in whole feet because ground height and gauge zero can each be
+  off by about a foot. When the news says "the river will crest at 48 ft",
+  you can compare. A what-if slider tries other river levels and draws each
+  one in a small picture right under it, while the main picture stays on the
+  forecast. Only for house-level (FULL) answers.
 - **Past floods here.** The gauge's highest recorded crests, each measured
   against your ground: "if one of these crests came back today". Opens from
   one summary line.
@@ -37,7 +39,8 @@ device and you don't have to type an address.
   picture), Send to family (your phone's share sheet), Copy watch link, and
   Add the crest to my calendar (a calendar file made in your browser, only
   while a fresh forecast crest is still ahead). Anything that leaves the
-  screen carries the same warnings the screen shows.
+  screen carries the same warnings the screen shows: old data, a failed
+  refresh, an approximate spot and any active flood alert.
 - **Works when the signal drops.** The last answer stays in your browser for
   up to 12 hours and shows as an older answer, never as a live one.
 - **Your places, the Why screen and Replay.** Up to five places on one
@@ -83,9 +86,11 @@ flood-stage answers without a key.
    flood number: the river reading at which water reaches your ground. The
    same subtraction, run on each of the gauge's recorded crests (NOAA's
    historic crest list), gives Past floods here. Both need a gauge zero
-   CrestWatch trusts, so a flood-stage (CATEGORY) answer shows neither. A
-   town or street point gets a rough flood number in whole feet, labelled
-   approximate.
+   CrestWatch trusts, so a flood-stage (CATEGORY) answer shows neither. The
+   flood number is always in whole feet, and a town or street point gets a
+   rough one, labelled approximate. Past floods uses the same bands as the
+   sentence, so a crest that stayed only a little below your ground reads
+   "too close to call", never as a miss.
 
 If a gauge doesn't publish its gauge zero, CrestWatch can only say how the
 forecast compares to flood stage (CATEGORY). The same happens when USGS
@@ -208,11 +213,12 @@ MIT licensed.
 
 ## Measured
 
-- 818 unit tests in 37 files (Vitest), all passing on Oct 24, 2026.
+- 829 unit tests in 37 files (Vitest), all passing on Oct 24, 2026.
 - 45 end-to-end tests (Playwright). The 36 older ones passed on Oct 23,
-  2026. The 9 in `e2e/features.spec.ts`, for this week's features, have
-  not had their first run yet. `npm test` and `npm run test:e2e` rerun
-  them.
+  2026; two of them (in `e2e/why.spec.ts` and `e2e/setup.spec.ts`) were
+  narrowed since then for this week's pages. Those two and the 9 in
+  `e2e/features.spec.ts`, for this week's features, have not had a run
+  yet. `npm test` and `npm run test:e2e` rerun them.
 
 No map library: the water scene and the stage chart are hand-drawn SVG. The
 end-to-end tests run against recorded copies of the public data, so no

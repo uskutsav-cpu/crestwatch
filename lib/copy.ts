@@ -326,8 +326,8 @@ export const copy = {
   // Package floodnumber: "Your flood number" and the what-if slider
   // (lib/flood-number.ts, components/watch/FloodNumber.tsx). The number is
   // the gauge reading at which water reaches a place's ground. It's an
-  // estimate, so it says "about" and rounds to the nearest half foot
-  // (whole feet when rough). Gauge readings keep one decimal.
+  // estimate, so it says "about" and rounds to whole feet, like the
+  // verdict's margin. Gauge readings keep one decimal.
   floodNumberTitle: "Your flood number",
   floodNumberTitleRough: "Your rough flood number",
   floodNumberValue: (ft: string) => `about ${ft} ft`,
@@ -377,8 +377,9 @@ export const copy = {
   floodNumberMarkFloodStage: "flood stage",
   floodNumberMarkRecord: "highest crest",
   floodNumberMarkForecast: "forecast crest",
-  // WaterScene crestLabel while the slider is off the forecast.
-  floodNumberSceneLabel: "what if",
+  // WaterScene crestLabel for the what-if picture inside the card. The
+  // picture's name reads "What-if level reaches 10 ft above Home".
+  floodNumberSceneLabel: "what-if level",
   floodNumberShort: (ft: string) => `floods at about ${ft} ft`,
   floodNumberShortRough: (ft: string) => `floods at roughly ${ft} ft`,
 
@@ -395,9 +396,10 @@ export const copy = {
   pastFloodsCaveat:
     "Levees, floodwalls and the river itself have changed since many of these floods, and CrestWatch doesn't count levees or floodwalls. Treat this as a rough guide.",
   // reached and close count only the `top` highest crests (never the extra
-  // recent row). close: stayed below, but by no more than the Surveyor's
-  // borderline band, so it gets the verdict's own "too close to call" and
-  // is never called a miss. someLeftOut: old-datum crests were dropped, so
+  // recent row). reached: the Surveyor's LIKELY band (water over the
+  // ground, or within BANDS.likely of it). close: the BORDERLINE band, so
+  // it gets the verdict's own "too close to call" and is never called a
+  // miss. someLeftOut: old-datum crests were dropped, so
   // "the highest crests here" would not be the whole record.
   pastFloodsLine: (
     reached: number,
@@ -434,7 +436,6 @@ export const copy = {
   pastFloodsWater: (ft: number) => `about ${ft} ft of water here`,
   pastFloodsWaterUnderFoot: "less than a foot of water here",
   pastFloodsBelow: (ft: number) => `stayed about ${ft} ft below`,
-  pastFloodsWithinFoot: "stayed below, but within a foot",
   pastFloodsRecent: "the most recent big one",
   pastFloodsLeftOut: (n: number) =>
     n === 1
@@ -488,7 +489,7 @@ export const copy = {
   // Package integration: words that tie the new pieces into the screens.
   // Watch: the name screen readers hear for the row of share buttons.
   actionsLabel: "Keep or share this answer",
-  // Places card, second line, after floodNumberShort ("floods at about 46.5 ft").
+  // Places card, second line, after floodNumberShort ("floods at about 46 ft").
   placesFloodNumber: (line: string) => `${line} on the gauge`,
   // Why: the flood number written out like the rest of the homework.
   whyGroundLabel: (pin: string) => `${pin} sits at`,
@@ -499,4 +500,15 @@ export const copy = {
   // About, after copy.honesty in "What it can't do".
   aboutLevees:
     "CrestWatch doesn't count levees or floodwalls. A place behind one can stay dry when the numbers say water would reach it, and a levee can also fail.",
+  // Past floods rows use the Surveyor's bands, like the live verdict. A
+  // crest that stays below the ground by BANDS.likely or less:
+  pastFloodsLikely: "would likely reach the ground here",
+  // ...by more than that, but no more than BANDS.borderline:
+  pastFloodsTooClose: "stayed just below, too close to call",
+  // Read it to me, Send to family, the calendar file and the share picture
+  // carry the flood alerts the screen shows. `events` is never empty.
+  alertsShare: (events: readonly string[]) =>
+    events.length === 1
+      ? `Active Weather Service alert here: ${events[0]}.`
+      : `Active Weather Service alerts here: ${events.join(", ")}.`,
 } as const;

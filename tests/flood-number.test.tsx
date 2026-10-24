@@ -50,6 +50,7 @@ import {
   floodNumberShort,
   floodNumberShortFor,
   floodNumberView,
+  FLOOD_NUMBER_STEP_FT,
   fmtRounded,
   fmtStage,
   gaugePhrase,
@@ -254,7 +255,7 @@ describe("floodNumberFt", () => {
 });
 
 describe("rounding and formatting", () => {
-  it("rounds to the nearest half foot (or whole foot)", () => {
+  it("rounds to a step: whole feet for the number, half feet for the slider", () => {
     expect(roundTo(46.48, 0.5)).toBe(46.5);
     expect(roundTo(46.24, 0.5)).toBe(46);
     expect(roundTo(46.25, 0.5)).toBe(46.5);
@@ -299,19 +300,37 @@ describe("gaugePhrase", () => {
 /* ------------------------------------------------------------------ */
 
 describe("floodNumberView: the headline and explainer", () => {
-  it("names the number to the half foot, with 'about', on the gauge", () => {
+  it("names the number in whole feet, with 'about', on the gauge", () => {
+    // 92.7 - 46.22 = 46.48: ground height and gauge zero can each be off
+    // by about a foot, so it never reads "46.5".
     const v = floodNumberView(input())!;
-    expect(v.shownFt).toBe(46.5);
+    expect(v.shownFt).toBe(46);
     expect(v.rough).toBe(false);
     expect(v.headline).toBe(
-      "Your flood number: about 46.5 ft on the Mississippi River gauge at Vicksburg.",
+      "Your flood number: about 46 ft on the Mississippi River gauge at Vicksburg.",
     );
-    expect(v.value).toBe("about 46.5 ft");
+    expect(v.value).toBe("about 46 ft");
     expect(v.onGauge).toBe("on the Mississippi River gauge at Vicksburg.");
     expect(v.explainer).toBe(
-      "When the river reads about 46.5 ft on that gauge, water reaches the ground at Levee St.",
+      "When the river reads about 46 ft on that gauge, water reaches the ground at Levee St.",
     );
     expect(v.levees).toBe("CrestWatch doesn't count levees or floodwalls.");
+  });
+
+  it("whole feet for every place, never a half foot (same as the verdict's margin)", () => {
+    expect(FLOOD_NUMBER_STEP_FT).toBe(1);
+    for (let raw = 40; raw <= 50; raw += 0.05) {
+      const i = input({ pinElevationFt: ZERO + raw });
+      const v = floodNumberView(i)!;
+      expect(Number.isInteger(v.shownFt), String(raw)).toBe(true);
+      expect(v.shownFt).toBe(Math.round(v.floodNumberFt));
+      const all = [v.headline, v.explainer, ...v.context, ...v.marks.map((m) => m.value)];
+      // A number with a decimal only ever appears for a gauge stage ("43.0 ft").
+      for (const s of [v.headline, v.explainer, floodNumberShort(v.floodNumberFt)!]) {
+        expect(s, s).not.toMatch(/\d\.\d/);
+      }
+      expect(all.find((s) => /about \d+\.5 ft/.test(s))).toBeUndefined();
+    }
   });
 
   it("shows a whole number without a decimal", () => {
@@ -344,7 +363,7 @@ describe("contextLines", () => {
   it("gives the reading, flood stage and record, in that order", () => {
     expect(contextLines(input())).toEqual([
       "The river reads 15.0 ft now, about 31 ft below your number.",
-      "Your number is about 3.5 ft above flood stage, 43.0 ft.",
+      "Your number is about 3 ft above flood stage, 43.0 ft.",
       "The highest crest on record here was 57.1 ft, in May 2011.",
     ]);
   });
@@ -620,7 +639,7 @@ describe("whatIfMarks", () => {
     expect(marks.map((m) => `${m.label} ${m.value}`)).toEqual([
       "forecast crest 17.2 ft",
       "flood stage 43.0 ft",
-      "your number about 46.5 ft",
+      "your number about 46 ft",
       "highest crest 57.1 ft",
     ]);
     const yours = marks.find((m) => m.kind === "yours")!;
@@ -680,8 +699,9 @@ describe("whatIfHandlers", () => {
 
 describe("floodNumberShort", () => {
   it("gives a short Places line", () => {
-    expect(floodNumberShort(46.48)).toBe("floods at about 46.5 ft");
+    expect(floodNumberShort(46.48)).toBe("floods at about 46 ft");
     expect(floodNumberShort(46.1)).toBe("floods at about 46 ft");
+    expect(floodNumberShort(46.6)).toBe("floods at about 47 ft");
     expect(floodNumberShort(46.48, true)).toBe("floods at roughly 46 ft");
   });
 
@@ -775,7 +795,7 @@ describe("floodNumberInputFor", () => {
 
   describe("floodNumberShortFor (the Places card line)", () => {
     it("gives the line for a FULL verdict, rough for an approximate place", () => {
-      expect(floodNumberShortFor(PIN, full())).toBe("floods at about 46.5 ft");
+      expect(floodNumberShortFor(PIN, full())).toBe("floods at about 46 ft");
       expect(floodNumberShortFor({ ...PIN, approximate: true }, full())).toBe(
         "floods at roughly 46 ft",
       );
@@ -858,10 +878,11 @@ describe("<FloodNumber>", () => {
     const html = render(<FloodNumber {...input()} />);
     expect(html).toContain('data-testid="flood-number"');
     expect(html).toContain(">Your flood number</h2>");
-    expect(html).toContain("about 46.5 ft");
+    expect(html).toContain("about 46 ft");
+    expect(html).not.toContain("46.5");
     expect(html).toContain("on the Mississippi River gauge at Vicksburg.");
     expect(html).toContain(
-      "When the river reads about 46.5 ft on that gauge, water reaches the ground at Levee St.",
+      "When the river reads about 46 ft on that gauge, water reaches the ground at Levee St.",
     );
     expect(html).toContain("The river reads 15.0 ft now, about 31 ft below your number.");
     expect(html).toContain("The highest crest on record here was 57.1 ft, in May 2011.");
@@ -898,6 +919,22 @@ describe("<FloodNumber>", () => {
 
   it("works with no parent wiring", () => {
     expect(() => render(<FloodNumber {...input()} />)).not.toThrow();
+  });
+
+  it("draws its children (the what-if picture) between the ticks and the readout", () => {
+    const html = render(
+      <FloodNumber {...input()}>
+        <svg role="img" aria-label="what-if picture" />
+      </FloodNumber>,
+    );
+    const pic = html.indexOf('data-testid="flood-number-picture"');
+    expect(pic).toBeGreaterThan(html.indexOf('type="range"'));
+    expect(pic).toBeLessThan(html.indexOf('data-testid="flood-number-readout"'));
+    expect(html).toContain('aria-label="what-if picture"');
+    // On the forecast the parent passes false: no empty box.
+    expect(render(<FloodNumber {...input()}>{false}</FloodNumber>)).not.toContain(
+      "flood-number-picture",
+    );
   });
 });
 
@@ -1072,7 +1109,7 @@ describe("floodNumber copy follows the lib/copy.ts rules", () => {
     if (!key.startsWith("floodNumber")) continue;
     samples.push(
       typeof value === "function"
-        ? String((value as (...a: unknown[]) => unknown)("46.5", "Levee St", true))
+        ? String((value as (...a: unknown[]) => unknown)("46", "Levee St", true))
         : String(value),
     );
   }
@@ -1104,9 +1141,13 @@ describe("integration review fixes", () => {
       const lines = contextLines(input({ pinElevationFt: ZERO + fn, categories: { minor: 43 } }));
       expect(lines, String(fn)).toContain("Your number is about the same as flood stage, 43.0 ft.");
     }
-    // A shown number half a foot under is below, with the warning.
+    // Raw 42.6 also shows "about 43 ft": the same as flood stage.
     expect(
       contextLines(input({ pinElevationFt: ZERO + 42.6, categories: { minor: 43 } })),
+    ).toContain("Your number is about the same as flood stage, 43.0 ft.");
+    // A shown number a foot under is below, with the warning.
+    expect(
+      contextLines(input({ pinElevationFt: ZERO + 42.4, categories: { minor: 43 } })),
     ).toContain(
       "Your number is below flood stage, 43.0 ft. Water can reach here before the Weather Service calls it a flood.",
     );

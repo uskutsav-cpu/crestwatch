@@ -29,11 +29,13 @@ import { EXAMPLE_PINS } from "@/lib/example";
 import { encodeWatchLink } from "@/lib/watch-link";
 import {
   WatchClient,
+  alertNotesFor,
   crestAheadIso,
-  sceneCrest,
+  whatIfCrest,
   whatIfFor,
   whatIfKeyFor,
 } from "@/components/watch/WatchClient";
+import type { FloodAlert } from "@/lib/alerts";
 import { WhyClient } from "@/components/why/WhyClient";
 import { PlacesClient } from "@/components/places/PlacesClient";
 import { WaterScene } from "@/components/watch/WaterScene";
@@ -144,6 +146,17 @@ function alertOnlyWatch(pin: Pin = LEVEE): PinWatch {
   return { pinId: pin.id, verdict: { tier: "ALERT_ONLY" }, gauge: null, alerts: [], alertsOk: true };
 }
 
+const FLASH: FloodAlert = {
+  event: "Flash Flood Warning",
+  headline: "Flash Flood Warning issued for Warren County",
+  severity: "Severe",
+  areaDesc: "Warren, MS",
+  expires: "2026-10-23T23:00:00Z",
+};
+
+/** A place a few inches above the forecast crest's water: LIKELY. */
+const LOW: Pin = { ...LEVEE, id: "plow-likely", name: "Home", elevationFt: ZERO + 17.4 };
+
 function setState(over: Partial<WatchState>) {
   hook.state = {
     pins: [LEVEE],
@@ -209,9 +222,10 @@ describe("Watch, FULL tier: one page, in order", () => {
     expect([...order].sort((a, b) => a - b)).toEqual(order);
   });
 
-  it("shows the flood number with the levee line", () => {
+  it("shows the flood number in whole feet with the levee line", () => {
     const t = text(html);
-    expect(t).toContain("Your flood number about 46.5 ft on the Mississippi River gauge at Vicksburg.");
+    expect(t).toContain("Your flood number about 46 ft on the Mississippi River gauge at Vicksburg.");
+    expect(t).not.toContain("46.5");
     expect(t).toContain(copy.floodNumberLevees);
     expect(t).toContain(copy.floodNumberSliderLabel);
     expect(t).toContain(copy.floodNumberBack);
@@ -225,9 +239,10 @@ describe("Watch, FULL tier: one page, in order", () => {
     expect(text(html)).toContain(copy.pastFloodsCaveat);
   });
 
-  it("the picture starts on the forecast crest, not a what-if", () => {
+  it("the picture starts on the forecast crest, and the card has no what-if picture yet", () => {
     expect(html).toContain(">forecast crest</text>");
     expect(html).not.toContain(`>${copy.floodNumberSceneLabel}</text>`);
+    expect(html).not.toContain('data-testid="flood-number-picture"');
   });
 
   it("the example note says the floodwall isn't counted", () => {
@@ -261,6 +276,36 @@ describe("Watch, FULL tier: one page, in order", () => {
   it("Read it to me and Send to family wait for the browser (nothing on the server)", () => {
     expect(html).not.toContain('data-testid="read-aloud"');
     expect(html).not.toContain('data-testid="send-to-family"');
+  });
+});
+
+describe("Watch: What to do now comes before the flood number", () => {
+  const at = (html: string, needle: string) => {
+    const i = html.indexOf(needle);
+    expect(i, needle).toBeGreaterThan(-1);
+    return i;
+  };
+  const inOrder = (html: string) => {
+    const order = [
+      at(html, 'data-testid="verdict-live"'),
+      at(html, 'data-testid="next-steps"'),
+      at(html, 'data-testid="flood-number"'),
+      at(html, 'data-testid="watch-actions"'),
+    ];
+    expect([...order].sort((a, b) => a - b)).toEqual(order);
+  };
+
+  it("a LIKELY day: sentence, then what to do, then the flood number, then the actions", () => {
+    const w = fullWatch(LOW);
+    expect(w.verdict.tier === "FULL" && w.verdict.band).toBe("LIKELY");
+    inOrder(watchHtml({ pins: [LOW], watches: [w] }));
+  });
+
+  it("an active alert on a dry-looking day: what to do still comes first", () => {
+    const w = { ...fullWatch(), alerts: [FLASH] };
+    const html = watchHtml({ watches: [w] });
+    inOrder(html);
+    expect(at(html, FLASH.event)).toBeLessThan(at(html, 'data-testid="next-steps"'));
   });
 });
 
@@ -339,7 +384,7 @@ describe("Add the crest to my calendar: only with a crest ahead", () => {
   });
 });
 
-describe("the what-if slider drives the main picture", () => {
+describe("the what-if slider draws its own picture; the main picture stays on the forecast", () => {
   const key = whatIfKeyFor("ex0", "VCKM6");
 
   it("uses a stage only for the place and gauge it was picked on", () => {
@@ -351,26 +396,39 @@ describe("the what-if slider drives the main picture", () => {
     expect(whatIfFor({ key, stageFt: 50 }, key, null)).toBeNull();
   });
 
-  it("draws gauge zero + stage with the 'what if' label, or the forecast crest", () => {
-    expect(sceneCrest(63.42, ZERO, null)).toEqual({ crestElevFt: 63.42, crestLabel: undefined });
-    expect(sceneCrest(63.42, ZERO, 50)).toEqual({
+  it("the what-if line is gauge zero + stage, labelled 'what-if level'; none on the forecast", () => {
+    expect(whatIfCrest(ZERO, 50)).toEqual({
       crestElevFt: ZERO + 50,
       crestLabel: copy.floodNumberSceneLabel,
     });
-    expect(sceneCrest(63.42, null, 50)).toEqual({ crestElevFt: 63.42, crestLabel: undefined });
+    expect(copy.floodNumberSceneLabel).toBe("what-if level");
+    expect(whatIfCrest(ZERO, null)).toBeNull();
+    expect(whatIfCrest(null, 50)).toBeNull();
+    expect(whatIfCrest(undefined, 50)).toBeNull();
+    expect(whatIfCrest(ZERO, Number.NaN)).toBeNull();
   });
 
-  it("the scene names the what-if line and measures the gap to it", () => {
+  it("the what-if picture has a proper name and measures the gap to that level", () => {
     const html = renderToStaticMarkup(
       <WaterScene
         markers={[{ label: LEVEE.name, elevationFt: LEVEE.elevationFt }]}
         currentWaterElevFt={ZERO + 15}
-        {...sceneCrest(ZERO + 17.2, ZERO, 50)}
+        {...whatIfCrest(ZERO, 50)!}
       />,
     );
     expect(html).toContain(`>${copy.floodNumberSceneLabel}</text>`);
     // 46.22 + 50 = 96.22, about 4 ft over Levee St's 92.7.
-    expect(html).toContain("reaches 4 ft above Levee St");
+    expect(html).toContain('aria-label="What-if level reaches 4 ft above Levee St"');
+  });
+
+  it("the main picture always takes the forecast crest; only the card's picture takes a what-if", () => {
+    const s = src("components/watch/WatchClient.tsx");
+    const main = s.slice(s.indexOf("{/* The picture:"), s.indexOf("{/* The sentence."));
+    expect(main).toContain("crestElevFt={verdict.peak.waterElevFt}");
+    expect(main).not.toMatch(/whatIf|crestLabel/);
+    const card = s.slice(s.indexOf("<FloodNumber key="), s.indexOf("</FloodNumber>"));
+    expect(card).toMatch(/whatIfLine && \(\s*<WaterScene/);
+    expect(card).toContain("{...whatIfLine}");
   });
 });
 
@@ -381,12 +439,45 @@ describe("leaving the screen carries the same warnings", () => {
     expect(text(card)).toContain("Couldn't check the river just now.");
   });
 
-  it("Read it to me, Send to family and the calendar get the honesty notes", () => {
+  it("Read it to me, Send to family and the calendar get the honesty notes and the alerts", () => {
     const s = src("components/watch/WatchClient.tsx");
     expect(s).toMatch(/<ReadAloud[^>]*notes=\{leavingNotes\}/);
     expect(s).toMatch(/<SendToFamily[\s\S]*?notes=\{leavingNotes\}/);
     expect(s).toMatch(/<AddToCalendar[\s\S]*?notes=\{leavingNotes\}/);
-    expect(s).toMatch(/const leavingNotes = \[\s*staleLine,\s*refreshFailedLine,\s*pin\.approximate \? copy\.approximateShare : null,\s*\]/);
+    expect(s).toMatch(
+      /const alertNotes = alertNotesFor\(watch\);\s*const leavingNotes = \[\s*staleLine,\s*refreshFailedLine,\s*pin\.approximate \? copy\.approximateShare : null,\s*\.\.\.alertNotes,\s*\]/,
+    );
+  });
+
+  it("an active flood alert travels with the answer, by name, once", () => {
+    const w = { ...fullWatch(), alerts: [FLASH, { ...FLASH, headline: "again" }] };
+    expect(alertNotesFor(w)).toEqual(["Active Weather Service alert here: Flash Flood Warning."]);
+    const two = { ...w, alerts: [FLASH, { ...FLASH, event: "Flood Warning", areaDesc: "Hinds, MS" }] };
+    expect(alertNotesFor(two)).toEqual([
+      "Active Weather Service alerts here: Flash Flood Warning, Flood Warning.",
+    ]);
+    // No alerts, nothing added: the dry-day answer stays one sentence.
+    expect(alertNotesFor(fullWatch())).toEqual([]);
+  });
+
+  it("ALERT-ONLY with the alert service down carries 'not an all-clear'", () => {
+    expect(alertNotesFor({ ...alertOnlyWatch(), alertsOk: false })).toEqual([copy.alertServiceDown]);
+    expect(alertNotesFor(alertOnlyWatch())).toEqual([]);
+    // A gauge tier never claims it: it has its own answer.
+    expect(alertNotesFor({ ...fullWatch(), alertsOk: false })).toEqual([]);
+  });
+
+  it("the share picture carries the alert a dry-looking FULL answer has on screen", () => {
+    const html = watchHtml({ watches: [{ ...fullWatch(), alerts: [FLASH] }] });
+    const card = text(html.slice(html.indexOf('data-testid="share-card"')));
+    expect(card).toContain("stays dry");
+    expect(card).toContain("Active Weather Service alert here: Flash Flood Warning.");
+  });
+
+  it("the share picture carries 'not an all-clear' when ALERT-ONLY couldn't check alerts", () => {
+    const html = watchHtml({ watches: [{ ...alertOnlyWatch(), alertsOk: false }] });
+    const card = text(html.slice(html.indexOf('data-testid="share-card"')));
+    expect(card).toContain(text(copy.alertServiceDown));
   });
 });
 
@@ -408,7 +499,8 @@ describe("Why: the flood number in the arithmetic", () => {
     expect(block).toContain("Your flood number");
     expect(block).toContain(`${copy.whyGroundLabel("Levee St")} 92.7 ft`);
     expect(block).toContain(`− ${copy.whyZeroLabel} 46.2 ft`);
-    expect(block).toContain(`= ${copy.whyFloodNumberLabel} about 46.5 ft`);
+    expect(block).toContain(`= ${copy.whyFloodNumberLabel} about 46 ft`);
+    expect(block).not.toContain("46.5");
     expect(block).toContain(copy.floodNumberLevees);
   });
 
@@ -434,9 +526,9 @@ describe("Places: a quiet flood number line on FULL cards", () => {
     return renderToStaticMarkup(<PlacesClient />);
   }
 
-  it("FULL: 'floods at about 46.5 ft on the gauge'", () => {
+  it("FULL: 'floods at about 46 ft on the gauge', whole feet", () => {
     const html = placesHtml([LEVEE], [fullWatch()]);
-    expect(text(html)).toContain("floods at about 46.5 ft on the gauge");
+    expect(text(html)).toContain("floods at about 46 ft on the gauge");
   });
 
   it("an approximate pin says roughly, next to its approximate tag", () => {
@@ -486,7 +578,12 @@ describe("Levees and floodwalls are named where they matter", () => {
 describe("integration copy follows the deck's rules", () => {
   const strings = [
     copy.actionsLabel,
-    copy.placesFloodNumber("floods at about 46.5 ft"),
+    copy.placesFloodNumber("floods at about 46 ft"),
+    copy.floodNumberSceneLabel,
+    copy.pastFloodsLikely,
+    copy.pastFloodsTooClose,
+    copy.alertsShare(["Flash Flood Warning"]),
+    copy.alertsShare(["Flash Flood Warning", "Flood Warning"]),
     copy.whyGroundLabel("Home"),
     copy.whyZeroLabel,
     copy.whyFloodNumberLabel,
