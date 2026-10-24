@@ -16,6 +16,7 @@ import { MAX_PINS } from "@/lib/config";
 import { fmtTime } from "@/lib/time";
 import { useWatches } from "@/lib/use-watch";
 import { statusLine } from "@/lib/sentences";
+import { floodNumberShortFor } from "@/lib/flood-number";
 import { sortWorstFirst } from "@/lib/severity";
 import { trendOf, type Trend } from "@/lib/trend";
 import { clearAllPins, removePin, renamePin } from "@/lib/pin-store";
@@ -229,6 +230,9 @@ export function PlacesClient() {
             !w.verdict.stale.staleObserved
               ? trendOf(w.gauge.observed)
               : null;
+          // FULL only ("roughly" for a town or street point), same rounding
+          // as the Watch card.
+          const floodLine = floodNumberShortFor(pin, w);
           return (
             <li key={w.pinId} className="relative">
               <Link
@@ -254,6 +258,11 @@ export function PlacesClient() {
                 <p className="mt-1 text-small text-dim">
                   {statusLine(w.verdict)}
                 </p>
+                {floodLine && (
+                  <p className="tnum mt-0.5 text-small text-dim" data-testid="place-flood-number">
+                    {copy.placesFloodNumber(floodLine)}
+                  </p>
+                )}
               </Link>
               {actions(pin)}
             </li>

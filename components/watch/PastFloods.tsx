@@ -23,6 +23,8 @@ export interface PastFloodsProps {
   gaugeZeroFt: number | null;
   gaugeName: string;
   historicCrests: HistoricCrest[];
+  /** gauge.categories.minor: a "most recent big one" must reach it. */
+  floodStageFt?: number | null;
   /** ISO "now" for the last-15-years rule. Defaults to the clock. */
   now?: string | null;
   /**
@@ -65,6 +67,7 @@ export function PastFloods({
   gaugeZeroFt,
   gaugeName,
   historicCrests,
+  floodStageFt,
   now,
   compact = false,
 }: PastFloodsProps) {
@@ -74,6 +77,7 @@ export function PastFloods({
     pinElevationFt,
     gaugeZeroFt,
     historicCrests,
+    floodStageFt,
     now: now ?? new Date().toISOString(),
   });
   if (!data) return null;

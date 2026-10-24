@@ -1095,3 +1095,32 @@ describe("floodNumber copy follows the lib/copy.ts rules", () => {
     }
   });
 });
+
+describe("integration review fixes", () => {
+  it("compares flood stage from the number the reader sees, both ways", () => {
+    // Raw 42.9 and 43.1 both show "about 43 ft": neither is called below
+    // or above a 43.0 ft flood stage.
+    for (const fn of [42.9, 43.1]) {
+      const lines = contextLines(input({ pinElevationFt: ZERO + fn, categories: { minor: 43 } }));
+      expect(lines, String(fn)).toContain("Your number is about the same as flood stage, 43.0 ft.");
+    }
+    // A shown number half a foot under is below, with the warning.
+    expect(
+      contextLines(input({ pinElevationFt: ZERO + 42.6, categories: { minor: 43 } })),
+    ).toContain(
+      "Your number is below flood stage, 43.0 ft. Water can reach here before the Weather Service calls it a flood.",
+    );
+  });
+
+  it("keeps a reading or forecast below the gauge's zero on the slider", () => {
+    const i = input({ currentStageFt: -2.4, forecastPeakStageFt: -3.0 });
+    const r = whatIfRange(i)!;
+    expect(r.min).toBe(-3);
+    expect(r.start).toBe(-3);
+    const forecast = whatIfMarks(i, r).find((m) => m.kind === "forecast")!;
+    expect(forecast.frac).toBe(0);
+    expect(whatIfReadout(r.start, i)).toContain("If the river reaches -3.0 ft on the gauge");
+    // Ordinary low water still floors at 0.
+    expect(whatIfRange(input({ currentStageFt: 3 }))!.min).toBe(0);
+  });
+});

@@ -265,18 +265,18 @@ export function contextLines(input: FloodNumberInput): string[] {
 
   const fs = input.categories?.minor;
   if (finite(fs)) {
-    if (zero + fs > input.pinElevationFt) {
-      // Water at flood stage would already be over this ground.
-      lines.push(copy.floodNumberBelowFloodStage(fmtStage(fs)));
-    } else {
-      // From the number the reader sees, so 46.5 vs 43.0 reads "3.5".
-      const diff = roundTo(roundTo(fn, step) - fs, step);
-      lines.push(
-        diff <= 0
-          ? copy.floodNumberAtFloodStage(fmtStage(fs))
-          : copy.floodNumberAboveFloodStage(fmtRounded(diff), fmtStage(fs)),
-      );
-    }
+    // From the number the reader sees, both ways, so 46.5 vs 43.0 reads
+    // "3.5" and a card showing "about 43 ft" never calls itself below a
+    // 43.0 ft flood stage.
+    const diff = roundTo(roundTo(fn, step) - fs, step);
+    lines.push(
+      diff > 0
+        ? copy.floodNumberAboveFloodStage(fmtRounded(diff), fmtStage(fs))
+        : diff < 0
+          ? // Water at flood stage would already be over this ground.
+            copy.floodNumberBelowFloodStage(fmtStage(fs))
+          : copy.floodNumberAtFloodStage(fmtStage(fs)),
+    );
   }
 
   const rec = recordCrest(input.historicCrests);
@@ -292,7 +292,8 @@ export function contextLines(input: FloodNumberInput): string[] {
  * the forecast crest, and highest the greatest of the record crest, the
  * flood number, the forecast crest, the reading and flood stage. (The
  * forecast crest joins the low side and the reading and flood stage the
- * high side so every mark and the start always fit.)
+ * high side so every mark and the start always fit. A reading or forecast
+ * below 0 ft pulls the floor down to it, so low water still fits too.)
  */
 export function whatIfRange(input: FloodNumberInput): WhatIfRange | null {
   const fn = floodNumberFt(input.pinElevationFt, input.gaugeZeroFt);
@@ -305,7 +306,12 @@ export function whatIfRange(input: FloodNumberInput): WhatIfRange | null {
 
   const lows = [cur, fs, fn, peak].filter(finite);
   const highs = [rec, fn, peak, cur, fs].filter(finite);
-  const min = Math.max(0, Math.floor(Math.min(...lows) - WHAT_IF_PAD_FT));
+  // Floor at 0, except that a reading or forecast below the gauge's zero
+  // (low water on the Mississippi) still has to fit on the slider.
+  const min = Math.min(
+    Math.max(0, Math.floor(Math.min(...lows) - WHAT_IF_PAD_FT)),
+    ...[cur, peak].filter(finite).map(Math.floor),
+  );
   const max = Math.ceil(Math.max(...highs) + WHAT_IF_PAD_FT);
   const start = clamp(peak ?? cur ?? fn, min, max);
   return { min, max, step: WHAT_IF_STEP_FT, start };

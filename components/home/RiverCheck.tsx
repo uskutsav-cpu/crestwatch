@@ -241,6 +241,7 @@ export function RiverCheckView({
         {copy.riversTitle}
       </h2>
 
+      {phase.kind === "loading" && <p className="sr-only">{copy.looking}</p>}
       {phase.kind === "loading" && (
         <ul aria-busy="true" className="mt-1 flex flex-col divide-y divide-line">
           {[0, 1, 2, 3].map((i) => (

@@ -422,12 +422,13 @@ describe("pastFloods: the summary line", () => {
     expect(s).toBe(
       `None of the 5 highest crests here would have reached Museum. ${copy.pastFloodsBigger}`,
     );
-    // A single crest that misses gets it too.
+    // A single crest that misses gets it too, worded for one crest.
     const one = pastFloodsSummary({
       ...museumIn,
       historicCrests: [{ stageFt: 57.1, time: "2011-05-19T00:00:00Z" }],
     })!;
-    expect(one).toBe(`The highest crest here wouldn't have reached Museum. ${copy.pastFloodsBigger}`);
+    expect(one).toBe(`The highest crest here wouldn't have reached Museum. ${copy.pastFloodsBiggerOne}`);
+    expect(copy.pastFloodsBiggerOne).toBe("A flood bigger than this one could still come.");
     // Something reached: no bigger-flood line needed.
     expect(pastFloodsSummary(input())).not.toContain(copy.pastFloodsBigger);
   });
@@ -512,5 +513,35 @@ describe("copy rules for the Past floods strings", () => {
 
   it("the approximate intro never says 'your ground'", () => {
     expect(copy.pastFloodsIntroSpot).not.toMatch(/your ground|house/i);
+  });
+});
+
+describe("integration review fixes", () => {
+  it("two crests that both reach read 'Both', never 'All 2'", () => {
+    const r = pastFloods(input({ historicCrests: CRESTS.slice(0, 2) }))!;
+    expect(r.top).toBe(2);
+    expect(r.summary).toBe("Both of the highest crests here would have reached Levee St.");
+  });
+
+  it("drops NWPS -9999 sentinels instead of blanking the section", () => {
+    const r = pastFloods(
+      input({ historicCrests: [...CRESTS, { stageFt: -9999, time: "2024-04-01T00:00:00Z" }] }),
+    )!;
+    expect(r).not.toBeNull();
+    expect(r.rows.some((row) => row.stageFt < 0)).toBe(false);
+  });
+
+  it("with a flood stage, the 'most recent big one' must have reached it", () => {
+    const small = { stageFt: 30.0, time: "2025-03-01T00:00:00Z", oldDatum: false };
+    const crests = [...CRESTS, small];
+    // Without a flood stage the old rule stands: the newest crest gets the row.
+    const plain = pastFloods(input({ historicCrests: crests }))!;
+    expect(plain.rows.find((row) => row.recent)?.time).toBe(small.time);
+    // With Vicksburg's 43 ft flood stage, the 30 ft rise isn't a big one:
+    // the newest crest at or over flood stage gets the row instead.
+    const gated = pastFloods(input({ historicCrests: crests, floodStageFt: 43 }))!;
+    const recent = gated.rows.find((row) => row.recent);
+    expect(recent?.time).toBe("2019-03-20T00:00:00Z");
+    expect(recent!.stageFt).toBeGreaterThanOrEqual(43);
   });
 });

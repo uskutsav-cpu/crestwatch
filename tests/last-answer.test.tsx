@@ -561,9 +561,9 @@ describe("clearing it", () => {
     expect(store.data.has(LAST_ANSWER_KEY)).toBe(false);
   });
 
-  it("renaming a place clears it", () => {
+  it("renaming a place keeps it (names aren't part of the key)", () => {
     renamePin(HOME.id, "Grandma's");
-    expect(store.data.has(LAST_ANSWER_KEY)).toBe(false);
+    expect(store.data.has(LAST_ANSWER_KEY)).toBe(true);
   });
 
   it("adding a place clears it", () => {

@@ -83,7 +83,8 @@ export function renamePin(id: string, name: string): Pin[] {
   if (!clean) return loadPins();
   const pins = loadPins().map((p) => (p.id === id ? { ...p, name: clean } : p));
   persist(pins);
-  clearLastAnswer();
+  // The saved answer stays: it's keyed by place and spot, not by name, and
+  // a rename while offline must not wipe the only answer on screen.
   return pins;
 }
 

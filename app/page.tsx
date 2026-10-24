@@ -1,6 +1,7 @@
 import { WaveMark } from "@/components/WaveMark";
 import { copy } from "@/lib/copy";
 import { SetupFlow } from "@/components/setup/SetupFlow";
+import { RiverCheck } from "@/components/home/RiverCheck";
 
 /* S1 · Setup — hero + address entry. The flow itself is client-side
    (T06 fills in confirm + pins); the shell and copy live here. */
@@ -16,6 +17,9 @@ export default function SetupPage() {
       </div>
 
       <SetupFlow />
+
+      {/* Live river levels, after the question and the address box. */}
+      <RiverCheck className="max-w-xl" />
 
       <ol className="grid w-full max-w-xl grid-cols-1 gap-3 text-left sm:grid-cols-3">
         {copy.howItWorks.map((step, i) => (

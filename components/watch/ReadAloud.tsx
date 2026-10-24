@@ -84,6 +84,8 @@ export function pickVoice<V extends VoiceLike>(voices: readonly V[]): V | null {
 export function speakable(text: string): string {
   return text
     .replace(/~\s*/g, `${copy.speechAbout} `)
+    // Before a noun it's "a 4 foot gap", not "a 4 feet gap".
+    .replace(/(\d+(?:\.\d+)?)\s*ft gap\b/g, (_, n: string) => `${n} ${copy.speechFoot} gap`)
     .replace(
       /(\d+(?:\.\d+)?)\s*ft\b/g,
       (_, n: string) => `${n} ${n === "1" ? copy.speechFoot : copy.speechFeet}`,

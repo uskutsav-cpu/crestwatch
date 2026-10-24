@@ -104,7 +104,8 @@ describe("speakable", () => {
     expect(speakable("about 1 ft above")).toBe("about 1 foot above");
     expect(speakable("about 11 ft above")).toBe("about 11 feet above");
     expect(speakable("at 31.5 ft on the gauge")).toBe("at 31.5 feet on the gauge");
-    expect(speakable("That 4ft gap")).toBe("That 4 feet gap");
+    expect(speakable("That 4ft gap")).toBe("That 4 foot gap");
+    expect(speakable("That 12 ft gap is taller than you.")).toBe("That 12 foot gap is taller than you.");
   });
 
   it("says Central time and about", () => {

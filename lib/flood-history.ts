@@ -85,6 +85,12 @@ export interface PastFloodRow {
 
 export interface PastFloodsInput {
   pinName: string;
+  /**
+   * The gauge's flood stage (categories.minor). When it's known, the extra
+   * "most recent big one" row is only added for a crest at or above it, so
+   * a small rise is never called a big one. Unknown keeps the old rule.
+   */
+  floodStageFt?: number | null;
   /** Town or street point: the summary says "this spot", never the name. */
   approximate?: boolean;
   pinElevationFt: number;
@@ -114,7 +120,7 @@ export interface PastFloods {
   pinLabel: string;
   /** The one line: "2 of the 5 highest crests here would have reached Home." */
   summary: string;
-  /** copy.pastFloodsBigger when none of the highest crests reached; else null. */
+  /** copy.pastFloodsBigger (or ...BiggerOne for a single crest) when none reached; else null. */
   noneNote: string | null;
   /** copy.pastFloodsLeftOut(n) when old-datum crests were dropped; else null. */
   leftOutNote: string | null;
@@ -170,6 +176,8 @@ function usableCrests(crests: HistoricCrest[]): { usable: Usable[]; leftOut: num
   let leftOut = 0;
   for (const c of crests ?? []) {
     if (!c || typeof c.stageFt !== "number" || !Number.isFinite(c.stageFt)) continue;
+    // NWPS marks a missing value with -9999 (same rule as parseCategories).
+    if (c.stageFt <= -100) continue;
     if (typeof c.time !== "string") continue;
     const ms = Date.parse(c.time);
     if (!Number.isFinite(ms)) continue;
@@ -206,14 +214,19 @@ export function pastFloods(input: PastFloodsInput): PastFloods | null {
     recent: false,
   }));
 
-  // The most recent crest of the last 15 years, when it isn't already up there.
+  // The most recent crest of the last 15 years, when it isn't already up
+  // there. With a known flood stage, only a crest that reached it counts
+  // as a "big one".
   const nowMs = Date.parse(input.now);
+  const fs = input.floodStageFt;
+  const floodStage = typeof fs === "number" && Number.isFinite(fs) ? fs : null;
   if (Number.isFinite(nowMs)) {
     const from = new Date(nowMs);
     from.setUTCFullYear(from.getUTCFullYear() - PAST_FLOODS_RECENT_YEARS);
     let latest: Usable | null = null;
     for (const c of usable) {
       if (c.ms < from.getTime() || c.ms > nowMs) continue;
+      if (floodStage !== null && c.stageFt < floodStage) continue;
       if (!latest || c.ms > latest.ms) latest = c;
     }
     if (latest && !top.includes(latest)) picked.push({ c: latest, recent: true });
@@ -258,7 +271,12 @@ export function pastFloods(input: PastFloodsInput): PastFloods | null {
     leftOut,
     pinLabel,
     summary: copy.pastFloodsLine(reached, counted.length, closeCalls, pinLabel, leftOut > 0),
-    noneNote: reached === 0 ? copy.pastFloodsBigger : null,
+    noneNote:
+      reached === 0
+        ? counted.length === 1
+          ? copy.pastFloodsBiggerOne
+          : copy.pastFloodsBigger
+        : null,
     leftOutNote: leftOut > 0 ? copy.pastFloodsLeftOut(leftOut) : null,
   };
 }

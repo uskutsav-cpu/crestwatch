@@ -57,7 +57,7 @@ export const copy = {
   looking: "Reading the river…",
   exampleLink: "Just looking? See a live example from Vicksburg →",
   exampleNote:
-    "This is an example: two spots in Vicksburg, MS, checked against today's real river data. Nothing was saved on this device.",
+    "This is an example: two spots in Vicksburg, MS, checked against today's real river data. Parts of Levee St sit behind Vicksburg's floodwall, which CrestWatch doesn't count. Nothing was saved on this device.",
   exampleCta: "Check your own place →",
   lookupSlow:
     "Still working. The government map service is slow right now, so this can take up to a minute.",
@@ -314,6 +314,10 @@ export const copy = {
       text: "The Weather Service's best guess of what the river will do over the next few days. It can be off by a foot or more, so CrestWatch says when it's too close to call.",
     },
     {
+      term: "Levee and floodwall",
+      text: "A levee is a long bank of earth, and a floodwall is a concrete wall, built to hold a river back from land. CrestWatch doesn't count them, so a place behind one can stay dry when the numbers say water would reach it.",
+    },
+    {
       term: "Three kinds of answers",
       text: "A full answer (FULL) compares the water to how high your spot sits, and it's about your house only when CrestWatch found your full street address. If CrestWatch doesn't know a gauge's height above sea level closely enough, you get flood-stage only (CATEGORY), and if no forecast gauge is close, you get alerts only (ALERT-ONLY).",
     },
@@ -417,7 +421,9 @@ export const copy = {
     }
     const head =
       reached === top
-        ? `All ${top} of the highest crests ${where} would have reached ${pin}.`
+        ? top === 2
+          ? `Both of the highest crests ${where} would have reached ${pin}.`
+          : `All ${top} of the highest crests ${where} would have reached ${pin}.`
         : `${reached} of ${crests} would have reached ${pin}.`;
     if (close === 0) return head;
     return `${head} ${close === 1 ? "One more" : `${close} more`} would have been too close to call.`;
@@ -467,7 +473,7 @@ export const copy = {
   sendToFamily: "Send to family",
   sendToFamilyTitle: (pin: string) => `${pin} · CrestWatch`,
   addToCalendar: "Add the crest to my calendar",
-  calendarSaved: "Calendar file saved ✓",
+  calendarSaved: "Calendar file ready ✓",
   calendarTitle: (river: string, pin: string) => `River crest: ${river} near ${pin}`,
   calendarTitleNoRiver: (pin: string) => `River crest near ${pin}`,
   // The file keeps one forecast; the river doesn't wait for it.
@@ -478,4 +484,19 @@ export const copy = {
   // Leads a saved or sent answer. Its "today" and "tomorrow" count from
   // this moment, not from whenever someone reads it.
   answerAsOf: (when: string) => `On ${when}, CrestWatch said:`,
+
+  // Package integration: words that tie the new pieces into the screens.
+  // Watch: the name screen readers hear for the row of share buttons.
+  actionsLabel: "Keep or share this answer",
+  // Places card, second line, after floodNumberShort ("floods at about 46.5 ft").
+  placesFloodNumber: (line: string) => `${line} on the gauge`,
+  // Why: the flood number written out like the rest of the homework.
+  whyGroundLabel: (pin: string) => `${pin} sits at`,
+  whyZeroLabel: "gauge zero",
+  whyFloodNumberLabel: "your flood number, read on the gauge",
+  // Past floods when only one crest is on record.
+  pastFloodsBiggerOne: "A flood bigger than this one could still come.",
+  // About, after copy.honesty in "What it can't do".
+  aboutLevees:
+    "CrestWatch doesn't count levees or floodwalls. A place behind one can stay dry when the numbers say water would reach it, and a levee can also fail.",
 } as const;
