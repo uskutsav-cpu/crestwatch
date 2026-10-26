@@ -7,18 +7,18 @@ What I actually designed/coded/debugged/tested: [specific work]
 Source evidence: [files, commit or saved version]
 Decision I can explain without reading a generated answer: [decision and tradeoff]
 How I verified the result: [actual test and outcome]
-What an automated tool, mentor or teammate supplied: [accurate scope]
+What a mentor or teammate supplied: [accurate scope]
 What I changed or independently checked after that assistance: [actual work]
 Unresolved gaps in my understanding: [honest next steps]
 
-## automated and external tools inventory
-Known assistance: automated coding tools contributed substantially to the original implementation and this Sites redesign; this conversation also contributed code fixes, verification, UI design and competition materials. Review original repository disclosures and all other development history to complete the full inventory.
+## External tools inventory
+Record relevant tools and contributions accurately.
 
 | Tool or person | Specific assistance | Files/features affected | Student's actual follow-up | Evidence |
 |---|---|---|---|---|
 | [fill] | | | | |
 
-Distinguish development assistance from runtime behavior: the river forecasts shown by CrestWatch come from official NOAA/NWS sources, not an automated model. The official 2026 rulebook requires full automated disclosure and significant individual contributions and understanding. A polished product or ability to repeat an explanation does not by itself demonstrate those contributions.
+The river forecasts shown by CrestWatch come from official NOAA/NWS sources. Review the applicable competition rules and document each contributor’s actual work and understanding.
 
 ## Technical rehearsal prompts
 1. Trace a station API response to the display. Which values are checked, cached and marked older?

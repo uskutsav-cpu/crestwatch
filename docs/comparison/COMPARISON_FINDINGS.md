@@ -4,7 +4,7 @@ Status: interface walkthrough completed; human-comprehension improvement NOT YET
 
 Inspected October 25, 2026, using the live Vicksburg pages at a 1280 x 720 desktop viewport. CrestWatch edition inspected: Sites version 9, source 2e9ab99e764338c0e9b9a2d7060bd03e05762a30. The later Review Lab update changes analysis tools, not the resident task answers. Record the actual published version used in every participant session.
 
-This was an automated-assisted interface inspection, not a participant study. No human success rate, comprehension improvement, time saving, testimonial or statistical significance is claimed. The reviewer already knew CrestWatch, so this cannot represent a first-time user. No timed human attempts were supplied. An automated selector initially failed because the NOAA button's case differed from its accessibility rendering; it was resolved and is a tooling issue, not a failed participant attempt.
+This was an automated interface inspection, not a participant study. No human success rate, comprehension improvement, time saving, testimonial or statistical significance is claimed. The reviewer already knew CrestWatch, so this cannot represent a first-time user. No timed human attempts were supplied. An automated selector initially failed because the NOAA button's case differed from its accessibility rendering; it was resolved and is a tooling issue, not a failed participant attempt.
 
 ## What was directly observed
 

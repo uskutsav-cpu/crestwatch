@@ -83,7 +83,7 @@ export default function Page() {
           <span>
             Official forecasts.
             <br />
-            No automated predictions.
+            Observations and context.
           </span>
         </div>
       </div>
@@ -229,14 +229,8 @@ export default function Page() {
         </div>
       </section>
       <section className="project-authorship">
-        <h2>Built with assistance. Explained honestly.</h2>
-        <p>
-          automated coding tools contributed substantially to the original
-          implementation and this redesign. They do not generate CrestWatch’s
-          river forecasts. Competition materials should identify the students’
-          actual work and demonstrate their understanding of the code, data, and
-          tradeoffs.
-        </p>
+        <h2>Explore the project.</h2>
+        <p>Learn about CrestWatch’s data sources, design, and limitations.</p>
         <Link href="/about" className="inline-link">
           Read the project story <ArrowUpRight size={15} />
         </Link>

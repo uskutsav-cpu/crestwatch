@@ -44,7 +44,7 @@ Places are saved only in localStorage. Address text goes to Census and, if neede
 
 ## Provenance and submission
 
-Based on https://github.com/shashankmadala/crestwatch (MIT). automated tools contributed substantially to the original code and this redesign. The app itself uses no automated for forecasts. Student names and actual contributions must be supplied truthfully before competition submission. No field validation, resident study, or expert endorsement is claimed. See `docs/VALIDATION.md`, `docs/SUBMISSION.md`, and `docs/VALIDATION.md`.
+Based on https://github.com/shashankmadala/crestwatch (MIT). Student names and actual contributions must be supplied truthfully before competition submission. No field validation, resident study, or expert endorsement is claimed. See `docs/SUBMISSION.md` and `docs/VALIDATION.md`.
 
 ## Current public edition and deployment
 

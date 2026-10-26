@@ -26,7 +26,7 @@ The native Next.js production build and all 892 tests pass. The existing private
 
 This update synchronizes the public Sites edition at https://crestwatch-river-guide.utsavsresearch.chatgpt.site with GitHub. It includes the redesigned river dashboard, impact explorer, saved places, historical replay, judge walkthrough, self-guided comparison with private D1 collection, the supplied 1,000-record automated audit browser/download and the full-date timestamp fix.
 
-The app source matches Sites commit `2ce679fd7f7b34432562c336d8dc5f1885836b76`; this synchronization additionally updates README deployment/privacy guidance, automated disclosure and CI. The architecture is Vinext / Cloudflare Workers with D1, not the original Vercel Next.js deployment. Read README before changing production hosting.
+The app source matches Sites commit `2ce679fd7f7b34432562c336d8dc5f1885836b76`; this synchronization additionally updates README deployment/privacy guidance and CI. The architecture is Vinext / Cloudflare Workers with D1, not the original Vercel Next.js deployment. Read README before changing production hosting.
 
 Validation on this GitHub copy: 887 tests passed, TypeScript passed and the production build passed. The same app source was built and browser-verified on the public Site, including the audit filters/download and dated observations on all four gauges. Automated audit records remain distinct from human study results. No credentials, local database state or private participant responses are included.
 
@@ -78,7 +78,7 @@ Replaced the fixed sidebar and small green field-guide styling with a simpler to
 - Current threshold comparisons require a recent issue time, discard expired or invalid samples, and report the first future sample at or above a threshold without interpolating local flood onset. Unavailable and older forecasts cannot supply a current comparison.
 - Exploration links preserve a supported station and numeric level. The address tracks changes and reset. Opening a threshold link scrolls to the workbench after live data arrives. Place-briefing timeline links preserve the original place link.
 - Live station detail now refreshes alongside the 15-minute river summary; freshness is reevaluated every minute while the page is open.
-- The Project page provides a hands-on walkthrough, scope, architecture decisions, source evidence, honest automated disclosure, and an explicit boundary around missing human validation.
+- The Project page provides a hands-on walkthrough, scope, architecture decisions, source evidence and an explicit boundary around missing human validation.
 - A downloadable resident/specialist review kit and a proposed competition recording script are included. Neither is represented as completed testing or a submitted video.
 
 Verification: TypeScript and 842 tests in 42 files passed, including six new tests of temporal forecast/threshold behavior. Browser QA verified desktop, 390px, and 320px layouts; direct threshold-link restoration and scrolling; Levee Street search and 54 ft selection; forecast chart reference; sharing; reset and URL state; station changes; the same workbench in place briefings; and the project walkthrough. Publication is verified separately by the Sites deployment response.
@@ -103,11 +103,11 @@ Verified desktop rendering and mobile layouts at 390px and 320px, including the 
 
 ## Competition preparation and study reporting
 
-Added a six-page printable facilitator packet, neutral task prompts, anchored scoring, blank session/observation sheets, a 2:45 demo plan, submission answer drafts, and genuine-contribution/automated-disclosure worksheets. These materials record no human-study results and do not constitute a completed video or submission.
+Added a six-page printable facilitator packet, neutral task prompts, anchored scoring, blank session/observation sheets, a 2:45 demo plan, submission answer drafts, and contribution worksheets. These materials record no human-study results and do not constitute a completed video or submission.
 
 Corrected study starting links so participants are no longer handed a preselected threshold answer. The Review Lab now exports a descriptive report alongside raw observations. Reports separate completion from understanding, exclude ambiguous duplicate participant/interface/task attempts in full, restrict successful timing medians to correct unaided attempts, and report matched differences only with stated limitations. Downloads are available directly from /review.
 
-Verified report logic with focused tests and browser export QA, including an assisted/partial practice attempt removed after checking. PDF rendered and reviewed across all six pages. Official 2026 rulebook checked October 25: public 1-3 minute video, full automated disclosure, significant student contributions and technical understanding; national listed deadline October 26 at noon EDT / 11 a.m. Central. Students must confirm the actual portal/district requirements and supply their genuine details.
+Verified report logic with focused tests and browser export QA, including an assisted/partial practice attempt removed after checking. PDF rendered and reviewed across all six pages. Official 2026 rulebook checked October 25: public 1-3 minute video, disclosure requirements, significant student contributions and technical understanding; national listed deadline October 26 at noon EDT / 11 a.m. Central. Students must confirm the actual portal/district requirements and supply their genuine details.
 
 ## Field guide interface refinement
 

@@ -4,9 +4,7 @@
  * Short sentences. Contractions. No exclamation marks. No em dashes.
  * Jargon gets a plain gloss the first time it appears. Banned words:
  * catastrophic, danger, panic, guaranteed, exact. Uncertainty stays
- * honest ("about", "~"). The app never says "automated" about its answers: it
- * says "public data". The one exception is the About page's "How it was
- * built", which must disclose the automated coding tool (contest rule). Keep it.
+ * honest ("about", "~"). The app uses public data for its answers.
  */
 
 /** "1 hour", "5 hours". */

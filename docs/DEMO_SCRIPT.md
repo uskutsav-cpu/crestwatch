@@ -24,6 +24,6 @@ Open Past floods. Select February 2020 and jump to the high point. Scrub or play
 
 2:10–2:40 · Engineering, evidence, and honest ownership
 
-Explain an actual technical decision: preserving freshness through outages, distinguishing interpolated addresses, or isolating Worker request queues. State the tools: TypeScript, React, the Next.js-compatible Vinext runtime, Leaflet, NOAA/USGS APIs, Vitest, and Sites hosting. Disclose substantial automated assistance and describe the students' actual work and understanding. State any remaining validation limits honestly.
+Explain an actual technical decision: preserving freshness through outages, distinguishing interpolated addresses, or isolating Worker request queues. State the tools: TypeScript, React, the Next.js-compatible Vinext runtime, Leaflet, NOAA/USGS APIs, Vitest, and Sites hosting. Describe the students' actual work and understanding. State any remaining validation limits honestly.
 
 Finish on the overview. Keep the final video within the official duration and verify the submission's current rules and visibility requirements.

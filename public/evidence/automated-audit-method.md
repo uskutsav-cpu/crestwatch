@@ -8,7 +8,7 @@ Published evidence: a user-supplied CSV, CrestWatch_NOAA_1000_Automated_Checks.c
 - 960 impact-slider scenarios in total; 40 other checks.
 - One captured NOAA reference per gauge, reused across scenarios. Four reference captures in total, not 1,000 independently refreshed NOAA observations.
 - Recorded execution period: October 25, 2026, 22:19:28.868–22:23:27.402 UTC (5:19–5:23 p.m. CDT).
-- Every record identifies AUTOMATED_QA, human_participant_count=0 and study_submission=false. The audit did not open /test.
+- Every record identifies its automated provenance, human_participant_count=0 and study_submission=false. The audit did not open /test.
 
 The original file includes the expected and recorded results, evidence references, captured text, reproduction steps where supplied, and per-record limitations. The website's lighter search index omits full captured text and some original columns; use the original CSV for the complete record. An evidence reference is an identifier supplied by the audit, not an independently hosted screenshot or trace.
 

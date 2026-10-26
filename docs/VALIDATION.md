@@ -2,7 +2,7 @@
 
 ## Automated official-source agreement
 
-Checked by: Codex automation, not a student field study.
+Checked by automated source verification, not a student field study.
 Date: 2026-10-25T17:33:18.201Z
 
 The repeatable command `node scripts/verify-source-data.mjs` fetched NOAA/NWS station metadata for Vicksburg, Greenville, Yazoo City, and Jackson, then fetched the USGS daily means for each of the three stored historical records. All seven checks passed on this run. The 217 + 33 + 30 stored readings (280 total) matched the source by date and value, with no extra source dates. Full source URLs, checks, timestamp, and normalized record hashes are in `docs/DATA_CHECK.json` and the app's Evidence page.

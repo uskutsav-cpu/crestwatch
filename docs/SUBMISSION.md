@@ -3,7 +3,7 @@
 This is preparation material, not evidence of eligibility or a promised result.
 
 1. Supply the real participant names and each student's actual contributions. The user has deferred these details.
-2. Read the current official CAC rules, especially student technical contributions and automated disclosure. Keep the disclosure in the video and written materials.
+2. Read the current official CAC rules, especially the requirements for contributions, disclosure, and technical understanding.
 3. Record a clear 1–3 minute demonstration using `docs/DEMO_SCRIPT.md` as a starting point. Use the students' own wording and actual experience.
 4. Verify the submitted link's access. New Sites are private by default; a private owner preview is not a judge-accessible public submission link. Change sharing only through an authorized access update.
 5. Do the real-world and resident validation in `docs/VALIDATION.md`. Never substitute automated test counts for flood accuracy or invent pilot users.

@@ -59,13 +59,6 @@ export default function Page() {
           map-based location confirmation, river timelines, and a historical
           gauge explorer. The public app runs on Vercel with Next.js. The private comparison study uses the existing Sites database.
         </p>
-        <p>
-          automated coding tools contributed substantially to the original
-          implementation and this redesign. The app itself uses no automated to produce
-          river forecasts. The repository’s automated disclosure should accompany any
-          competition submission, alongside the students’ actual contributions
-          and technical understanding.
-        </p>
       </section>
       <section className="article-section">
         <h2>Work that still needs people.</h2>

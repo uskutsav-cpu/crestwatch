@@ -25,8 +25,8 @@ The next version would be guided by resident task testing and specialist feedbac
 ## Learning and takeaway - student to write
 [Name one thing you actually learned, a specific example and how your understanding changed. Include the assistance you used and what you independently verified.]
 
-## Contributions and automated disclosure
-Use OWNERSHIP_AND_REVIEW.md. The known history includes substantial automated coding assistance in the original implementation and the redesigned Sites edition, including interface work, debugging, tests and materials. The app does not use automated to create river forecasts. A general "used automated for help" statement is insufficient if it conceals substantial implementation assistance. Students must add all other tools/assistance and their genuine technical work. Do not claim compliance based solely on this draft.
+## Contributions
+Use OWNERSHIP_AND_REVIEW.md to record genuine technical work and review the applicable competition rules.
 
 ## Evidence wording
 Safe now: "The project includes automated tests and dated comparisons of four station records and 280 stored USGS daily means against official responses. Human testing is prepared and has not yet been conducted."

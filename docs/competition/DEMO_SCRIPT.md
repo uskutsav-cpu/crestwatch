@@ -27,9 +27,9 @@ Show /project engineering decisions, then a relevant source/test excerpt if read
 
 Say: "The app uses TypeScript, React and Vinext, Leaflet maps, official NOAA and USGS data, and Cloudflare Workers hosting through Sites. One technical issue is that future forecast points can come from an old forecast. The app checks issue time as well as observation time."
 
-Student insert (maximum 35 words, replace before recording): "My contribution was [specific work actually done]. I verified it by [actual check]. automated tools assisted with [accurate scope]. I can explain [specific implementation decision]."
+Student insert (maximum 35 words, replace before recording): "My contribution was [specific work actually done]. I verified it by [actual check]. I can explain [specific implementation decision]."
 
-Do not describe automated-written changes as independent student work. Every team member's real contribution should be clear in the submission, even if one person narrates.
+Every team member's real contribution should be clear in the submission, even if one person narrates.
 
 ## 2:20-2:45 | Evidence and close
 Show /evidence, then homepage and public link.
