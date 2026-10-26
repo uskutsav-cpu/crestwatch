@@ -2,10 +2,9 @@ import type { Metadata } from "next";
 import "./globals.css";
 import "leaflet/dist/leaflet.css";
 import { AppShell } from "@/components/experience/AppShell";
+const deploymentHost = process.env.VERCEL_PROJECT_PRODUCTION_URL || process.env.VERCEL_URL;
 export const metadata: Metadata = {
-  metadataBase: new URL(
-    "https://crestwatch.vercel.app",
-  ),
+  metadataBase: new URL(deploymentHost ? `https://${deploymentHost}` : "http://localhost:3000"),
   title: {
     default: "CrestWatch · Know your river",
     template: "%s · CrestWatch",
