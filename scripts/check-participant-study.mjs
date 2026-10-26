@@ -10,9 +10,9 @@ async function call(method='GET',body,cookie='',expected=200,foreign=false){
 }
 try{
  assert.equal((await call()).data.session,null);
- await call('POST',{action:'create',consent:true,familiarity:'none',device:'desktop'},'',403,true);
- let first=await call('POST',{action:'create',consent:true,familiarity:'none',device:'desktop'},'',201);cookies.push(first.cookie);
- let second=await call('POST',{action:'create',consent:true,familiarity:'some',device:'phone'},'',201);cookies.push(second.cookie);
+ await call('POST',{action:'create',version:'self-guided-2026-10-v2',consent:true,familiarity:'none',device:'desktop'},'',403,true);
+ let first=await call('POST',{action:'create',version:'self-guided-2026-10-v2',consent:true,familiarity:'none',device:'desktop'},'',201);cookies.push(first.cookie);
+ let second=await call('POST',{action:'create',version:'self-guided-2026-10-v2',consent:true,familiarity:'some',device:'phone'},'',201);cookies.push(second.cookie);
  const id=first.data.session.id;
  assert.notEqual(id,second.data.session.id);
  assert.equal((await call('GET',undefined,first.cookie)).data.session.id,id);
@@ -24,7 +24,8 @@ try{
   assert.equal(start.data.session.startedAt,repeat.data.session.startedAt);
   await call('POST',{action:'stop',step,outcome:step===1?'technical_problem':step===2?'skipped':'ready'},first.cookie);
   await call('POST',{action:'answer',step,answer:'SOFTWARE QA: automated persistence verification, not a participant result.',help:'made-up'},first.cookie,400);
-  const saved=await call('POST',{action:'answer',step,answer:step===2?'':'SOFTWARE QA: automated persistence verification, not a participant result.',help:step===3?'ai':'none'},first.cookie);
+  await call('POST',{action:'answer',step,answer:'SOFTWARE QA confidence validation',help:'none',confidence:6},first.cookie,400);
+  const saved=await call('POST',{action:'answer',step,answer:step===2?'':'SOFTWARE QA: automated persistence verification, not a participant result.',help:step===3?'ai':'none',confidence:3},first.cookie);
   assert.equal(saved.data.session.nextIndex,step+1);
   const retried=await call('POST',{action:'answer',step,answer:'SOFTWARE QA retry',help:'none'},first.cookie);
   assert.equal(retried.data.session.nextIndex,step+1);

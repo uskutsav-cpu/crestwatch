@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import "./globals.css";
 import "./typography.css";
+import "./awareness.css";
 import "leaflet/dist/leaflet.css";
 import { AppShell } from "@/components/experience/AppShell";
 const deploymentHost = process.env.VERCEL_PROJECT_PRODUCTION_URL || process.env.VERCEL_URL;

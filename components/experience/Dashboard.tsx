@@ -17,6 +17,8 @@ import {
   ExternalLink,
   BookOpen,
 } from "lucide-react";
+import { ImpactBriefing } from "@/components/awareness/ImpactBriefing";
+import type { HistoricCrest } from "@/lib/flood-awareness";
 import { HistoryGallery } from "./HistoryGallery";
 import { RiverVisual } from "./RiverVisual";
 import { ImpactExplorer } from "./ImpactExplorer";
@@ -36,6 +38,8 @@ export interface RiverDetail {
   categories: FloodCategories;
   impacts: RiverImpact[];
   checkedAt: string;
+  cacheExpiresAt: string;
+  crests: HistoricCrest[];
 }
 export function Dashboard() {
   const searchParams = useSearchParams();
@@ -51,6 +55,7 @@ export function Dashboard() {
   const [attempt, setAttempt] = useState(0);
   const [exploreStage, setExploreStage] = useState<number | null>(null);
   const [now, setNow] = useState(Date.now());
+  const [nextRefreshAt, setNextRefreshAt] = useState<number | null>(null);
   function updateAddress(lid: string, level: number | null) {
     const url = new URL(window.location.href);
     url.searchParams.set("station", lid);
@@ -107,7 +112,9 @@ export function Dashboard() {
   }, []);
   useEffect(() => {
     void refresh();
+    setNextRefreshAt(Date.now() + 900000);
     const id = setInterval(() => {
+      setNextRefreshAt(Date.now() + 900000);
       void refresh();
       setAttempt((a) => a + 1);
     }, 900000);
@@ -239,6 +246,7 @@ export function Dashboard() {
         <a href="#river-memory"><span>03</span> The river’s memory <ArrowDownRight size={17}/></a>
         <Link href="/places"><span>04</span> Your places <ArrowUpRight size={17}/></Link>
       </nav>
+      <div className="awareness-launch"><div><span className="eyebrow">Plan around the places you care about</span><h2>From a river reading to a useful next step</h2><p>Read the gauge briefing, compare past floods, check verified map coverage, or prepare a household plan.</p></div><div className="awareness-links"><Link href="/impact-map">Flood impact map</Link><Link href="/compare">Past versus present</Link><Link href="/notifications">Watch a threshold</Link><Link href="/prepare">Household checklist</Link></div></div>
       <section className="find-place" id="find-place">
         <div className="find-place-label">
           <MapPin size={19} />
@@ -341,6 +349,7 @@ export function Dashboard() {
           <RiverMap active={selected} onSelect={selectStation} />
         </div>
       </section>
+      {detail && !detailBusy && !detailError && <ImpactBriefing lid={selected} city={station.city} detail={detail} now={now} nextAppCheck={nextRefreshAt}/> }
       <section className="briefing-panel" id="river-timeline">
         <div className="briefing-heading">
           <div>

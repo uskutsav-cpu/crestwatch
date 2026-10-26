@@ -1,5 +1,5 @@
 import { STUDY_TASKS } from './study';
-export const PARTICIPANT_VERSION = 'self-guided-2026-10-v1';
+export const PARTICIPANT_VERSION = 'self-guided-2026-10-v2';
 export const TASK_LIMIT_MS = 120000;
 export const ATTEMPT_OUTCOMES = ['ready','could_not_complete','technical_problem','skipped','time_limit'] as const;
 export type AttemptOutcome = typeof ATTEMPT_OUTCOMES[number];

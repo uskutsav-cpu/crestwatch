@@ -212,6 +212,7 @@ export function PlaceWatch() {
           </p>
         </div>
       )}
+      {g && <div className="awareness-links"><Link href={`/compare?station=${g.lid}`}>Compare this gauge with past floods</Link><Link href={`/notifications?station=${g.lid}`}>Watch a forecast threshold</Link><Link href={`/impact-map?station=${g.lid}`}>Check map coverage</Link><Link href="/prepare">Household checklist</Link></div>}
       <div className="place-lead-grid">
         <div className="place-lead">
           <span className="eyebrow">NEARBY RIVER BRIEFING</span>

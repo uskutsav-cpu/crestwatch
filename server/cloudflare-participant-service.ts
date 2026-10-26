@@ -33,7 +33,7 @@ export async function POST(request:Request) {
    if((count?.n??0)>=1000)return result({ok:false,error:'The study is temporarily full. Please try again later.'},429);
    const id=crypto.randomUUID(), token=[...crypto.getRandomValues(new Uint8Array(32))].map(v=>v.toString(16).padStart(2,'0')).join('');
    const order=crypto.getRandomValues(new Uint8Array(1))[0]%2===0?'crestwatch':'official';
-   await db().prepare('INSERT INTO participant_sessions (id,token_hash,condition_order,created_at,study_version,familiarity,device,next_index) VALUES (?,?,?,?,?,?,?,0)').bind(id,await hash(token),order,Date.now(),PARTICIPANT_VERSION,input.familiarity,input.device).run();
+   await db().prepare('INSERT INTO participant_sessions (id,token_hash,condition_order,created_at,study_version,familiarity,device,next_index) VALUES (?,?,?,?,?,?,?,0)').bind(id,await hash(token),order,Date.now(),input.version===PARTICIPANT_VERSION?PARTICIPANT_VERSION:'self-guided-2026-10-v1',input.familiarity,input.device).run();
    const s=await db().prepare('SELECT * FROM participant_sessions WHERE id=?').bind(id).first<ParticipantSession>();
    return result({ok:true,session:publicSession(s!)},201,{'Set-Cookie':cookie(request,id+'.'+token)});
   }
@@ -51,9 +51,11 @@ export async function POST(request:Request) {
    await db().prepare('UPDATE participant_sessions SET current_stopped_at=?, current_outcome=? WHERE id=? AND next_index=? AND current_stopped_at IS NULL').bind(stopped.stoppedAt,stopped.outcome,s.id,s.next_index).run();
   } else if(input.action==='answer') {
    if(s.current_started_at===null||s.current_stopped_at===null||s.current_outcome===null||!validParticipantAnswer(input.answer,input.help,s.current_outcome))return result({ok:false,error:'Please enter your answer (up to 1,500 characters) and select any help used.'},400);
+   const confidence=Number.isInteger(input.confidence)&&input.confidence>=1&&input.confidence<=5?input.confidence:null;
+   if(s.study_version==='self-guided-2026-10-v2'&&confidence===null)return result({ok:false,error:'Choose your confidence from 1 to 5.'},400);
    const now=Date.now();
    await db().batch([
-    db().prepare('INSERT OR IGNORE INTO participant_attempts (id,session_id,step,condition,task,started_at,stopped_at,lookup_ms,outcome,answer,help,submitted_at) SELECT ?,id,next_index,?,?,?,?,?,?,?,?,? FROM participant_sessions WHERE id=? AND next_index=? AND current_stopped_at IS NOT NULL').bind(crypto.randomUUID(),task.condition,task.id,s.current_started_at,s.current_stopped_at,Math.max(0,s.current_stopped_at-s.current_started_at),s.current_outcome,input.answer.trim(),input.help,now,s.id,s.next_index),
+    db().prepare('INSERT OR IGNORE INTO participant_attempts (id,session_id,step,condition,task,started_at,stopped_at,lookup_ms,outcome,answer,help,submitted_at,confidence) SELECT ?,id,next_index,?,?,?,?,?,?,?,?,?,? FROM participant_sessions WHERE id=? AND next_index=? AND current_stopped_at IS NOT NULL').bind(crypto.randomUUID(),task.condition,task.id,s.current_started_at,s.current_stopped_at,Math.max(0,s.current_stopped_at-s.current_started_at),s.current_outcome,input.answer.trim(),input.help,now,confidence,s.id,s.next_index),
     db().prepare('UPDATE participant_sessions SET next_index=next_index+1, current_started_at=NULL, current_stopped_at=NULL, current_outcome=NULL, finished_at=CASE WHEN next_index=5 THEN ? ELSE NULL END WHERE id=? AND next_index=? AND EXISTS (SELECT 1 FROM participant_attempts WHERE session_id=? AND step=?)').bind(now,s.id,s.next_index,s.id,s.next_index),
    ]);
   } else return result({ok:false,error:'Unknown study action.'},400);

@@ -1,0 +1,1 @@
+ALTER TABLE `participant_attempts` ADD `confidence` integer;

@@ -126,3 +126,7 @@ Inspected CrestWatch and NOAA's Vicksburg interface directly and documented obse
 The Review Lab's descriptive report now starts with all matched participant/task outcomes, including official-only success and neither-interface success. It exposes partial/incorrect explanations, unassessed pairs, unpaired codes, duplicate exclusions and six-observation session coverage. Successful-only timing is secondary. Added validated browser-local CSV import for original exports from multiple sessions/devices; malformed files are rejected atomically, and repeated observations are not silently overwritten or selected for favorable results.
 
 Verified opposite-direction outcomes and incomplete attempts with clearly labeled synthetic software fixtures in the local browser, then removed the fixtures. Those records are not included in human evidence or downloadable materials. Actual participant responses are still required before claiming improved understanding.
+
+## Flood awareness release
+
+Adds gauge-specific forecast impact briefings with actual source-check and app-refresh timestamps, same-gauge historical crest comparisons, the official USGS Jackson 2020 flood boundary, English/Spanish printable preparedness guidance, high-contrast reading controls, and opt-in background browser push watches. Study v2 adds confidence ratings while preserving v1 sessions and nullable legacy data. Backend schema migrations are additive. See docs/FLOOD_AWARENESS_RELEASE.md for source provenance, privacy, monitoring behavior and limitations.

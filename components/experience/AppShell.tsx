@@ -3,11 +3,12 @@ import { SiteLink as Link } from "@/components/experience/SiteLink";
 import { usePathname } from "next/navigation";
 import { useEffect, useState } from "react";
 import { Waves, ArrowUpRight, Menu, X } from "lucide-react";
+import { AccessibilityTools } from "@/components/awareness/AccessibilityTools";
 const links = [
   { href: "/", name: "Rivers" },
   { href: "/places", name: "My places" },
   { href: "/replay", name: "Past floods" },
-  { href: "/methodology", name: "How it works" },
+  { href: "/prepare", name: "Prepare" },
   { href: "/project", name: "The project" },
 ];
 export function AppShell({ children }: { children: React.ReactNode }) {
@@ -67,6 +68,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
       </header>
       <div className="app-body">
         <main id="main">{children}</main>
+        <nav className="awareness-nav" aria-label="Flood awareness tools"><Link href="/impact-map">Flood map</Link><Link href="/compare">Compare floods</Link><Link href="/notifications">Browser push watches</Link><Link href="/prepare">Preparedness</Link><Link href="/test">Help test CrestWatch</Link><AccessibilityTools/></nav>
         <footer className="site-footer">
           <Link href="/" className="footer-brand">
             <Waves size={22} /> CrestWatch

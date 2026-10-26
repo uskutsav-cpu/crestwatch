@@ -1,0 +1,8 @@
+import { describe, expect, it } from 'vitest';
+import { parseHistoricCrests, impactBriefing } from '../lib/flood-awareness';
+const now=Date.parse('2026-10-26T06:00:00Z');
+describe('official same-gauge historical and forecast context',()=>{
+ it('excludes old or unknown datum crests, invalid numbers and future events',()=>{const historic=[{stage:40,occurredTime:'1979-01-01',olddatum:false},{stage:90,occurredTime:'1900-01-01',olddatum:true},{stage:41,occurredTime:'2020-01-01'},{stage:NaN,occurredTime:'2020-01-01',olddatum:false},{stage:45,occurredTime:'2090-01-01',olddatum:false}];expect(parseHistoricCrests({flood:{stageUnits:'ft',crests:{historic}}},now)).toEqual([{stage:40,date:'1979-01-01'}]);expect(parseHistoricCrests({flood:{stageUnits:'m',crests:{historic}}},now)).toEqual([]);});
+ it('uses future official samples and exact source impact text',()=>{const b=impactBriefing([{t:'2026-10-25T00:00:00Z',stageFt:60},{t:'2026-10-26T12:00:00Z',stageFt:31}], '2026-10-26T00:00:00Z',28,[{stage:24,statement:'Official low threshold.'},{stage:30,statement:'Official impact at thirty.'},{stage:33,statement:'Official next impact.'}],now);expect(b.high?.stageFt).toBe(31);expect(b.difference).toBe(3);expect(b.reached?.statement).toBe('Official impact at thirty.');expect(b.next?.stage).toBe(33);});
+ it('does not show a current crest or impact summary from a stale forecast',()=>{const b=impactBriefing([{t:'2026-10-27T00:00:00Z',stageFt:40}],'2026-10-20T00:00:00Z',28,[{stage:30,statement:'Impact'}],now);expect(b.high).toBeNull();expect(b.reached).toBeNull();expect(b.difference).toBeNull();});
+});

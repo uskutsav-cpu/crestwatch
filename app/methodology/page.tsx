@@ -87,9 +87,7 @@ export default function Page() {
           place briefings can remain readable for up to 12 hours if the
           connection drops. If the optional ground-elevation service fails, the
           place still saves and its nearby river briefing remains available;
-          missing height is never replaced with zero. The app does not run in
-          the background or send push alerts. Keep official emergency
-          notifications enabled.
+          missing height is never replaced with zero. Optional browser push watches use a separate background monitor, scheduled about every 15 minutes. Checks and delivery can be delayed or missed. Keep official emergency notifications enabled.
         </p>
       </section>
       <section className="article-section">
@@ -248,6 +246,7 @@ export default function Page() {
           Only share locations you’re comfortable including.
         </p>
       </section>
+      <section className="article-section"><h2>Optional push notifications and the study</h2><p>If you enable browser push, CrestWatch privately stores your push endpoint, browser encryption keys, selected gauge, threshold and delivery state for up to 90 days unless renewed. The browser vendor’s push service delivers messages. No name, email or precise location is needed. Remove a watch from notification settings to delete its server record.</p><p>The voluntary comparison study stores anonymous task answers, timing, completion status, help used and confidence ratings separately. Its consent page explains withdrawal and retention. Neither feature publishes private responses or subscription details.</p><Link href="/notifications" className="inline-link">Manage browser push watches</Link></section>
       <div className="action-row">
         <Link href="/" className="primary-button">
           Back to the river <ArrowRight size={15} />
