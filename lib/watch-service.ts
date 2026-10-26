@@ -43,6 +43,7 @@ export interface GaugeSummary {
   gaugeDatum: string | null;
   categories: GaugeBundle["categories"];
   historicCrests: GaugeBundle["historicCrests"];
+  impacts?: GaugeBundle["impacts"];
   observed: GaugeBundle["observed"];
   forecast: GaugeBundle["forecast"];
   forecastIssued: string | null;
@@ -225,6 +226,7 @@ export async function watchPins(
               gaugeDatum: gauge.gaugeDatum,
               categories: gauge.categories,
               historicCrests: gauge.historicCrests,
+              impacts: gauge.impacts,
               observed: gauge.observed,
               forecast: gauge.forecast,
               forecastIssued: gauge.forecastIssued,

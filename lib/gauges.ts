@@ -4,6 +4,7 @@
  * responses. Injectable fetchers; no other file touches these APIs.
  */
 
+import {parseImpacts,type RiverImpact} from "@/lib/impacts";
 import { MAX_GAUGE_ZERO_ACCURACY_FT } from "@/lib/config";
 import { fetchJson, fetchText, type FetchJson, type FetchText } from "@/lib/net";
 
@@ -64,6 +65,7 @@ export interface GaugeBundle {
   /** Vertical datum of gaugeZeroFt (NAVD88, or NGVD29 ≈ NAVD88 ± <0.5 ft here). */
   gaugeDatum: string | null;
   historicCrests: HistoricCrest[];
+  impacts?: RiverImpact[];
 }
 
 /* ---------------------------------------------------------------- */
@@ -519,6 +521,7 @@ async function fetchNwpsBundle(
     gaugeZeroFt: null,
     gaugeDatum: null,
     historicCrests: parseHistoricCrests(detail),
+    impacts: parseImpacts(detailRaw),
   };
 }
 

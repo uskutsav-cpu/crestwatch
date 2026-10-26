@@ -133,7 +133,7 @@ export function ReplayClient() {
   const event = REPLAY_EVENTS.find((e) => e.id === eventId) ?? REPLAY_EVENTS[0];
   const distMi = pin ? eventDistanceMi(event, pin) : null;
   const tooFar = distMi !== null && distMi > event.maxMi;
-  const stats = days && pin ? replayStats(days, pin.elevationFt) : null;
+  const stats = days && pin && pin.elevationFt!==null ? replayStats(days, pin.elevationFt) : null;
 
   const lastIdx = days ? days.length - 1 : 0;
   const at = Math.min(idx, lastIdx);
@@ -291,7 +291,7 @@ export function ReplayClient() {
         </div>
       )}
 
-      {pin && !tooFar && day && days && (
+      {pin && pin.elevationFt!==null && !tooFar && day && days && (
         <>
           <WaterScene
             markers={[{ label: pin.name, elevationFt: pin.elevationFt }]}

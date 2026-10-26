@@ -1,0 +1,3 @@
+import {groundElevationFt} from '@/lib/geo';
+import {clientIp,rateLimitOk} from '@/lib/rate-limit';
+export async function POST(req:Request){if(!rateLimitOk(clientIp(req.headers)))return Response.json({ok:false},{status:429});try{const {lat,lon}=await req.json() as {lat?:unknown;lon?:unknown};if(typeof lat!=='number'||typeof lon!=='number'||!Number.isFinite(lat)||!Number.isFinite(lon)||lat<29||lat>35.2||lon< -91.8||lon> -88)return Response.json({ok:false},{status:400});const elevationFt=await groundElevationFt(lat,lon,undefined,{budgetMs:20000});return Response.json({ok:elevationFt!==null,elevationFt})}catch{return Response.json({ok:false,elevationFt:null},{status:502})}}

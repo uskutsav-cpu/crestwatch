@@ -452,6 +452,7 @@ export function floodNumberInputFor(
   watch: Pick<PinWatch, "verdict" | "gauge">,
 ): FloodNumberInput | null {
   const { verdict, gauge } = watch;
+  if (pin.elevationFt === null) return null;
   if (verdict.tier !== "FULL" || !gauge || gauge.gaugeZeroFt === null) return null;
   if (floodNumberFt(pin.elevationFt, gauge.gaugeZeroFt) === null) return null;
   return {

@@ -66,7 +66,7 @@ export interface AlertOnlyVerdict {
 export type Verdict = FullVerdict | CategoryVerdict | AlertOnlyVerdict;
 
 export interface SurveyInput {
-  pinElevationFt: number;
+  pinElevationFt: number | null;
   gauge: SurveyGauge | null;
   /** ISO timestamp — injected so the engine is a pure function. */
   now: string;
@@ -205,10 +205,11 @@ export function survey(input: SurveyInput): Verdict {
   // Tier gate: gauge zero present AND believable.
   const zero = gauge.gaugeZeroFt;
   const datumSane =
+    pinElevationFt !== null &&
     zero !== null &&
     (lastObs === null || datumLooksSane(zero, lastObs.stageFt, pinElevationFt));
 
-  if (zero === null || !datumSane) {
+  if (zero === null || !datumSane || pinElevationFt === null) {
     return {
       tier: "CATEGORY",
       peakStageFt: peakStage.stageFt,

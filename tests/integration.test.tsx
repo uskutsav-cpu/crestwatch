@@ -10,7 +10,8 @@ import { renderToStaticMarkup } from "react-dom/server";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import type { WatchState } from "@/lib/use-watch";
 import type { PinWatch } from "@/lib/watch-service";
-import type { Pin } from "@/lib/pins";
+import type { Pin as StoredPin } from "@/lib/pins";
+type Pin = StoredPin & {elevationFt:number};
 import type { Staleness } from "@/lib/surveyor";
 
 const nav = vi.hoisted(() => ({ search: "" }));
@@ -549,23 +550,19 @@ describe("Places: a quiet flood number line on FULL cards", () => {
 /* ------------------------------------------------------------------ */
 
 describe("Home: the river check sits between the address box and the steps", () => {
-  it("leads with the question and the address box", () => {
-    const s = src("app/page.tsx");
-    const setup = s.indexOf("<SetupFlow />");
-    const rivers = s.indexOf('<RiverCheck className="max-w-xl" />');
-    const steps = s.indexOf("copy.howItWorks");
-    expect(setup).toBeGreaterThan(s.indexOf("copy.tagline"));
-    expect(rivers).toBeGreaterThan(setup);
-    expect(steps).toBeGreaterThan(rivers);
+  it("provides place search before the live river briefing", () => {
+    const s = src("components/experience/Dashboard.tsx");
+    expect(s.indexOf("<LocationSearch")).toBeGreaterThan(-1);
+    expect(s.indexOf("<LocationSearch")).toBeLessThan(s.indexOf('className="river-section"'));
   });
 });
 
 describe("Levees and floodwalls are named where they matter", () => {
-  it("About says it in what CrestWatch can't do", () => {
-    const s = src("app/about/page.tsx");
-    expect(s).toContain("{copy.honesty} {copy.aboutLevees}");
-    expect(copy.aboutLevees).toContain("doesn't count levees or floodwalls");
-    expect(copy.aboutLevees).toContain("a levee can also fail");
+  it("explains levees and property limitations in the public methodology", () => {
+    const s = src("app/methodology/page.tsx");
+    expect(s).toContain("levees");
+    expect(s.replace(/\s+/g, " ")).toContain("does not model whether water can reach a point");
+    expect(s.replace(/\s+/g, " ")).toContain("not validated property inundation");
   });
 
   it("the glossary has a two-sentence entry", () => {

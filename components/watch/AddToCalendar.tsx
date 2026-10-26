@@ -135,7 +135,7 @@ export function crestCalendarFile(
   });
 }
 
-type AnchorLike = Pick<HTMLAnchorElement, "href" | "download" | "rel" | "click" | "remove">;
+type AnchorLike = Pick<HTMLAnchorElement, "href" | "download" | "rel" | "click"> & { remove: () => void };
 
 /** The browser pieces a download needs, swappable in tests. */
 export interface DownloadEnv {

@@ -1,114 +1,90 @@
-import type { Metadata } from "next";
-import { PURPOSE_SENTENCE } from "@/lib/config";
-import { copy } from "@/lib/copy";
-
-export const metadata: Metadata = {
-  title: "About · CrestWatch",
-  description: PURPOSE_SENTENCE,
-};
-
-/* S6 · About (T12, Appendix F). ⚠ story stats: TEAM re-verify before
-   shipping — see docs/VALIDATION.md checklist. The 2019 figures ("over
-   half a million acres", "about six months") still need a source link
-   like the CNN one. */
-export default function AboutPage() {
+import { SiteLink as Link } from "@/components/experience/SiteLink";
+import { Waves, ArrowRight } from "lucide-react";
+export const metadata = { title: "Our story" };
+export default function Page() {
   return (
-    <div className="flex flex-col gap-10 py-12">
-      {/* 1 · Purpose */}
-      <section>
-        <h1 className="text-h2">About CrestWatch</h1>
-        <p className="mt-3 max-w-prose text-body leading-relaxed">
-          {PURPOSE_SENTENCE}
+    <div className="article-page page-enter">
+      <div className="page-title">
+        <span className="eyebrow">MADE FOR THE PLACES WE CALL HOME</span>
+        <h1>
+          The river is part
+          <br />
+          <em>of the story here.</em>
+        </h1>
+        <p>
+          So the information about it should be understandable to everyone who
+          lives alongside it.
+        </p>
+      </div>
+      <div className="story-pullquote">
+        <Waves size={30} />
+        <blockquote>
+          “What does that river reading mean for the place I care about?”
+        </blockquote>
+        <p>The question behind CrestWatch.</p>
+      </div>
+      <section className="article-section">
+        <h2>A field guide for Mississippi.</h2>
+        <p>
+          CrestWatch began as a Congressional App Challenge project focused on
+          Mississippi’s Second Congressional District. It brings together
+          official river forecasts, public ground-elevation data, and historical
+          records in a calmer, more understandable interface.
+        </p>
+        <p>
+          There are good reasons not to turn a gauge reading into a confident
+          answer about a home. River connections, levees, local drainage, survey
+          precision, and vertical references all matter. The app makes those
+          limits visible while giving people a useful starting point for
+          understanding their nearby rivers.
         </p>
       </section>
-
-      {/* 2 · The problem */}
-      <section className="max-w-prose">
-        <h2 className="text-h2">The problem</h2>
-        <p className="mt-3 text-body leading-relaxed text-dim">
-          In 1927 the levee broke at Mounds Landing near Greenville and put
-          much of our district under water. It was the most destructive
-          river flood in American history. In 2019, the Yazoo backwater
-          flood kept over half a million acres of the south Delta underwater
-          for about six months. In August 2022 the Pearl River flooded
-          Jackson and knocked out the city&apos;s water plant (
-          <a
-            className="text-(--color-current) underline underline-offset-2"
-            href="https://www.cnn.com/2022/09/02/us/jackson-mississippi-water-crisis-what-we-know/index.html"
-            target="_blank"
-            rel="noreferrer"
-          >
-            CNN
-          </a>
-          ). The 2019 and 2022 floods were forecast days ahead, on
-          government pages written for engineers.
+      <section className="article-section">
+        <h2>Small decisions, deliberately made.</h2>
+        <p>
+          No account wall before the river information. A real map to confirm a
+          location. Source links beside the readings. Clear labels when a feed
+          is old or unavailable. Historical observations that are never passed
+          off as today’s forecast.
+        </p>
+        <p>
+          Those choices are the product: helping people find context without
+          creating false confidence.
         </p>
       </section>
-
-      {/* 3 · What CrestWatch does — the 3-box diagram */}
-      <section>
-        <h2 className="text-h2">What CrestWatch does</h2>
-        <ol className="mt-4 grid grid-cols-1 gap-3 sm:grid-cols-3">
-          {[
-            ["📡", "Check the gauges", "River gauges and the official crest forecasts, straight from USGS and NOAA."],
-            ["📐", "Compare to your ground", "Your address becomes a height. The forecast becomes a water level. Then we subtract."],
-            ["🗣", "Say it in one sentence", "When the water is coming, how high, and whether it reaches your door."],
-          ].map(([icon, title, body]) => (
-            <li key={title} className="rounded-2xl bg-surface p-4">
-              <p className="text-h2">{icon}</p>
-              <p className="mt-1 text-body font-semibold">{title}</p>
-              <p className="mt-1 text-small text-dim">{body}</p>
-            </li>
-          ))}
-        </ol>
-      </section>
-
-      {/* 4 · Honesty (verbatim) */}
-      <section className="max-w-prose">
-        <h2 className="text-h2">What it can&apos;t do</h2>
-        <p className="mt-3 rounded-2xl bg-surface p-5 text-body leading-relaxed">
-          {copy.honesty} {copy.aboutLevees}
+      <section className="article-section">
+        <h2>How this version was built.</h2>
+        <p>
+          The original CrestWatch repository uses TypeScript, React, and
+          Next.js, with USGS, NOAA, and public geocoding services. This redesign
+          retains its data adapters and test cases and adds a new interface,
+          map-based location confirmation, river timelines, and a historical
+          gauge explorer. It is deployed through Sites using the Vinext runtime.
+        </p>
+        <p>
+          automated coding tools contributed substantially to the original
+          implementation and this redesign. The app itself uses no automated to produce
+          river forecasts. The repository’s automated disclosure should accompany any
+          competition submission, alongside the students’ actual contributions
+          and technical understanding.
         </p>
       </section>
-
-      {/* 5 · Privacy */}
-      <section className="max-w-prose">
-        <h2 className="text-h2">Privacy</h2>
-        <p className="mt-3 text-body text-dim">{copy.aboutPrivacy}</p>
-      </section>
-
-      {/* 6 · Disclosure */}
-      <section className="max-w-prose">
-        <h2 className="text-h2">How it was built</h2>
-        <p className="mt-3 text-body text-dim">
-          An automated coding tool, development tools by the software provider, wrote almost all of
-          this app&apos;s code, and we say so openly. The app itself uses no
-          automated, only public data and arithmetic. It runs on Next.js and
-          TypeScript with free public data from USGS, NOAA, and the Census.
-          Address search also uses OpenStreetMap&apos;s Nominatim and
-          Open-Meteo&apos;s place search, which is based on GeoNames. See{" "}
-          <a
-            className="text-(--color-current) underline underline-offset-2"
-            href="https://github.com/shashankmadala/crestwatch/blob/main/docs/VALIDATION.md"
-            target="_blank"
-            rel="noreferrer"
-          >
-            docs/VALIDATION.md
-          </a>
-          .
+      <section className="article-section">
+        <h2>Work that still needs people.</h2>
+        <p>
+          Local resident testing, specialist review, and independent real-world
+          validation cannot be replaced by a polished interface. These remain
+          explicit next steps. The project does not claim a partnership,
+          official endorsement, proven flood-prediction accuracy, or a
+          guaranteed competition result.
         </p>
+        <Link href="/evidence" className="inline-link">
+          See the evidence and next steps <ArrowRight size={14} />
+        </Link>
       </section>
-
-      {/* 7 · Team */}
-      <section className="max-w-prose">
-        <h2 className="text-h2">Who we are</h2>
-        <p className="mt-3 text-body text-dim">
-          Built by students in Mississippi&apos;s Second Congressional
-          District. A Congressional App Challenge 2026 entry.
-          {/* TEAM: add each participant's real name here before submission
-              (the same names as the video and the registration). */}
-        </p>
-      </section>
+      <Link href="/" className="primary-button">
+        Explore CrestWatch <ArrowRight size={15} />
+      </Link>
     </div>
   );
 }

@@ -1,0 +1,5 @@
+# Preserve downloadable evidence byte-for-byte.
+*.csv -text
+*.pdf binary
+*.zip binary
+*.png binary

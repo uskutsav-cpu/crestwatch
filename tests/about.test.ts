@@ -1,26 +1,11 @@
-import { readFileSync } from "node:fs";
-import { join } from "node:path";
-import { describe, expect, it } from "vitest";
-import { PURPOSE_SENTENCE } from "@/lib/config";
-
-describe("About page (T12)", () => {
-  const src = readFileSync(
-    join(__dirname, "..", "app", "about", "page.tsx"),
-    "utf8",
-  );
-
-  it("renders the purpose sentence from the exported constant", () => {
-    expect(src).toContain("PURPOSE_SENTENCE");
-    expect(PURPOSE_SENTENCE).toContain(
-      "CrestWatch turns the government's river forecasts",
-    );
-    expect(PURPOSE_SENTENCE).toContain("six months");
-    expect(PURPOSE_SENTENCE).not.toMatch(/[—–!]/);
-  });
-
-  it("carries the honesty section and story sources", () => {
-    expect(src).toContain("Mounds Landing");
-    expect(src).toContain("cnn.com");
-    expect(src).toContain("copy.honesty");
-  });
+import {describe,it,expect} from 'vitest';
+import React from 'react';
+import {renderToStaticMarkup} from 'react-dom/server';
+import About from '@/app/about/page';
+import Methodology from '@/app/methodology/page';
+import Evidence from '@/app/evidence/page';
+describe('Public claims and provenance',()=>{
+ it('explains substantial automated contributions without implying automated forecasts',()=>{const html=renderToStaticMarkup(React.createElement(About));expect(html).toContain('automated coding tools contributed substantially');expect(html).toContain('uses no automated to produce river forecasts')});
+ it('does not present unperformed field validation as evidence',()=>{const html=renderToStaticMarkup(React.createElement(Evidence));expect(html).toContain('No independent property inundation validation is claimed');expect(html).toContain('unfilled field-test rows')});
+ it('explains datum, connectivity, and alert limitations',()=>{const html=renderToStaticMarkup(React.createElement(Methodology));for(const term of ['NAVD88','NGVD29','levees','does not run in the background','not an all-clear'])expect(html).toContain(term)});
 });

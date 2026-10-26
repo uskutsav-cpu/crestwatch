@@ -1,0 +1,131 @@
+{
+  "checkedAt": "2026-10-25T17:33:18.201Z",
+  "method": "Automated comparison with official NOAA/NWS metadata and USGS daily-mean responses. No manual field study or property flood validation.",
+  "checks": [
+    {
+      "kind": "official_station",
+      "id": "VCKM6",
+      "status": "passed",
+      "source": "https://api.water.noaa.gov/nwps/v1/gauges/VCKM6",
+      "summary": "Mississippi River at Vicksburg: flood stage 43 ft, 25 published impact notes.",
+      "latitude": 32.315,
+      "longitude": -90.905833,
+      "datumReferences": {
+        "vertical": {
+          "value": []
+        },
+        "horizontal": {
+          "value": []
+        },
+        "notes": {
+          "value": []
+        }
+      },
+      "lowestPublishedImpact": 36.5
+    },
+    {
+      "kind": "official_station",
+      "id": "GEEM6",
+      "status": "passed",
+      "source": "https://api.water.noaa.gov/nwps/v1/gauges/GEEM6",
+      "summary": "Mississippi River near Greenville: flood stage 48 ft, 11 published impact notes.",
+      "latitude": 33.28711,
+      "longitude": -91.15393,
+      "datumReferences": {
+        "vertical": {
+          "value": []
+        },
+        "horizontal": {
+          "value": []
+        },
+        "notes": {
+          "value": []
+        }
+      },
+      "lowestPublishedImpact": 42
+    },
+    {
+      "kind": "official_station",
+      "id": "YZOM6",
+      "status": "passed",
+      "source": "https://api.water.noaa.gov/nwps/v1/gauges/YZOM6",
+      "summary": "Yazoo River at Yazoo City: flood stage 29 ft, 6 published impact notes.",
+      "latitude": 32.8579,
+      "longitude": -90.4368,
+      "datumReferences": {
+        "vertical": {
+          "value": []
+        },
+        "horizontal": {
+          "value": []
+        },
+        "notes": {
+          "value": []
+        }
+      },
+      "lowestPublishedImpact": 29
+    },
+    {
+      "kind": "official_station",
+      "id": "JACM6",
+      "status": "passed",
+      "source": "https://api.water.noaa.gov/nwps/v1/gauges/JACM6",
+      "summary": "Pearl River at Jackson: flood stage 28 ft, 14 published impact notes.",
+      "latitude": 32.28138,
+      "longitude": -90.17888,
+      "datumReferences": {
+        "vertical": {
+          "value": []
+        },
+        "horizontal": {
+          "value": []
+        },
+        "notes": {
+          "value": []
+        }
+      },
+      "lowestPublishedImpact": 24
+    },
+    {
+      "kind": "historical_record",
+      "id": "backwater2019",
+      "status": "passed",
+      "source": "https://waterservices.usgs.gov/nwis/dv/?format=json&sites=07288800&startDT=2019-01-01&endDT=2019-08-31&parameterCd=00065&statCd=00003",
+      "summary": "217 stored daily means checked; 0 missing or different readings; 0 extra source dates.",
+      "storedDays": 217,
+      "sourceDays": 217,
+      "storedPeakDailyMean": 100.19,
+      "mismatches": [],
+      "normalizedStoredSha256": "5e7d7d3c45fc4345fc54a88578a7c84d0568b1613d24f4e69fe62e34461f54e1"
+    },
+    {
+      "kind": "historical_record",
+      "id": "pearl2020",
+      "status": "passed",
+      "source": "https://waterservices.usgs.gov/nwis/dv/?format=json&sites=02486000&startDT=2020-02-01&endDT=2020-03-05&parameterCd=00065&statCd=00003",
+      "summary": "33 stored daily means checked; 0 missing or different readings; 0 extra source dates.",
+      "storedDays": 33,
+      "sourceDays": 33,
+      "storedPeakDailyMean": 36.62,
+      "mismatches": [],
+      "normalizedStoredSha256": "c4e672ea30f66baac4c8fa9b0d37f6cd489fd4cd393aa691b0e08d3941955939"
+    },
+    {
+      "kind": "historical_record",
+      "id": "pearl2022",
+      "status": "passed",
+      "source": "https://waterservices.usgs.gov/nwis/dv/?format=json&sites=02486000&startDT=2022-08-15&endDT=2022-09-15&parameterCd=00065&statCd=00003",
+      "summary": "30 stored daily means checked; 0 missing or different readings; 0 extra source dates.",
+      "storedDays": 30,
+      "sourceDays": 30,
+      "storedPeakDailyMean": 35.19,
+      "mismatches": [],
+      "normalizedStoredSha256": "3af3d51bd15e2cf820e8f3f981a99d4707a7690f4b57d5ecc2866a8534347f84"
+    }
+  ],
+  "totals": {
+    "passed": 7,
+    "mismatch": 0,
+    "unavailable": 0
+  }
+}

@@ -1,0 +1,43 @@
+{
+  "file": "CrestWatch_NOAA_1000_Automated_Checks.csv",
+  "sha256": "77a9b5323bec3300da90d0e821f49dce95f69250ec14290d9dfa7e96f111fd7b",
+  "bytes": 3043176,
+  "total": 1000,
+  "statuses": {
+    "PASS": 1000
+  },
+  "slider": 960,
+  "other": 40,
+  "gauges": [
+    {
+      "id": "VCKM6",
+      "total": 250,
+      "slider": 240,
+      "sourceCapturedAt": "2026-10-25T22:16:38.030Z"
+    },
+    {
+      "id": "GEEM6",
+      "total": 250,
+      "slider": 240,
+      "sourceCapturedAt": "2026-10-25T22:18:47.053Z"
+    },
+    {
+      "id": "YZOM6",
+      "total": 250,
+      "slider": 240,
+      "sourceCapturedAt": "2026-10-25T22:19:02.393Z"
+    },
+    {
+      "id": "JACM6",
+      "total": 250,
+      "slider": 240,
+      "sourceCapturedAt": "2026-10-25T22:19:33.821Z"
+    }
+  ],
+  "startedAt": "2026-10-25T22:19:28.868Z",
+  "endedAt": "2026-10-25T22:23:27.402Z",
+  "humanParticipants": 0,
+  "studySubmissions": 0,
+  "sourceCaptures": 4,
+  "lowSeverity": 1
+}

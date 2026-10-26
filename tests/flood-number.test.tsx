@@ -69,7 +69,8 @@ import {
   FloodNumberPanel,
   type FloodNumberPanelProps,
 } from "@/components/watch/FloodNumber";
-import type { Pin } from "@/lib/pins";
+import type { Pin as StoredPin } from "@/lib/pins";
+type Pin = StoredPin & {elevationFt:number};
 import type { GaugeSummary } from "@/lib/watch-service";
 
 /* ------------------------------------------------------------------ */

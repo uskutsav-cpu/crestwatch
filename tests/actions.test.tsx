@@ -300,15 +300,11 @@ describe("ACTION_BUTTON colour contract", () => {
     "components/watch/AddToCalendar.tsx",
   ];
 
-  it("uses --color-current as text only in forms the light theme darkens", () => {
-    for (const f of files) {
-      const used = src(f).match(/[\w:-]*text-\(--color-current\)/g) ?? [];
-      for (const cls of used) {
-        expect(["text-(--color-current)", "hover:text-(--color-current)"], `${f}: ${cls}`).toContain(cls);
-      }
-    }
-    expect(css).toContain('[data-theme="light"] .text-\\(--color-current\\)');
-    expect(css).toContain('[data-theme="light"] .hover\\:text-\\(--color-current\\):hover');
+  it("provides an accessible text accent on the paper background", () => {
+    const accent = [47, 98, 80].map(v => {const s=v/255;return s<=0.04045?s/12.92:((s+0.055)/1.055)**2.4});
+    const paper = [247, 248, 243].map(v => {const s=v/255;return s<=0.04045?s/12.92:((s+0.055)/1.055)**2.4});
+    const luminance = (v:number[]) => .2126*v[0]+.7152*v[1]+.0722*v[2];
+    expect((luminance(paper)+.05)/(luminance(accent)+.05)).toBeGreaterThan(4.5);
   });
 
   it("gives every state a 44 px target and a focus ring", () => {

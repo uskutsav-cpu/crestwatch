@@ -11,7 +11,7 @@
 import { encodeWatchLink } from "@/lib/watch-link";
 import type { Pin } from "@/lib/pins";
 
-export const EXAMPLE_PINS: Pin[] = [
+export const EXAMPLE_PINS: Array<Pin & {elevationFt:number}> = [
   {
     id: "ex0",
     name: "Levee St",

@@ -12,7 +12,7 @@ import { sanitizeName, type Pin } from "@/lib/pins";
  * [name, matchedAddress, lat, lon, elevationFt, approximate?]
  * The trailing flag is optional so older links still decode.
  */
-type WirePin = [string, string, number, number, number, (0 | 1)?];
+type WirePin = [string, string, number, number, number | null, (0 | 1)?];
 
 export function encodeWatchLink(pins: Pin[]): string {
   const wire: WirePin[] = pins
@@ -23,7 +23,7 @@ export function encodeWatchLink(pins: Pin[]): string {
         p.matchedAddress.slice(0, 120),
         Math.round(p.lat * 1e5) / 1e5,
         Math.round(p.lon * 1e5) / 1e5,
-        Math.round(p.elevationFt * 10) / 10,
+        p.elevationFt === null ? null : Math.round(p.elevationFt * 10) / 10,
       ];
       // Only carried when true, so ordinary links stay short.
       if (p.approximate) wire.push(1);
@@ -65,9 +65,9 @@ export function decodeWatchLink(param: string): Pin[] | null {
         Math.abs(lat) > 90 ||
         typeof lon !== "number" ||
         Math.abs(lon) > 180 ||
-        typeof elev !== "number" ||
+        (elev !== null && (typeof elev !== "number" ||
         elev <= -400 ||
-        elev >= 30_000
+        elev >= 30_000))
       ) {
         return null;
       }

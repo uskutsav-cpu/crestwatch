@@ -143,6 +143,7 @@ export function WhyClient() {
     );
   }
 
+  if (pin.elevationFt === null) return <p>Ground elevation is unavailable. Read the official gauge for river context.</p>;
   const { verdict, gauge, alerts } = watch;
   const lastObs = gauge?.observed.at(-1) ?? null;
   const staleLine = staleLineFor(verdict);

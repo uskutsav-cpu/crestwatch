@@ -458,6 +458,7 @@ export function WatchClient() {
     );
   }
 
+  if (pin.elevationFt === null) return <p>Ground elevation is unavailable. View the current river briefing for this place.</p>;
   const { verdict, gauge } = watch;
   const chip = chipFor(watch);
   const trend = gauge ? trendOf(gauge.observed) : null;
@@ -477,11 +478,13 @@ export function WatchClient() {
 
   // Second marker: another pin sharing this gauge, drawn at true relative
   // elevation (the classic "street floods, house doesn't" picture).
+  const knownElevationFt = pin.elevationFt;
   const other = pins.find(
-    (p) =>
+    (p): p is Pin & {elevationFt:number} =>
+      p.elevationFt !== null &&
       p.id !== pin.id &&
       watches.find((w) => w.pinId === p.id)?.gauge?.lid === gauge?.lid &&
-      Math.abs(p.elevationFt - pin.elevationFt) < 40,
+      Math.abs(p.elevationFt - knownElevationFt) < 40,
   );
 
   const staleLine = staleLineFor(verdict);

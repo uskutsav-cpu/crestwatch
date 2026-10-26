@@ -4,6 +4,7 @@
  * returns parsed JSON or throws. Server-side only.
  */
 
+import { upstreamScope } from "@/lib/upstream-scope";
 import { FETCH_USER_AGENT } from "@/lib/config";
 
 /**
@@ -12,28 +13,29 @@ import { FETCH_USER_AGENT } from "@/lib/config";
  * hammering the upstreams (and this instance) all at once.
  */
 const MAX_CONCURRENT_UPSTREAM = 8;
-let inFlight = 0;
-const waiters: Array<() => void> = [];
+
 
 async function acquire(): Promise<void> {
-  if (inFlight < MAX_CONCURRENT_UPSTREAM) {
-    inFlight++;
+  const scope = upstreamScope();
+  if (scope.inFlight < MAX_CONCURRENT_UPSTREAM) {
+    scope.inFlight++;
     return;
   }
   // Wait for a permit to be handed over. inFlight is deliberately NOT
   // incremented on wake: the releaser transfers its own permit to us.
-  await new Promise<void>((resolve) => waiters.push(resolve));
+  await new Promise<void>((resolve) => scope.waiters.push(resolve));
 }
 
 function release(): void {
-  const next = waiters.shift();
+  const scope = upstreamScope();
+  const next = scope.waiters.shift();
   if (next) {
     // Direct handoff — inFlight must never dip while a waiter exists, or
     // a caller arriving in that window barges past the cap.
     next();
     return;
   }
-  inFlight--;
+  scope.inFlight--;
 }
 
 export interface FetchOpts {

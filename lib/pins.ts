@@ -10,7 +10,8 @@ export interface Pin {
   matchedAddress: string;
   lat: number;
   lon: number;
-  elevationFt: number;
+  /** null when the optional ground service is unavailable. Never substitute zero. */
+  elevationFt: number | null;
   /**
    * True when this pin is not a house-level match: a town/ZIP centroid,
    * or a point on a street whose house wasn't found. Either way the
@@ -52,10 +53,10 @@ export function isPin(p: unknown): p is Pin {
     typeof pin.lon === "number" &&
     Number.isFinite(pin.lon) &&
     Math.abs(pin.lon) <= 180 &&
-    typeof pin.elevationFt === "number" &&
+    (pin.elevationFt === null || (typeof pin.elevationFt === "number" &&
     Number.isFinite(pin.elevationFt) &&
     pin.elevationFt > -400 &&
-    pin.elevationFt < 30_000 &&
+    pin.elevationFt < 30_000)) &&
     (pin.approximate === undefined || typeof pin.approximate === "boolean")
   );
 }
