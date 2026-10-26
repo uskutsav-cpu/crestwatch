@@ -19,10 +19,10 @@ export function RiverVisual() {
         <path d={river} stroke="#557d6f" strokeWidth="49" />
         <path className="river-flow-line" d={river} stroke="#a9c2aa" strokeWidth="2" strokeDasharray="4 16" />
         <path d="M381 244C381 209 469 231 481 193C494 151 456 136 489 104 M322 571C270 612 200 584 184 627C164 675 232 695 201 752" stroke="#98ad91" strokeWidth="12" />
-        <g fontFamily="Manrope, sans-serif" fontSize="9" fill="#52664f" letterSpacing="2"><text x="59" y="101">THE DELTA</text><text x="516" y="680">MISSISSIPPI</text></g>
-        <g className="river-art-marker" transform="translate(442 358)"><circle r="19" fill="#f8f4e8" /><circle r="12" fill="#b85c38" /><circle r="4" fill="#fff8e8" /><path d="M21 0H72" stroke="#7c684e" /><rect x="71" y="-18" width="121" height="37" rx="2" fill="#f8f4e8" /><text x="85" y="5" fill="#314b3f" fontSize="11" fontFamily="Manrope, sans-serif">MEANDER STUDY</text></g>
-        <g transform="translate(596 66)" stroke="#52664f"><path d="M0 36V0M-5 10L0 0L5 10" /><text x="0" y="-12" textAnchor="middle" stroke="none" fill="#52664f" fontSize="10" fontFamily="Manrope, sans-serif">N</text></g>
-        <g transform="translate(40 683)" stroke="#52664f"><path d="M0 0V6H75V0M37.5 0V6" /><text y="24" fill="#52664f" stroke="none" fontSize="8" fontFamily="Manrope, sans-serif" letterSpacing="1">A RIVER, IN MOTION</text></g>
+        <g fontFamily="DM Sans, sans-serif" fontSize="9" fill="#52664f" letterSpacing="2"><text x="59" y="101">THE DELTA</text><text x="516" y="680">MISSISSIPPI</text></g>
+        <g className="river-art-marker" transform="translate(442 358)"><circle r="19" fill="#f8f4e8" /><circle r="12" fill="#b85c38" /><circle r="4" fill="#fff8e8" /><path d="M21 0H72" stroke="#7c684e" /><rect x="71" y="-18" width="121" height="37" rx="2" fill="#f8f4e8" /><text x="85" y="5" fill="#314b3f" fontSize="11" fontFamily="DM Sans, sans-serif">MEANDER STUDY</text></g>
+        <g transform="translate(596 66)" stroke="#52664f"><path d="M0 36V0M-5 10L0 0L5 10" /><text x="0" y="-12" textAnchor="middle" stroke="none" fill="#52664f" fontSize="10" fontFamily="DM Sans, sans-serif">N</text></g>
+        <g transform="translate(40 683)" stroke="#52664f"><path d="M0 0V6H75V0M37.5 0V6" /><text y="24" fill="#52664f" stroke="none" fontSize="8" fontFamily="DM Sans, sans-serif" letterSpacing="1">A RIVER, IN MOTION</text></g>
       </svg>
       <span className="visual-caption">A STUDY IN MEANDERS <span>ILLUSTRATION · NOT A FLOOD MAP</span></span>
     </div>

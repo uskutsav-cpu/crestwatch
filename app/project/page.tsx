@@ -47,11 +47,9 @@ export default function Page() {
   return (
     <div className="project-page page-enter">
       <section className="project-hero">
-        <span className="eyebrow">CRESTWATCH · PROJECT WALKTHROUGH</span>
+        <span className="eyebrow">Project walkthrough</span>
         <h1>
-          Public data.
-          <br />
-          <em>Human understanding.</em>
+          A closer look at CrestWatch
         </h1>
         <p>
           A river gauge gives you a number. CrestWatch helps you place it in

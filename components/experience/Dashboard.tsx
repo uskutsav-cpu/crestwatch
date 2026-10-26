@@ -171,11 +171,11 @@ export function Dashboard() {
         <RiverVisual />
         <div className="hero-copy">
           <div className="eyebrow">
-            <span /> A FIELD GUIDE TO MISSISSIPPI RIVERS
+            <span /> Mississippi rivers
           </div>
           <h1>
-            Life along<br />the river.<br />
-            <em>A little clearer.</em>
+            River forecasts,<br />
+            <em>made clearer.</em>
           </h1>
           <p>
             Read Mississippi river forecasts, explore official impact notes,
@@ -253,7 +253,7 @@ export function Dashboard() {
         <div className="section-heading">
           <div>
             <span className="eyebrow">01 / THE LIVE PICTURE</span>
-            <h2>Your rivers, right now.</h2>
+            <h2>Current river levels</h2>
           </div>
           <button
             className="text-button"
@@ -518,7 +518,7 @@ export function Dashboard() {
         </Link>
         <div className="field-notes">
           <div className="eyebrow">KNOW WHAT YOU’RE SEEING</div>
-          <h2>Informed. Not overwhelmed.</h2>
+          <h2>Check the source before acting.</h2>
           <p>
             CrestWatch helps you understand river data. Local officials and the
             National Weather Service remain your source for emergency

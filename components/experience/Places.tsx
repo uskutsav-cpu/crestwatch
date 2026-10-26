@@ -29,11 +29,11 @@ export function Places() {
   return (
     <div className="page-enter places-page">
       <div className="page-title">
-        <span className="eyebrow">KEEP WHAT MATTERS CLOSE</span>
-        <h1>My places.</h1>
+        <span className="eyebrow">Saved places</span>
+        <h1>My places</h1>
         <p>
-          Your home, the way to school, a family member’s street. A little river
-          context for the places you care about.
+          Save a location to see its nearest river gauge and forecast. Your
+          places stay on this device.
         </p>
       </div>
       <div className="section-heading">
@@ -56,10 +56,9 @@ export function Places() {
             <circle cx="245" cy="42" r="12" fill="#e8d7ac"/>
             <path d="M32 139H294" stroke="#b9c3aa"/>
           </svg>
-          <h2>Make yourself at home.</h2>
+          <h2>No places saved yet</h2>
           <p>
-            Save your first place to bring the closest available river forecast
-            into view. Your places stay on this device.
+            Add a place or try an example to see how it works.
           </p>
           <div className="action-row">
             <Link href="/?add=1#find-place" className="primary-button">

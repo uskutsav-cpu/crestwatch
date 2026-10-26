@@ -6,13 +6,11 @@ export default function Page() {
   return (
     <div className="article-page">
       <div className="page-title">
-        <span className="eyebrow">EVIDENCE, NOT ASSUMPTIONS</span>
+        <span className="eyebrow">Testing & evidence</span>
         <h1>
-          What we know.
-          <br />
-          <em>What we’re still checking.</em>
+          What we’ve tested
         </h1>
-        <p>An honest account of the app’s scope and the evidence it needs.</p>
+        <p>Source checks, automated tests, and the work still to do.</p>
       </div>
       <section className="article-section">
         <h2>Where the evidence comes from.</h2>

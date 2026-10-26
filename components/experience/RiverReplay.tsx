@@ -64,8 +64,8 @@ export function RiverReplay() {
     else { if (at === points.length - 1) setIdx(0); setPlaying(true); }
   }
   return <div className="replay-page page-enter">
-    <div className="page-title replay-title"><div className="eyebrow">THE HISTORICAL RECORD</div>
-      <h1>Replay a real flood.<br/><em>Watch the river rise.</em></h1>
+    <div className="page-title replay-title"><div className="eyebrow">Past floods</div>
+      <h1>Replay a real flood</h1>
       <p>Three Mississippi floods. Recorded USGS daily readings. Play the sequence or explore it one reading at a time.</p>
     </div>
     <div className="event-tabs" role="group" aria-label="Choose a historical flood">{REPLAY_EVENTS.map(e => <button onClick={() => change(e.id)} className={e.id === eventId ? "active" : ""} aria-pressed={e.id === eventId} key={e.id}>

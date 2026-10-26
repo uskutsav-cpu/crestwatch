@@ -1,3 +1,11 @@
+# Typography and interface cleanup
+
+The current Vercel experience uses one locally hosted DM Sans variable font for headings, controls, body copy and data. Removed the external Google Fonts stylesheet and the narrow display-serif treatment. Shared type rules live in `app/typography.css`, with a smaller heading scale, readable labels, consistent controls and mobile layouts. The font's SIL Open Font License is included in `public/fonts/OFL.txt`.
+
+Shortened page introductions, simplified empty-state and footer copy, and corrected About's hosting description. River and replay animations remain; decorative page-entry fades were removed. Data, study protocols and private persistence are unchanged.
+
+---
+
 # Animated historical replay
 
 The Vercel edition restores a rising-water replay inspired by the original app. A responsive gauge illustration follows the selected USGS daily mean, with a synchronized chart view, timeline, previous/next controls, milestones, restart, and 1×/2×/4× playback. Playback pauses when the tab is hidden and respects reduced motion. The record completes in about 16 seconds at 1×. Missing observations remain gaps in the chart and are skipped in playback.

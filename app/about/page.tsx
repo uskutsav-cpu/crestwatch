@@ -5,15 +5,13 @@ export default function Page() {
   return (
     <div className="article-page page-enter">
       <div className="page-title">
-        <span className="eyebrow">MADE FOR THE PLACES WE CALL HOME</span>
+        <span className="eyebrow">About CrestWatch</span>
         <h1>
-          The river is part
-          <br />
-          <em>of the story here.</em>
+          River information for Mississippi
         </h1>
         <p>
-          So the information about it should be understandable to everyone who
-          lives alongside it.
+          CrestWatch brings official river forecasts and historical records
+          together so they are easier to find and understand.
         </p>
       </div>
       <div className="story-pullquote">
@@ -40,7 +38,7 @@ export default function Page() {
         </p>
       </section>
       <section className="article-section">
-        <h2>Small decisions, deliberately made.</h2>
+        <h2>Designed for everyday use</h2>
         <p>
           No account wall before the river information. A real map to confirm a
           location. Source links beside the readings. Clear labels when a feed
@@ -59,7 +57,7 @@ export default function Page() {
           Next.js, with USGS, NOAA, and public geocoding services. This redesign
           retains its data adapters and test cases and adds a new interface,
           map-based location confirmation, river timelines, and a historical
-          gauge explorer. It is deployed through Sites using the Vinext runtime.
+          gauge explorer. The public app runs on Vercel with Next.js. The private comparison study uses the existing Sites database.
         </p>
         <p>
           automated coding tools contributed substantially to the original

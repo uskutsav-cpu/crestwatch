@@ -5,16 +5,13 @@ export default function Page() {
   return (
     <div className="article-page page-enter">
       <div className="page-title">
-        <span className="eyebrow">CLEAR WATER. CLEAR SOURCES.</span>
+        <span className="eyebrow">Sources & methods</span>
         <h1>
-          No mystery.
-          <br />
-          <em>Just a better explanation.</em>
+          How CrestWatch works
         </h1>
         <p>
-          Public river information is powerful. It becomes more useful when we
-          explain what each number means, where it came from, and where its
-          limits begin.
+          Where the readings come from, what they mean, and what they can
+          tell you about a place.
         </p>
       </div>
       <section className="article-section">

@@ -71,12 +71,12 @@ export function AppShell({ children }: { children: React.ReactNode }) {
           <Link href="/" className="footer-brand">
             <Waves size={22} /> CrestWatch
           </Link>
-          <p>Mississippi rivers. A clearer perspective.</p>
+          <p>Built with NOAA and USGS data.</p>
           <Link href="/project">
-            Project walkthrough <ArrowUpRight size={13} />
+            Project <ArrowUpRight size={13} />
           </Link>
           <Link href="/about">
-            Our story <ArrowUpRight size={13} />
+            About <ArrowUpRight size={13} />
           </Link>
           <Link href="/methodology">
             Sources & limitations <ArrowUpRight size={13} />
