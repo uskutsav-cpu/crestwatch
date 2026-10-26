@@ -1,3 +1,9 @@
+# Vercel compatibility branch
+
+The native Next.js production build and all 892 tests pass. The existing private study service remains the persistence backend. A local six-task integration check verified saves, retries, validation, response isolation, resume and withdrawal through the bridge; its software QA records were removed. A Suspense boundary allows historical replay query parameters to prerender under Next.js. See `docs/VERCEL_DEPLOYMENT.md` for the backend dependency. Vercel deployment is a separate authenticated operation and is not established merely by this source commit.
+
+---
+
 # Complete GitHub synchronization
 
 This update synchronizes the public Sites edition at https://crestwatch-river-guide.utsavsresearch.chatgpt.site with GitHub. It includes the redesigned river dashboard, impact explorer, saved places, historical replay, judge walkthrough, self-guided comparison with private D1 collection, the supplied 1,000-record automated audit browser/download and the full-date timestamp fix.

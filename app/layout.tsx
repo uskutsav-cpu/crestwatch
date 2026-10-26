@@ -4,7 +4,7 @@ import "leaflet/dist/leaflet.css";
 import { AppShell } from "@/components/experience/AppShell";
 export const metadata: Metadata = {
   metadataBase: new URL(
-    "https://crestwatch-river-guide.utsavsresearch.chatgpt.site",
+    "https://crestwatch.vercel.app",
   ),
   title: {
     default: "CrestWatch · Know your river",

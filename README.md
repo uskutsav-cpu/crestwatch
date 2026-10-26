@@ -1,17 +1,17 @@
 # CrestWatch · Know your river
 
-A Mississippi river field guide built from official NOAA/NWS and USGS data. This Sites edition redesigns the public CrestWatch project into a responsive application with real maps, station timelines, official local impact thresholds, saved places, and historical river records.
+A Mississippi river field guide built from official NOAA/NWS and USGS data. This Vercel edition brings the redesigned Sites experience to Next.js and redesigns the public CrestWatch project into a responsive application with real maps, station timelines, official local impact thresholds, saved places, and historical river records.
 
 ## Run
 
-Node 22.13 or newer. Run `npm ci`, then `npm run dev`. The local app serves on http://127.0.0.1:5173.
+Node 22.13 or newer. Run `npm ci`, then `npm run dev`. The local Next.js app serves on http://localhost:3000.
 
 - `npm run typecheck`: TypeScript check
 - `npm test`: recorded-data unit tests and rendered safety tests
-- `npm run build`: production Vinext / Cloudflare Worker build
+- `npm run build`: production Next.js build for Vercel
 - `node scripts/verify-source-data.mjs`: recheck official station metadata and stored historical readings against live sources; writes a dated report to `docs/DATA_CHECK.json`
 
-The `.openai/hosting.json` file binds this checkout to its Sites project. Use the Sites workflow for publishing. There are no required API keys. A USGS API key can optionally increase the newer USGS API's rate limit.
+The `crestwatch-vercel` branch uses `vercel.json` for Vercel deployment. The retained `.openai/hosting.json` identifies the existing Sites backend; do not republish this branch through the Sites workflow. See `docs/VERCEL_DEPLOYMENT.md`. There are no required API keys. A USGS API key can optionally increase the newer USGS API's rate limit.
 
 ## Current experience
 
@@ -53,6 +53,6 @@ Based on https://github.com/shashankmadala/crestwatch (MIT). automated tools con
 - Self-guided comparison: /test
 - Automated audit: /evidence#automated-audit
 
-This source is the Vinext / Cloudflare Worker edition, including a D1 binding named `DB` and versioned Drizzle migrations. It is not a drop-in Next.js deployment for the older Vercel project. The existing Vercel URL does not automatically receive this edition. Use the supported Sites publishing workflow with the existing project, or provision a separate Worker and D1 environment with the migrations before deploying elsewhere. Never copy local `.wrangler` data, credentials or participant records into Git.
+This branch serves the full interface and river APIs on native Next.js / Vercel. Anonymous comparison responses continue to use the existing private Sites D1 service through the same-origin server bridge. The source D1 handler and migrations are retained for provenance. The Sites app must stay published as the study backend; no existing responses are migrated or duplicated. Deployment to the existing Vercel project requires authorization and verification. Never copy local `.wrangler` data, credentials or participant records into Git.
 
 The supplied audit has 1,000 records marked PASS (960 slider scenarios and 40 other checks), four reused NOAA reference captures and zero human participants. Its original date-display limitation is preserved; the current shared timestamps include the full calendar date. See `docs/audit/README.md`.
