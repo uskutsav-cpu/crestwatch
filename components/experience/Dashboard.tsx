@@ -178,8 +178,8 @@ export function Dashboard() {
             <em>A little clearer.</em>
           </h1>
           <p>
-            Follow the water. Understand the forecast. Get a clearer
-            picture of the places you call home.
+            Read Mississippi river forecasts, explore official impact notes,
+            and replay recorded floods.
           </p>
           <div className="hero-actions">
             <a className="primary-button" href="#rivers">
@@ -242,7 +242,7 @@ export function Dashboard() {
       <section className="find-place" id="find-place">
         <div className="find-place-label">
           <MapPin size={19} />
-          <strong>Where does your river story begin?</strong>
+          <strong>Find a place along the river.</strong>
         </div>
         <LocationSearch />
         <div className="search-privacy">

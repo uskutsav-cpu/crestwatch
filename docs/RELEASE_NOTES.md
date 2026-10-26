@@ -1,3 +1,13 @@
+# Animated historical replay
+
+The Vercel edition restores a rising-water replay inspired by the original app. A responsive gauge illustration follows the selected USGS daily mean, with a synchronized chart view, timeline, previous/next controls, milestones, restart, and 1×/2×/4× playback. Playback pauses when the tab is hidden and respects reduced motion. The record completes in about 16 seconds at 1×. Missing observations remain gaps in the chart and are skipped in playback.
+
+The scene illustrates gauge stage, not terrain or property inundation. Original daily readings, units, source links, and CSV downloads remain available. Home-page descriptions and replay copy were shortened, and the illustrative river has subtle current motion with reduced-motion support.
+
+Validation: all 892 existing tests and the native Next.js production build passed. Browser checks covered all three events, exact high-point readings (100.19, 36.62, and 35.19 ft), chart switching, playback completion, and a 390px mobile layout without horizontal overflow.
+
+---
+
 # Vercel compatibility branch
 
 The native Next.js production build and all 892 tests pass. The existing private study service remains the persistence backend. A local six-task integration check verified saves, retries, validation, response isolation, resume and withdrawal through the bridge; its software QA records were removed. A Suspense boundary allows historical replay query parameters to prerender under Next.js. See `docs/VERCEL_DEPLOYMENT.md` for the backend dependency. Vercel deployment is a separate authenticated operation and is not established merely by this source commit.

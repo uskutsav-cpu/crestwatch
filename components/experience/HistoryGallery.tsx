@@ -4,8 +4,8 @@ import { HISTORICAL_RECORDS, historyPoints } from '@/lib/history-records';
 import { replaySummary, splitDailySegments } from '@/lib/replay-summary';
 export function HistoryGallery() {
  return <section className="history-gallery" id="river-memory" aria-labelledby="memory-title">
-  <div className="section-heading"><div><span className="eyebrow">03 / THE RIVER HAS A MEMORY</span><h2 id="memory-title">Every flood leaves a record.</h2></div><SiteLink className="text-button" href="/replay">Open the archive <ArrowUpRight size={16}/></SiteLink></div>
-  <p className="history-intro">Look closer at three recorded floods. Follow the rise, the highest daily mean, and the long way back.</p>
+  <div className="section-heading"><div><span className="eyebrow">03 / THE RIVER HAS A MEMORY</span><h2 id="memory-title">Replay a recorded flood.</h2></div><SiteLink className="text-button" href="/replay">Explore all three <ArrowUpRight size={16}/></SiteLink></div>
+  <p className="history-intro">Watch the water rise and recede using recorded daily readings.</p>
   <div className="history-cards">{HISTORICAL_RECORDS.map((record,i)=>{
     const points=historyPoints(record.id), summary=replaySummary(points,null);
     const lo=Math.min(...points.map(p=>p.stageFt)), hi=Math.max(...points.map(p=>p.stageFt));

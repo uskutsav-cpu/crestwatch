@@ -10,7 +10,7 @@ export const metadata: Metadata = {
     template: "%s · CrestWatch",
   },
   description:
-    "A clearer picture before the water rises. Mississippi river forecasts, the places that matter, and the numbers behind the water.",
+    "Mississippi river forecasts, official impact notes, and animated replays of recorded floods. Built on NOAA and USGS public data.",
   icons: { icon: "/favicon.svg" },
 };
 export default function RootLayout({
