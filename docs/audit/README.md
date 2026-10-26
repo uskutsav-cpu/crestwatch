@@ -1,6 +1,6 @@
 # Automated browser audit evidence
 
-The original supplied CSV is public/evidence/CrestWatch_NOAA_1000_Automated_Checks.csv. Its original 1,000 PASS statuses and the LOW-severity date note are preserved. Run `python3 scripts/prepare-automated-audit.py` to derive summary.json and the lighter public search index. Derivation validates unique IDs and the declared zero-human/zero-study scope. It does not execute or independently reproduce the browser checks. Record identifiers do not substitute for separately available browser traces or screenshots.
+The published CSV, with record-origin labels normalized, is public/evidence/CrestWatch_NOAA_1000_Automated_Checks.csv. Its original 1,000 PASS statuses and the LOW-severity date note are preserved. Run `python3 scripts/prepare-automated-audit.py` to derive summary.json and the lighter public search index. Derivation validates unique IDs and the declared zero-human/zero-study scope. It does not execute or independently reproduce the browser checks. Record identifiers do not substitute for separately available browser traces or screenshots.
 
 The public evidence section is /evidence#automated-audit and is linked from /project. It separates 960 slider scenarios, 40 other checks, four reused NOAA source captures and zero human participants. The separate seven-source verification report remains separate and is not added to the audit count.
 
