@@ -7,10 +7,13 @@ import { impactBriefing } from '@/lib/flood-awareness';
 export function GaugeCompare() {
  const search=useSearchParams(); const initial=search.get('station');
  const [lid,setLid]=useState(STATIONS.some(s=>s.lid===initial)?initial!:'JACM6');
+ const [now,setNow]=useState(Date.now());
  const [detail,setDetail]=useState<RiverDetail|null>(null),[error,setError]=useState(false),[attempt,setAttempt]=useState(0),[selected,setSelected]=useState('');
- useEffect(()=>{let dead=false;setDetail(null);setError(false);setSelected('');fetch(`/api/river/${lid}`).then(async r=>{const d=await r.json() as RiverDetail;if(!r.ok||!d.ok)throw Error();if(!dead)setDetail(d);}).catch(()=>{if(!dead)setError(true);});return()=>{dead=true;};},[lid,attempt]);
+ useEffect(()=>{let dead=false;setDetail(null);setError(false);fetch(`/api/river/${lid}`).then(async r=>{const d=await r.json() as RiverDetail;if(!r.ok||!d.ok)throw Error();if(!dead)setDetail(d);}).catch(()=>{if(!dead)setError(true);});return()=>{dead=true;};},[lid,attempt]);
+ useEffect(()=>{setSelected('');},[lid]);
+ useEffect(()=>{const clock=setInterval(()=>setNow(Date.now()),60000);const refresh=setInterval(()=>setAttempt(a=>a+1),900000);return()=>{clearInterval(clock);clearInterval(refresh);};},[]);
  const crests=detail?.crests??[];const crest=crests.find(c=>`${c.date}|${c.stage}`===selected)??crests[0];
- const now=Date.now();const obs=detail?.observed.filter(p=>isFresh(p.t,2,now)).at(-1);
+ const obs=detail?.observed.filter(p=>isFresh(p.t,2,now)).at(-1);
  const b=detail?impactBriefing(detail.forecast,detail.forecastIssued,detail.categories.minor??null,detail.impacts,now):null;
  const min=Math.min(0,obs?.stageFt??0,b?.high?.stageFt??0,crest?.stage??0);
  const max=Math.max(1,crest?.stage??0,b?.high?.stageFt??0,obs?.stageFt??0,detail?.categories.minor??0)*1.1;
